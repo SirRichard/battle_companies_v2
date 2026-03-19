@@ -91,7 +91,7 @@
   {
     "id": "warrior_of_minas_tirith",
     "label": "Warrior of Minas Tirith",
-    "pointsCost": 7,
+    "pointsCost": 8,
     "keywords": ["man"],
     "baseEquipment": ["armour"],
     "equipmentOptions": {

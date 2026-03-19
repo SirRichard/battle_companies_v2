@@ -11,7 +11,7 @@ export const FACTIONS: Faction[] = [
   { id: 'mordor', label: 'Mordor', alignment: 'evil' },
   { id: 'isengard', label: 'Isengard', alignment: 'evil' },
   { id: 'misty_mountains', label: 'Misty Mountains', alignment: 'evil' },
-  { id: 'mirkwood', label: 'Mirkwood (Evil)', alignment: 'evil' },
+  { id: 'mirkwood', label: 'Mirkwood', alignment: 'evil' },
   { id: 'the_far_east', label: 'The Far East', alignment: 'evil' },
 ]
 
@@ -23,7 +23,7 @@ export const FACTIONS: Faction[] = [
 export const STATS_ENTRY_FIELDS = [
   {
     key: 'move',
-    label: 'Move',
+    label: 'Mv',
     hint: 'e.g. 5 or 6',
     min: 1,
     max: 10,
@@ -32,7 +32,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'fight',
-    label: 'Fight',
+    label: 'Fv',
     hint: 'e.g. 3 or 4',
     min: 1,
     max: 9,
@@ -41,7 +41,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'shoot',
-    label: 'Shoot',
+    label: 'Sv',
     hint: '0 if no bow',
     min: 0,
     max: 9,
@@ -50,7 +50,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'strength',
-    label: 'Strength',
+    label: 'S',
     hint: 'e.g. 3',
     min: 1,
     max: 9,
@@ -59,7 +59,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'defence',
-    label: 'Defence',
+    label: 'D',
     hint: 'e.g. 4 or 5',
     min: 1,
     max: 9,
@@ -68,7 +68,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'attacks',
-    label: 'Attacks',
+    label: 'A',
     hint: 'usually 1',
     min: 1,
     max: 3,
@@ -77,7 +77,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'wounds',
-    label: 'Wounds',
+    label: 'W',
     hint: 'usually 1',
     min: 1,
     max: 3,
@@ -86,7 +86,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'courage',
-    label: 'Courage',
+    label: 'C',
     hint: 'e.g. 3 or 4',
     min: 1,
     max: 7,
@@ -95,7 +95,7 @@ export const STATS_ENTRY_FIELDS = [
   },
   {
     key: 'intelligence',
-    label: 'Intelligence',
+    label: 'I',
     hint: 'e.g. 2',
     min: 1,
     max: 7,
@@ -117,7 +117,7 @@ export const STATS_ENTRY_FIELDS = [
 export const MOUNT_STATS_ENTRY_FIELDS = [
   {
     key: 'move',
-    label: 'Move',
+    label: 'Mv',
     hint: 'e.g. 8 or 10',
     min: 1,
     max: 10,
@@ -126,7 +126,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'fight',
-    label: 'Fight',
+    label: 'Fv',
     hint: 'e.g. 1–3',
     min: 0,
     max: 9,
@@ -135,7 +135,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'shoot',
-    label: 'Shoot',
+    label: 'Sv',
     hint: 'usually 6',
     min: 0,
     max: 9,
@@ -144,7 +144,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'strength',
-    label: 'Strength',
+    label: 'S',
     hint: 'e.g. 3 or 4',
     min: 1,
     max: 9,
@@ -153,7 +153,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'defence',
-    label: 'Defence',
+    label: 'D',
     hint: 'e.g. 3–5',
     min: 1,
     max: 9,
@@ -162,7 +162,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'attacks',
-    label: 'Attacks',
+    label: 'A',
     hint: '0 for horses',
     min: 0,
     max: 3,
@@ -171,7 +171,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'wounds',
-    label: 'Wounds',
+    label: 'W',
     hint: 'usually 1',
     min: 1,
     max: 3,
@@ -180,7 +180,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'courage',
-    label: 'Courage',
+    label: 'C',
     hint: 'e.g. 7 or 8',
     min: 1,
     max: 9,
@@ -189,7 +189,7 @@ export const MOUNT_STATS_ENTRY_FIELDS = [
   },
   {
     key: 'intelligence',
-    label: 'Intelligence',
+    label: 'I',
     hint: 'e.g. 7 or 8',
     min: 1,
     max: 9,

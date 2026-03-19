@@ -17,6 +17,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import type { CompanyDefinition } from '../models'
 import { getCompanyLabel } from '../utils/labels'
+import { calcCompanyRating } from '../utils/rating'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
@@ -193,6 +194,20 @@ export default function LoadCompanyPage() {
                       <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                         <Box>
                           <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                            Rating
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, color: 'primary.main' }}
+                          >
+                            {calcCompanyRating(
+                              company.members,
+                              getStatsForUnit
+                            )}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ opacity: 0.6 }}>
                             Record
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -204,10 +219,7 @@ export default function LoadCompanyPage() {
                           <Typography variant="caption" sx={{ opacity: 0.6 }}>
                             Influence
                           </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700, color: 'primary.main' }}
-                          >
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
                             {company.influence} IP
                           </Typography>
                         </Box>
