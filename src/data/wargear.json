@@ -1,0 +1,373 @@
+[
+  {
+    "id": "armoured_horse",
+    "label": "Armoured Horse",
+    "category": "mount",
+    "influenceCost": 4,
+    "rating": [15, 25]
+  },
+  {
+    "id": "war_goat",
+    "label": "War Goat",
+    "category": "mount",
+    "influenceCost": 4,
+    "rating": [15, 25]
+  },
+  {
+    "id": "galadhrim_steed",
+    "label": "Galadhrim Steed",
+    "category": "mount",
+    "influenceCost": 4,
+    "rating": [15, 25]
+  },
+  {
+    "id": "horse",
+    "label": "Horse",
+    "category": "mount",
+    "influenceCost": 3,
+    "rating": [10, 20]
+  },
+  {
+    "id": "fell_warg",
+    "label": "Fell Warg",
+    "category": "mount",
+    "influenceCost": 3,
+    "rating": [10, 20]
+  },
+  {
+    "id": "warg",
+    "label": "Warg",
+    "category": "mount",
+    "influenceCost": 3,
+    "rating": [10, 20]
+  },
+  {
+    "id": "bow",
+    "label": "Bow",
+    "category": "bow",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "dwarf_bow",
+    "label": "Dwarf Bow",
+    "category": "bow",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "uruk_hai_bow",
+    "label": "Uruk-Hai Bow",
+    "category": "bow",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "orc_bow",
+    "label": "Orc Bow",
+    "category": "bow",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "short_bow",
+    "label": "Short Bow",
+    "category": "bow",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "elf_bow",
+    "label": "Elf Bow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "esgaroth_bow",
+    "label": "Esgaroth Bow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "longbow",
+    "label": "Longbow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "dwarf_longbow",
+    "label": "Dwarf Longbow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "crossbow",
+    "label": "Crossbow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "uruk_hai_crossbow",
+    "label": "Uruk-Hai Crossbow",
+    "category": "bow",
+    "influenceCost": 2,
+    "rating": [2, 5]
+  },
+  {
+    "id": "blowpipe",
+    "label": "Blowpipe",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "throwing_weapons",
+    "label": "Throwing Weapons",
+    "category": "throwing",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "elven_throwing_weapons",
+    "label": "Elven Throwing Weapons",
+    "category": "throwing",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "throwing_spears",
+    "label": "Throwing Spears",
+    "category": "throwing",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "whip",
+    "label": "Whip",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "pike",
+    "label": "Pike",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "elven_pike",
+    "label": "Elven Pike",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "easterling_halberd",
+    "label": "Easterling Halberd",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "spear",
+    "label": "Spear",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "wood_elf_spear",
+    "label": "Wood Elf Spear",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "elven_spear",
+    "label": "Elven Spear",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "foe_spear",
+    "label": "Foe Spear",
+    "category": "weapon",
+    "purchasable": false
+  },
+  {
+    "id": "elven_glaive",
+    "label": "Elven Glaive",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "lance",
+    "label": "Lance",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "elven_lance",
+    "label": "Elven Lance",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "war_spear",
+    "label": "War Spear",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "hand_and_half_weapon",
+    "label": "Hand and a Half Weapon",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "elven_hand_and_half_weapon",
+    "label": "Elven Hand and a Half Weapon",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "twin_blades",
+    "label": "Twin Blades",
+    "category": "weapon",
+    "purchasable": false
+  },
+  {
+    "id": "two_handed_axe",
+    "label": "Two-Handed Axe",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "two_handed_weapon",
+    "label": "Two-Handed Weapon",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "mattock",
+    "label": "Mattock",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "axe_of_lossarnach",
+    "label": "Axe of Lossarnach",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "dunlending_war_axe",
+    "label": "Dunlending War Axe",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "flaming_brand",
+    "label": "Flaming Brand",
+    "category": "weapon",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "troll_chain",
+    "label": "Troll Chain",
+    "category": "weapon",
+    "purchasable": false
+  },
+  {
+    "id": "troll_spear",
+    "label": "Troll Spear",
+    "category": "weapon",
+    "purchasable": false
+  },
+  {
+    "id": "light_shield",
+    "label": "Light Shield",
+    "category": "shield",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "shield",
+    "label": "Shield",
+    "category": "shield",
+    "influenceCost": 1,
+    "rating": [1, 5]
+  },
+  {
+    "id": "iron_shield",
+    "label": "Iron Shield",
+    "category": "shield",
+    "purchasable": false
+  },
+  {
+    "id": "pavise",
+    "label": "Pavise",
+    "category": "shield",
+    "purchasable": false
+  },
+  {
+    "id": "light_armour",
+    "label": "Light Armour",
+    "category": "armour_1",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "armour",
+    "label": "Armour",
+    "category": "armour_2",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "heavy_armour",
+    "label": "Heavy Armour",
+    "category": "armour_3",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "dwarf_armour",
+    "label": "Dwarf Armour",
+    "category": "armour_3",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "heavy_dwarf_armour",
+    "label": "Heavy Dwarf Armour",
+    "category": "armour_4",
+    "influenceCost": 1,
+    "rating": [2, 5]
+  },
+  {
+    "id": "elven_cloak",
+    "label": "Elven Cloak",
+    "category": "special",
+    "purchasable": false
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "chance_encounter",
+    "label": "Chance Encounter",
+    "firstRollRange": [1, 2],
+    "secondRoll": 1
+  },
+  {
+    "id": "show_of_strength",
+    "label": "Show of Strength",
+    "firstRollRange": [1, 2],
+    "secondRoll": 2
+  },
+  {
+    "id": "the_wolves_attack",
+    "label": "The Wolves Attack",
+    "firstRollRange": [1, 2],
+    "secondRoll": 3
+  },
+  {
+    "id": "fog_of_war",
+    "label": "Fog of War",
+    "firstRollRange": [1, 2],
+    "secondRoll": 4
+  },
+  {
+    "id": "tame_the_beast",
+    "label": "Tame the Beast",
+    "firstRollRange": [1, 2],
+    "secondRoll": 5
+  },
+  {
+    "id": "rescue",
+    "label": "Rescue",
+    "firstRollRange": [1, 2],
+    "secondRoll": 6
+  },
+  {
+    "id": "relic_of_ages_past",
+    "label": "Relic of Ages Past",
+    "firstRollRange": [3, 4],
+    "secondRoll": 1
+  },
+  {
+    "id": "seize_ground",
+    "label": "Seize Ground",
+    "firstRollRange": [3, 4],
+    "secondRoll": 2
+  },
+  {
+    "id": "sites_of_power",
+    "label": "Sites of Power",
+    "firstRollRange": [3, 4],
+    "secondRoll": 3
+  },
+  {
+    "id": "plunder_the_supplies",
+    "label": "Plunder the Supplies",
+    "firstRollRange": [3, 4],
+    "secondRoll": 4
+  },
+  {
+    "id": "hoard_of_treasures",
+    "label": "Hoard of Treasures",
+    "firstRollRange": [3, 4],
+    "secondRoll": 5
+  },
+  {
+    "id": "scavenge_the_battlefield",
+    "label": "Scavenge the Battlefield",
+    "firstRollRange": [3, 4],
+    "secondRoll": 6
+  },
+  {
+    "id": "secure_the_area",
+    "label": "Secure the Area",
+    "firstRollRange": [5, 6],
+    "secondRoll": 1
+  },
+  {
+    "id": "stand_your_ground",
+    "label": "Stand Your Ground",
+    "firstRollRange": [5, 6],
+    "secondRoll": 2
+  },
+  {
+    "id": "hold_the_line",
+    "label": "Hold the Line",
+    "firstRollRange": [5, 6],
+    "secondRoll": 3
+  },
+  {
+    "id": "defend_the_gate",
+    "label": "Defend the Gate",
+    "firstRollRange": [5, 6],
+    "secondRoll": 4
+  },
+  {
+    "id": "seize_the_outpost",
+    "label": "Seize the Outpost",
+    "firstRollRange": [5, 6],
+    "secondRoll": 5
+  },
+  {
+    "id": "baggage_train",
+    "label": "Baggage Train",
+    "firstRollRange": [5, 6],
+    "secondRoll": 6
+  }
+]

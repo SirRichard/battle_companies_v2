@@ -1,0 +1,68 @@
+[
+  {
+    "id": "baggage_pony",
+    "label": "Baggage Pony",
+    "keywords": ["beast"],
+    "baseSize": 40,
+    "pointsCost": 5,
+    "influenceCost": 2,
+    "stats": {
+      "move": 8,
+      "fight": 2,
+      "shoot": null,
+      "strength": 3,
+      "defence": 4,
+      "attacks": 1,
+      "wounds": 1,
+      "courage": 8,
+      "intelligence": 8
+    },
+    "specialRules": ["fearful", "laden_with_baggage"],
+    "description": "A Baggage Pony has a carrying capacity of up to 15 pieces of Equipment, weapons or additional wargear (except mounts). Whilst these pieces are on the Packhorse, the company gains no benefit from them. During the War’s Aftermath, after determining injuries but before determining the next scenario, any member of a Battle Company may retrieve, store, or swap one of its pieces of Wargear or Equipment for an item from the Pony. During a scenario, any member of a Battle Company that begins its turn in base contact with the Pony may do likewise. Note that your Battle Company must still abide by the Wargear Limits at all times and each member must follow restrictions for Warriors and Heroes as normal.",
+    "onTheirOwnPath": true
+  },
+  {
+    "id": "falcon",
+    "label": "Falcon",
+    "keywords": ["beast"],
+    "baseSize": 25,
+    "pointsCost": 10,
+    "influenceCost": 3,
+    "stats": {
+      "move": 12,
+      "fight": 2,
+      "shoot": null,
+      "strength": 3,
+      "defence": 3,
+      "attacks": 1,
+      "wounds": 1,
+      "courage": 7,
+      "intelligence": 7
+    },
+    "specialRules": ["fly", "handlers_glove", "keen_sight"],
+    "description": "Enemy models within 12\" of a Falcon that is separate from its Hero may not benefit from the Stalk Unseen special rule.",
+    "onTheirOwnPath": true
+  },
+  {
+    "id": "hunting_dog",
+    "label": "Hunting Dog",
+    "keywords": ["beast"],
+    "baseSize": 25,
+    "pointsCost": 5,
+    "influenceCost": 2,
+    "stats": {
+      "move": 8,
+      "fight": 3,
+      "shoot": null,
+      "strength": 3,
+      "defence": 3,
+      "attacks": 1,
+      "wounds": 1,
+      "courage": null,
+      "intelligence": 7
+    },
+    "specialRules": ["courage_matches_master"],
+    "description": "A Hunting Dog always has the same Courage value as its master.",
+    "onTheirOwnPath": true
+  }
+]

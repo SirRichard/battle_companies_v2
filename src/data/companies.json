@@ -1,0 +1,4048 @@
+[
+  {
+    "id": "arnor",
+    "label": "Arnor",
+    "factionId": "gondor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "Arnor was once a great realm, formed by Elendil in the Second Age, however, by the dwindling years of the Third Age, Arnor had fallen into ruin; a shadow of its former glory. Yet in days gone by, even as it fell into despair, the Kings of Arnor would send out patrols of their warriors to protect the realm against the swarms of fell creatures under the Witch-king’s command.",
+      "Those who led these small patrols were warriors who were destined to command Arnor’s armies, but did not yet possess the experience required to lead. They would set out from Fornost with their loyal companions to fend off the Orc raiding parties that threatened their home. These warbands were also used by the kings of old to explore the crumbling ruins that were once Arnor’s cities, abandoned long ago, insearch of heirlooms of their forebears."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "ranger_hero_promotion",
+        "title": "Leave all that can be spared behind. We travel light.",
+        "flavor": "As Arnor fell, the Dunedain grew wilder and more dangerous in their vigil",
+        "description": "Should a Ranger of Arnor achieve a hero promotion, they instead trade out their profile in its entirety for a Ranger of the North profile. They will retain their spear, if applicable, however, they will not carry over their armour."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "warrior_of_arnor",
+        "count": 4
+      },
+      {
+        "baseUnitId": "ranger_of_arnor",
+        "count": 3
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_arnor",
+        "toBaseUnitId": "knight_of_arnor"
+      },
+      {
+        "fromBaseUnitId": "ranger_of_arnor",
+        "toBaseUnitId": "ranger_of_the_north",
+        "heroPromotion": true,
+        "heroPromotionOnly": true,
+        "equipmentCarryOver": ["spear"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "unit",
+        "baseUnitId": "warrior_of_arnor"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "ranger_of_arnor"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "ranger_of_arnor",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "knight_of_arnor"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "foresight_of_the_seer",
+        "label": "Foresight of the Seer",
+        "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 6, the Wound is ignored. If this Hero would later gain a special rule with the same effect (e.g. Oblivious to Pain) then treat that special rule as improving Foresight of the Seer to a natural 5+."
+      }
+    ]
+  },
+  {
+    "id": "fiefdoms",
+    "label": "Fiefdoms",
+    "factionId": "gondor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Since the days of old, the Fiefdoms of Gondor have been pledged to defend her in times of need. Many of the cities under Gondor’s protection host skilled standing armies with warriors prepared to do their duty, yet peace remains out of reach. Packs of Orcs will often attack cities and outposts, intent on bringing death and ruin to their people, and Corsair slave raids are commonplace on the coastlines to the south.",
+      "It is because of this that bands of warriors from the major cities of Gondor’s Fiefdoms patrol the lands of Gondor to protect the race of Men against the threat of Mordor. Often, an aspiring Swan Knight from Dol Amroth will gather Men from Lossarnach, Lamedon, and Morthond in order to venture forth and quell the threats that stalk their lands."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "pride_of_dol_amroth",
+        "title": "Pride of Dol Amroth",
+        "description": "Friendly Dol Amroth models treat the Leader as Prince Imrahil for the purposes of their Pride of Dol Amroth special rule."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "knight_of_dol_amroth",
+        "count": 1,
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "clansman_of_lamedon",
+        "count": 3
+      },
+      {
+        "baseUnitId": "axeman_of_lossarnach",
+        "count": 1
+      },
+      {
+        "baseUnitId": "blackroot_vale_archer",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "man_at_arms_of_dol_amroth",
+        "toBaseUnitId": "knight_of_dol_amroth"
+      },
+      {
+        "fromBaseUnitId": "knight_of_dol_amroth",
+        "toBaseUnitId": "knight_of_dol_amroth",
+        "equipment": ["armoured_horse"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "clansman_of_lamedon"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "blackroot_vale_archer"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "axeman_of_lossarnach"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "man_at_arms_of_dol_amroth"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "knight_of_dol_amroth"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "baseUnitIds": ["knight_of_dol_amroth", "man_at_arms_of_dol_amroth"],
+        "id": "lord_of_dol_amroth",
+        "label": "Lord of Dol Amroth",
+        "description": "Other friendly Dol Amroth models treat this Hero as a banner with a range of 6\"."
+      },
+      {
+        "baseUnitIds": ["axeman_of_lossarnach"],
+        "id": "lord_of_lossarnach",
+        "label": "Lord of Lossarnach",
+        "description": "Other friendly Lossarnach models within 3\" of this Hero may re-roll To Wound Rolls of a natural 1 when making Strikes."
+      },
+      {
+        "baseUnitIds": ["clansman_of_lamedon"],
+        "id": "chief_of_lamedon",
+        "label": "Chief of Lamedon",
+        "description": "Other friendly Lamedon models within 3\" of this Hero automatically pass any Courage Tests they are required to take."
+      },
+      {
+        "baseUnitIds": ["blackroot_vale_archer"],
+        "id": "lord_of_the_vale",
+        "label": "Lord of the Vale",
+        "description": "Other friendly models within 3\" of this Hero may re-roll To Hit Rolls of a 1 when making a shooting attack in the Shoot Phase, provided they did not Move in the preceding Move Phase."
+      }
+    ]
+  },
+  {
+    "id": "fornost",
+    "label": "Fornost",
+    "factionId": "gondor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 1,
+
+    "flavorTexts": [
+      "At the time when the Kingdom of Arnor was crumbling and embroiled in constant war with the forces of the Witch-king, Arvedui sent messages requesting aid to Gondor, Arnor’s sister kingdom in the south. However, Gondor itself was at war with Mordor and its allies to the east and south, and was unable to send aid northwards with as much haste as they would have liked",
+      "Yet Gondor will not fight alone against the darkness. Elves gathered the remnants of the people of Arnor that were scattered to the forest of the northern lands; even the Hobbits of the Shire sent a small band of Bounders to join the fight. Together, the combined forces of Men and Elves (and Hobbits) will wage war upon Angmar to avenge the Kingdom of Arnor that now lies in ruins."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "reinforcement_substitution",
+        "title": "Reinforcement Substitution",
+        "description": "You may replace result 2 - 6 on the standard reinforcement chart with a Hobbit Archer.",
+        "reinforcementSubstitution": [
+          {
+            "baseUnitId": "hobbit_archer",
+            "appliesTo": [2, 3, 4, 5, 6],
+            "prompt": "Instead of your rolled result, you may recruit a Hobbit Archer."
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["spear", "shield"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "hobbit_archer",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_minas_tirith",
+        "toBaseUnitId": "knight_of_minas_tirith"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["spear", "shield"]
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "ranger_of_arnor"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "unit",
+        "baseUnitId": "knight_of_minas_tirith"
+      },
+      {
+        "roll": [4, 5, 6],
+        "result": "choice",
+        "baseUnitId": "rivendell_warrior",
+        "rare": 5
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "defiance",
+        "label": "Defiance",
+        "flavor": "Though Arnor has fallen, these brave people will stop at nothing to avenge the kingdom.",
+        "description": "This Hero cannot have their Courage value reduced by enemy special rules or Magical Powers."
+      }
+    ]
+  },
+  {
+    "id": "minas_tirith",
+    "label": "Minas Tirith",
+    "factionId": "gondor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "Known as the Tower of the Guard, the mighty walled city of Minas Tirith is the bulwark that has kept the endless legions of the Red Eye at bay through the long and gruelling centuries. Mighty though her ramparts are, the defenders of the White City cannot stand idle behind their fortifications and hope for victory. Instead, at the Steward’s orders, warbands and patrols must constantly venture forth, hunting down the spies of Mordor and guarding key locations such as river-crossings and vantage points.",
+      "For the warriors of Minas Tirith selected for such duties, great risk and thrilling adventure beckon – success will see promotion, glory and riches, for nothing in the land of Gondor is valued more than the courage and strength required to keep its lands safe."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["spear", "shield"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["shield"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_minas_tirith",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "knight_of_minas_tirith"
+      },
+      {
+        "fromBaseUnitId": "warrior_of_minas_tirith",
+        "requiredEquipment": ["bow"],
+        "toBaseUnitId": "citadel_guard"
+      },
+      {
+        "fromBaseUnitId": "citadel_guard",
+        "requiredEquipment": ["spear"],
+        "toBaseUnitId": "guard_of_the_fountain_court"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "warrior_of_minas_tirith",
+        "equipment": ["spear", "shield"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "warrior_of_minas_tirith"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "choice",
+        "baseUnitId": "citadel_guard"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "knight_of_minas_tirith"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "guard_of_the_fountain_court"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "charge_of_gondor",
+        "label": "The Charge of Gondor",
+        "description": "This Hero gains a bonus of +1 to their Fight Value in a Combat in which they have charged."
+      }
+    ]
+  },
+  {
+    "id": "osgiliath_and_ithilien",
+    "label": "Osgiliath & Ithilien",
+    "factionId": "gondor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "The city of Osgiliath has had a varied and turbulent past. Once, it stood tall and proud as the capital of the realm of Gondor; a beacon of hope and valour against the growing threat of Mordor. Over time, it became ravaged by war, eventually falling into ruin. Since those days, it has been the site for many a battle between Gondor and its foes, and in the later years of the Third Age it has been garrisoned by the forces of Gondor as a stronghold.",
+      "Often, small groups made up of those stationed within Osgiliath’s ruined walls are sent out from the city and into the wilderness. These bands would journey east to the edge of the realm of Gondor in search of invaders. It is not unheard of for these companies to venture even further out to give aid to settlements and allies that are under threat from the forces of Evil."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "loyal_to_the_captains",
+        "title": "Loyal to the Captains",
+        "description": "Models in this Battle Company treat the Leader as Faramir for the purposes of their Loyal to the Captains special rule."
+      },
+      {
+        "id": "bow_limit",
+        "title": "Bow Limit",
+        "description": "This Battle Company may have up to 50% of its models armed with a bow rather than 33%.",
+        "limitOverrides": [
+          {
+            "bowLimit": 0.5
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "osgiliath_veteran",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "ranger_of_gondor",
+        "count": 1
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["shield", "spear"]
+      },
+      {
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 1,
+        "equipment": ["shield"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_minas_tirith",
+        "toBaseUnitId": "osgiliath_veteran"
+      },
+      {
+        "fromBaseUnitId": "ranger_of_gondor",
+        "toBaseUnitId": "ranger_of_ithilien"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_minas_tirith"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "ranger_of_gondor"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "ranger_of_gondor",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "choice",
+        "baseUnitId": "osgiliath_veteran"
+      },
+      {
+        "roll": [4, 5, 6],
+        "result": "unit",
+        "baseUnitId": "knight_of_minas_tirith",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "remember_today",
+        "label": "Remember Today",
+        "flavor": "The Rangers of Ithilien have mastered ways of communicating that appear to be natural, and use this to plan with one another while lying in ambush.",
+        "description": "This Hero may use the Might, Will, and Fate points of another friendly Hero within 3\"."
+      }
+    ]
+  },
+  {
+    "id": "the_last_alliance",
+    "label": "The Last Alliance",
+    "factionId": ["gondor", "elven_realms"],
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 1,
+
+    "flavorTexts": [
+      "In the closing years of the Second Age, the armies of Gil-galad and Elendil formed a compact that would become known as the Last Alliance of Men and Elves, to combat the ever-growing threat of Sauron. Marching to war upon the black lands of Mordor, they fought for many years against the hordes of Orcs that Sauron sent to oppose them. During these blighted years, it was not unusual for Gil-galad and Elendil to send small bands of their warriors to venture into Mordor to undermine the armies of the Dark Lord.",
+      "These companies would be tasked with dealing with enemy scouts before they could give away their army’s position, capturing small Orc outposts, or even assassinating leaders of the Orcish armies. As these companies of Men and Elves fought together, the bonds between them grew to a point where they would fight better when alongside their allies than even when alongside those of their own race."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "numenor_stands_alone",
+        "title": "Numenor Stands Alone!",
+        "description": "If you wish to represent Númenór by themselves, you may choose to create a company of Warriors of Númenór exclusively."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 2
+      },
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_numenor",
+        "count": 3,
+        "equipment": ["shield"]
+      }
+    ],
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none",
+        "label": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_numenor"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "rivendell_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "includeRolls": [2, 4]
+      }
+    ],
+
+    "variants": [
+      {
+        "id": "last_alliance_standard",
+        "label": "The Last Alliance",
+        "isDefault": true
+      },
+      {
+        "id": "last_alliance_numenorean",
+        "label": "The Last Alliance (Númenórean)",
+        "isDefault": false,
+        "visibleFromFactions": ["gondor"],
+        "startingRoster": [
+          {
+            "baseUnitId": "warrior_of_numenor",
+            "count": 6,
+            "equipment": ["shield"]
+          }
+        ],
+        "reinforcementTable": [
+          {
+            "roll": [1],
+            "result": "none",
+            "label": "none"
+          },
+          {
+            "roll": [2, 3, 4, 5, 6],
+            "result": "choice",
+            "baseUnitId": "warrior_of_numenor"
+          }
+        ]
+      }
+    ],
+
+    "advancements": [],
+
+    "heroUpgrade": [
+      {
+        "id": "there_were_some_who_resisted",
+        "label": "There Were Some Who Resisted",
+        "flavor": "The alliance forged between Men and Elves has brought out the best in both races as they fight against the Dark Lord.",
+        "description": "The Hero may re-roll any dice that roll a 1 when making Courage Tests."
+      }
+    ]
+  },
+  {
+    "id": "helms_deep",
+    "label": "Helm's Deep",
+    "factionId": "rohan",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 1,
+
+    "flavorTexts": [
+      "The assault upon the Westfold has forced the people of Rohan to flee to the sanctuary of Helm’s Deep; the attack on their lands having highlighted their need for greater protection and taller walls. Having journeyed across Rohan, and survived the ambush of the Wolves of Isengard, the Rohirrim have reached Helm’s Deep and begin to prepare for the inevitable battle against the armies of the White Wizard.",
+      "As the legions of Saruman’s fighting Uruk-hai come into view, the heavens open and begin a downpour upon the fortress of Helm’s Deep. Théoden stands atop the Hornburg with his trusted guard, ready to command his forces in the coming battle. Upon the Deeping Wall, ranks of Men and Elves stand side-by-side with one another, honouring the allegiance that stood between Elendil and Gil-galad over three thousand years ago."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "elf_limit",
+        "title": "Elven Reinforcements",
+        "description": "No more than 33% of your company may include models with the Elf keyword."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "ranger_of_the_north",
+        "count": 1,
+        "equipment": ["armour"],
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "dwarf_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"],
+        "mustBeSergeant": true
+      },
+      {
+        "baseUnitId": "lothlorien_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"],
+        "mustBeSergeant": true
+      },
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 1,
+        "equipment": ["throwing_spears", "shield"]
+      },
+      {
+        "baseUnitId": "galadhrim_warrior",
+        "count": 1
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "toBaseUnitId": "helminga",
+        "retainWargear": true
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_rohan"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "helminga"
+      },
+      {
+        "roll": [6],
+        "result": "choice",
+        "baseUnitId": "galadhrim_warrior"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "one_final_blow",
+        "label": "One Final Blow",
+        "flavor": "A resolute warrior, this defender will not go down without a fight.",
+        "description": "If this Hero is slain, they may immediately make one Strike on each enemy model that was Engaged with them using their base Strength."
+      }
+    ]
+  },
+  {
+    "id": "paths_of_the_druadan",
+    "label": "Paths of the Druadan",
+    "factionId": "rohan",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 5,
+
+    "flavorTexts": [
+      "Having decided to answer Gondor’s call for aid, Théoden led as many men as he could muster as they rode to the White City to face the might of Mordor head-on. Yet the road to Minas Tirith is long and fraught with danger, and so the venerable king sent advance parties with trusted members of Ghân-buri-Ghân’s Woses Warriors to assist them.",
+      "The combined forces of these two fierce peoples prove deadly when side-by-side, and using paths that only the Woses now remember, the Rohirrim are able to chase down and fell the Orc-folk even as they try to escape through the Drúadan Forest; for the alliance of Rohan and the Woses has proven to be one that can bring the fight to any that oppose them."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "arise_riders_of_rohan",
+        "title": "Arise, Riders of Rohan!",
+        "description": "All Rohan Hero models gain the Arise, Riders of Rohan! special rule. Riders of Rohan in this Battle Company do not count towards your Bow Limit.",
+        "limitExemptions": {
+          "bow": ["rider_of_rohan"]
+        }
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 3,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "rohan_outrider",
+        "count": 2
+      },
+      {
+        "baseUnitId": "woses_warrior",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "toBaseUnitId": "rider_of_rohan"
+      },
+      {
+        "fromBaseUnitId": "rohan_outrider",
+        "toBaseUnitId": "rohan_outrider",
+        "equipment": ["horse"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "warrior_of_rohan",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "warrior_of_rohan",
+        "equipment": ["throwing_spears", "shield"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "rohan_outrider"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "woses_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "includeRolls": [2, 3, 4, 5]
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "know_all_paths",
+        "label": "Know All Paths",
+        "flavor": "The Woses’ knowledge of forest paths and usually difficult terrain is an invaluable asset to the Rohirrim, allowing them to unleash the full fury of their cavalry charge upon their foes.",
+        "description": "This Hero and their Mount, if applicable, gain the Woodland Creature special rule."
+      }
+    ]
+  },
+  {
+    "id": "rohan",
+    "label": "Rohan",
+    "factionId": "rohan",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 2,
+
+    "flavorTexts": [
+      "Though Rohan is a lush and fertile land of rolling plains and gentle hills, it is a kingdom much used to the cruelty of war. Constant raids from the neighbouring Dunlendings, and a history of battle against foes as varied as Orcs and even the Variags of Khand, have forced the men of the Mark to keep a watchful eye over their domain. Across Rohan, her people gather within the palisades of fortified towns and villages, never straying far from safety.",
+      "To ensure that the lands between these settlements are free of invaders, constant patrols march along Rohan’s borders and guard her roadways, well-armed and ready to drive back evil-doers. Such a duty might seem ignominious to some, but for those who wish to demonstrate their worth to the Marshals of the Mark, there is no better proving ground. Thus can Rohan’s captains find a ready supply of young fighters, full of bravado and the confidence of youth, eager to prove themselves. Those who take up these duties either return as settled, experienced warriors… or they do not return at all."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "arise_riders_of_rohan",
+        "title": "Arise, Riders of Rohan!",
+        "description": "All Rohan Hero models gain the Arise, Riders of Rohan! special rule. Riders of Rohan in this Battle Company do not count towards your Bow Limit nor Cavalry Limit.",
+        "limitExemptions": {
+          "bow": ["rider_of_rohan"],
+          "cavalry": ["rider_of_rohan"]
+        }
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "rider_of_rohan",
+        "count": 1
+      },
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 1,
+        "equipment": ["throwing_spears", "shield"]
+      },
+      {
+        "baseUnitId": "warrior_of_rohan",
+        "count": 4,
+        "equipment": ["shield"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "rider_of_rohan"
+      },
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "rohan_royal_guard"
+      },
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "requiredEquipment": ["bow"],
+        "toBaseUnitId": "rider_of_rohan"
+      },
+      {
+        "fromBaseUnitId": "warrior_of_rohan",
+        "requiredEquipment": ["bow"],
+        "toBaseUnitId": "rohan_outrider"
+      },
+      {
+        "fromBaseUnitId": "rohan_royal_guard",
+        "toBaseUnitId": "rohan_royal_guard",
+        "equipment": ["horse"]
+      },
+      {
+        "fromBaseUnitId": "rohan_outrider",
+        "toBaseUnitId": "rohan_outrider",
+        "equipment": ["horse"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "warrior_of_rohan",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "warrior_of_rohan",
+        "equipment": ["throwing_spears", "shield"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "warrior_of_rohan",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "warrior_of_rohan"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1],
+        "result": "unit",
+        "baseUnitId": "rohan_outrider"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "rohan_royal_guard"
+      },
+      {
+        "roll": [3],
+        "result": "choice",
+        "baseUnitId": "rider_of_rohan"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "rohan_royal_guard",
+        "equipment": ["horse"]
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "son_of_eorl"
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "includeRolls": [1, 2, 3, 4, 5]
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "back_on_your_horses",
+        "label": "Back On Your Horses!",
+        "flavor": "Should the leadership of the company find themselves unhorsed, the Rohirrim will gladly give up their own mounts to see their leaders ride again.",
+        "description": "If the Hero started the scenario as a Cavalry model they may benefit from the following rule: At the end of this Hero’s move, if they are in base contact with a friendly Cavalry Warrior model who is not Engaged in Combat, then the Warrior may give the Hero their horse. Replace the Warrior model with a suitable dismount, and replace the Hero with their original mounted version. The Warrior will be placed in the same place the Hero was, and vice versa. The Hero will only count as riding a standard horse after using this rule."
+      }
+    ]
+  },
+  {
+    "id": "halls_of_thranduil",
+    "label": "Halls of Thranduil",
+    "factionId": "elven_realms",
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 4,
+
+    "flavorTexts": [
+      "Deep within Mirkwood can be found the halls of the Elvenking, Thranduil. This woodland realm is kept hidden within the forest, away from prying eyes and Evil thoughts. Thranduil cares little for the world beyond his realm and will not waste precious lives in keeping it safe. Yet as the years have gone by, even the Elvenking has come to acknowledge the growing threat that is beginning to rise in the old fortress of Dol Guldur.",
+      "More and more frequently, the Elvenking has commanded patrols to go out into Mirkwood and clear out the Evil creatures that lurk in the gloom. For the spiders that once resided solely in Dol Guldur have become more brazen and vicious, creeping further and further north, towards the halls of Thranduil. Those in charge of the Elvenking’s patrols are tasked with clearing out these spider nests and protecting Mirkwood from all manner of unwelcome ‘guests’."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "chosen_by_the_king",
+        "title": "Chosen by the King",
+        "description": "Palace Guard & Mirkwood Cavalry in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "mirkwood_elf_warrior",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "mirkwood_elf_warrior",
+        "count": 2,
+        "equipment": ["elven_glaive"]
+      },
+      {
+        "baseUnitId": "mirkwood_ranger",
+        "count": 1
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "mirkwood_elf_warrior",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "palace_guard",
+        "equipment": ["shield"]
+      },
+      {
+        "fromBaseUnitId": "mirkwood_elf_warrior",
+        "requiredEquipment": ["elven_glaive"],
+        "toBaseUnitId": "mirkwood_elf_knight"
+      },
+      {
+        "fromBaseUnitId": "mirkwood_elf_warrior",
+        "requiredEquipment": ["elf_bow"],
+        "toBaseUnitId": "mirkwood_ranger"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "mirkwood_elf_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "mirkwood_elf_warrior",
+        "equipment": ["elven_glaive"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "mirkwood_elf_warrior",
+        "equipment": ["elf_bow"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "mirkwood_elf_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "choice",
+        "baseUnitId": "palace_guard"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "mirkwood_ranger"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "mirkwood_elf_knight"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "bladelord",
+        "label": "Bladelord",
+        "flavor": "This hero is a swordsman of consummate skill who few can hope to match should they cross blades with them.",
+        "description": "If they are Outnumbered in a Combat, this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. If they have the Infantry keyword and are Outnumbered in a Combat, this Hero may instead re-roll all failed To Wound Rolls when making Strikes."
+      }
+    ],
+
+    "uniqueWargear": [
+      {
+        "equipmentId": "elven_glaive",
+        "label": "Elven-Made Glaive",
+        "influenceCost": 1,
+        "rating": [2, 5]
+      }
+    ]
+  },
+  {
+    "id": "lothlorien",
+    "label": "Lothlorien",
+    "factionId": "elven_realms",
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 3,
+
+    "flavorTexts": [
+      "Home to Galadriel, the Lady of Light, and the Elven ring of Nenya, Lothlórien is well guarded by the Elves who live there. Few are ever permitted to pass through the Golden Wood, but those who are granted this honour are met by the Lord and Lady of Lórien in good spirits. Yet the woodland realm of Lórien has come under threat from Evil in the past, as packs of Orcs, Goblins and other Evil creatures constantly seek to infiltrate its boughs.",
+      "It is because of this that the Galadhrim wander the well-trodden paths of Lothlórien, ensuring that they are free of Evil and that peace remains. The Elves who lead these patrols are veterans of Ages past, experienced in ways of combat from the many wars they have fought. It is not unheard of for these Elves to range out into Middle-earth in search of Sauron’s forces, intent on seeing the Dark Lord finally vanquished."
+    ],
+
+    "companySpecialRules": [{ "id": "elite_company" }],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "lothlorien_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
+        "baseUnitId": "galadhrim_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
+        "baseUnitId": "lothlorien_warrior",
+        "count": 1,
+        "equipment": ["wood_elf_spear"]
+      },
+      {
+        "baseUnitId": "galadhrim_warrior",
+        "count": 1,
+        "equipment": ["elven_spear"]
+      },
+      {
+        "baseUnitId": "lothlorien_warrior",
+        "count": 1
+      },
+      {
+        "baseUnitId": "galadhrim_warrior",
+        "count": 1
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "lothlorien_warrior",
+        "toBaseUnitId": "galadhrim_warrior"
+      },
+      {
+        "fromBaseUnitId": "lothlorien_warrior",
+        "requiredEquipment": ["wood_elf_spear"],
+        "toBaseUnitId": "galadhrim_warrior",
+        "equipment": ["elven_spear"]
+      },
+      {
+        "fromBaseUnitId": "galadhrim_warrior",
+        "toBaseUnitId": "lorien_guard"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "lothlorien_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "galadhrim_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "choice",
+        "baseUnitId": "galadhrim_knight"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "guard_of_the_galadhrim_court"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "wood_elf_sentinel"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "blessing_of_the_golden_wood",
+        "label": "Blessing of the Golden Wood",
+        "flavor": "Through the blessing of Galadriel, fortune smiles upon the hero, keeping them from harm.",
+        "description": "The Hero may re-roll any failed Fate rolls."
+      }
+    ]
+  },
+  {
+    "id": "rivendell",
+    "label": "Rivendell",
+    "factionId": "elven_realms",
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 2,
+
+    "flavorTexts": [
+      "Located in the hidden valley in the western foothills of The Misty Mountains, Rivendell endures under the protection of Elrond and the Elven ring that he possesses. The power of Vilya has kept Rivendell safe, and made it a place of peace and refuge to all of the Free Peoples of Middle-earth, earning it the name ‘The Last Homely House’.",
+      "However, even places such as Rivendell need protection from the ever-growing Evil in the Third Age. Under Lord Elrond’s orders, Elven captains patrol Rivendell’s borders, making sure that they are kept free from foul creatures that would bring destruction upon them. Although rare, it has been known for the Elven patrols from Rivendell to venture further beyond their borders, offering aid to those in need against the forces of Sauron."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "noldorin_exile",
+        "title": "Noldorin Exile",
+        "description": "A Noldorin Exile is a Lothlorien Warrior with Gildor Inglorion’s unique Noldorin Exile upgrade (see Legacies of Middle-Earth - Forces of Good pg. 11 of 22)."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 4
+      },
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 2,
+        "equipment": ["elf_bow"]
+      }
+    ],
+
+    "advancements": [],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "rivendell_warrior"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "rivendell_warrior",
+        "equipment": ["spear", "shield"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "rivendell_warrior",
+        "equipment": ["elf_bow"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "rivendell_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "choice",
+        "baseUnitId": "noldorin_exile"
+      },
+      {
+        "roll": [4, 5, 6],
+        "result": "unit",
+        "baseUnitId": "rivendell_knight"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "veteran_of_the_old_wars",
+        "label": "Veteran of the Old Wars",
+        "flavor": "A skilled warrior that has fought in many wars across the ages, this hero strikes fear into the hearts of their foes.",
+        "description": "This Hero gains the Terror special rule."
+      }
+    ]
+  },
+  {
+    "id": "defenders_of_the_north",
+    "label": "Defenders of the North",
+    "factionId": "dwarven_realms",
+    "reinforcementCost": 3,
+    "maxCompanySize": 12,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Over the years, Erebor has helped in the reconstruction of Dale, City of Men, and the royalty of the two kingdoms have shared a strong bond. Trade was prevalent between the two peoples, with the Dwarves using Dale’s grand markets to trade their wares across Middle-Earth, and in return provide the armouries of Dale with finely-wrought weapons. Yet the greatest asset these allies provided each other was a combined strength-in-arms.",
+      "As the Shadow in the East grew, the dwarves and men found themselves fighting side by side against the forces of darkness once more. With the ancient Knights of Dale reinstated, Dale has never been stronger than ever to rival their old friend."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "we_stand_together",
+        "title": "We Stand Together",
+        "description": "The number of Dwarf models may not exceed the number of Dale models in the company. If you would receive a Reinforcement that exceeds this total, you may choose any lower result."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "iron_hills_warrior",
+        "count": 1,
+        "equipment": ["shield", "spear"]
+      },
+      {
+        "baseUnitId": "iron_hills_warrior",
+        "count": 2,
+        "equipment": ["mattock"]
+      },
+      {
+        "baseUnitId": "warrior_of_dale",
+        "count": 1,
+        "equipment": ["shield", "spear"]
+      },
+      {
+        "baseUnitId": "warrior_of_dale",
+        "count": 2,
+        "equipment": ["esgaroth_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "warrior_of_dale",
+        "requiredEquipment": ["shield", "spear"],
+        "toBaseUnitId": "knight_of_dale"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_dale"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "knight_of_dale"
+      },
+      {
+        "roll": [5, 6],
+        "result": "choice",
+        "baseUnitId": "iron_hills_warrior"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "defender",
+        "label": "Defender",
+        "flavor": "The friendship forged between the youth of the two kingdoms is a bond that can only be broken in death and neither party is keen on letting that happen.",
+        "description": "At the beginning of the Fight Phase, at the start of the Declare Heroic Actions step, if a friendly Hero with the opposite species keyword (Man/Dwarf) would be considered Trapped and is in a different Combat than this Hero, then this Hero may declare a Heroic Combat for free. If this Heroic Combat is successful, then this Hero must use the following Move to join the other’s Combat. If not possible, then this Hero must Move as close as possible to each other."
+      }
+    ]
+  },
+  {
+    "id": "durins_folk",
+    "label": "Durin's Folk",
+    "factionId": "dwarven_realms",
+    "reinforcementCost": 3,
+    "maxCompanySize": 12,
+    "gold": 6,
+
+    "flavorTexts": [
+      "Within the bones of The Misty Mountains, the Dwarves of Durin’s Folk built the Dwarven Kingdom of Khazad-dûm. This underground realm, steeped in history and grandeur, was once home to the greatest of the Dwarven lords of Middle- earth, descendants of the father of the Dwarves himself. But as the Dwarves delved deeper in search of precious metals, they sealed their own fate.",
+      "In the days when Khazad-dûm prospered, its kings would send their trusted followers to clear the lower tunnels of the mountain, and these warriors would form a tight bond fighting side-by-side against the vile Goblins that dwelt there. Upon their return, these companies would often venture out into Middle-earth, to the other Dwarven Kingdoms such as Erebor, the Iron Hills or the Blue Mountains, in search of wealth and further adventure."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "vault_wardens",
+        "title": "Vault Wardens",
+        "description": "If recruiting a Vault Warden Team would take you above your Company limit of 12 models, you may choose any other option from the Special chart. If any Vault Warden Team is missing a member, you may substitute any roll on the Special Chart for a replacement of the missing member of the Vault Warden Team."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "dwarf_warrior",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "dwarf_warrior",
+        "count": 2,
+        "equipment": ["two_handed_axe"]
+      },
+      {
+        "baseUnitId": "dwarf_warrior",
+        "count": 2,
+        "equipment": ["dwarf_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "dwarf_warrior",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "khazad_guard"
+      },
+      {
+        "fromBaseUnitId": "dwarf_warrior",
+        "requiredEquipment": ["two_handed_axe"],
+        "toBaseUnitId": "khazad_guard"
+      },
+      {
+        "fromBaseUnitId": "dwarf_warrior",
+        "requiredEquipment": ["dwarf_bow"],
+        "toBaseUnitId": "dwarf_ranger",
+        "equipment": ["dwarf_longbow"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "dwarf_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "dwarf_ranger"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "unit",
+        "baseUnitId": "khazad_guard"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "iron_guard"
+      },
+      {
+        "roll": [5, 6],
+        "result": "pair",
+        "units": [
+          { "baseUnitId": "vault_warden_iron_shield" },
+          { "baseUnitId": "vault_warden_foe_spear" }
+        ],
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "the_stubbornness_of_dwarves",
+        "label": "The Stubbornness of Dwarves",
+        "flavor": "Dwarves do not back down from a fight, no matter how much the odds are stacked against them.",
+        "description": "During a Duel roll, before any rerolls are used, if the opposing player rolled more dice in the combat then the Hero may reroll a single d6 as part of the Duel roll."
+      }
+    ]
+  },
+  {
+    "id": "erebor_and_dale",
+    "label": "Erebor & Dale",
+    "factionId": "dwarven_realms",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 3,
+
+    "flavorTexts": [
+      "To the east of Mirkwood lies the great Dwarven realm of Erebor, once ruled over by Thrór, The Last King Under the Mountain. Over the years, Erebor forged a great alliance with Dale, City of Men, and its lord, Girion. Trade was prevalent between the two peoples, with the Dwarves using Dale’s grand markets to trade their wares across Middle-Earth, and in return provide the armouries of Dale with finely-wrought weapons. Yet the greatest asset these allies provided each other was a combined strength-in-arms.",
+      "It was commonplace for a small band of Dwarves from Erebor and Men from Dale to be tasked with the defence of an outpost; one that provided great benefits to both realms. Groups such as these often ended up forming close bonds as they honed their skills side-by-side in the wild lands of Middle-earth, sharing both talents and experiences with each other."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "erebor_dwarf_warrior",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "erebor_dwarf_warrior",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "warrior_of_dale",
+        "count": 1,
+        "equipment": ["shield", "spear"]
+      },
+      {
+        "baseUnitId": "warrior_of_dale",
+        "count": 2,
+        "equipment": ["esgaroth_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "erebor_dwarf_warrior",
+        "toBaseUnitId": "grimhammer"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_dale"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "erebor_dwarf_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "grimhammer"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "lordly_quality",
+        "label": "Lordly Quality",
+        "flavor": "Well respected by their people, their presence encourages those around them to fight all the harder.",
+        "description": "Friendly models that share the same faction keyword treat this Hero as a banner."
+      }
+    ]
+  },
+  {
+    "id": "iron_hills",
+    "label": "Iron Hills",
+    "factionId": "dwarven_realms",
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 1,
+
+    "flavorTexts": [
+      "The Dwarves of the Iron Hills are a stubborn and hardy folk, possessing one of the greatest fighting forces of the Third Age. Unlike the Dwarves of other Kingdoms, those of the Iron Hills are famed more for their accomplishments in war than their skill in forging items of great value. It is this that makes an Iron Hills army a deadly and feared foe, one that the forces of the Dark Lord will not eagerly face in battle.",
+      "The Iron Hills Dwarves produce such skilled warriors through the constant battles they wage against the Orcs and Goblins that taint their ancestral lands. Before joining the standing army of the Iron Hills, many Dwarves will spend numerous years roaming the lands of Middle-earth honing their skills and dispatching the forces of Evil they encounter. It is through these expeditions that the Dwarves of the Iron Hills become forever bound by the experiences shared upon their many travels and skirmishes with the forces of the Dark Lord."
+    ],
+
+    "companySpecialRules": [{ "id": "elite_company" }],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "iron_hills_warrior",
+        "count": 3,
+        "equipment": ["shield", "spear"]
+      },
+      {
+        "baseUnitId": "iron_hills_warrior",
+        "count": 1,
+        "equipment": ["mattock"]
+      },
+      {
+        "baseUnitId": "iron_hills_warrior",
+        "count": 1,
+        "equipment": ["crossbow"]
+      }
+    ],
+
+    "advancements": [],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "iron_hills_warrior",
+        "equipment": ["mattock"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "iron_hills_warrior",
+        "equipment": ["crossbow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "iron_hills_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "iron_hills_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "iron_hills_goat_rider"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "stubborn_brilliance",
+        "label": "Stubborn Brilliance",
+        "flavor": "This hero is incredibly stubborn even by the standards of the Dwarves and will not stand for being shown up by their enemies.",
+        "description": "The Hero gains the Master of Battle (5+) special rule."
+      }
+    ]
+  },
+  {
+    "id": "lake_town",
+    "label": "Lake Town",
+    "factionId": "dwarven_realms",
+    "reinforcementCost": 2,
+    "maxCompanySize": 20,
+    "gold": 1,
+
+    "flavorTexts": [
+      "The fishing settlement of Esgaroth has long lived in the shadows of The Lonely Mountain and the threat that lies within. In recent years, Lake-town has fallen upon hard times, with its people struggling to find enough food and shelter. The Master of Lake-town, however, hoards his wealth within his residence, growing ever richer whilst the common folk struggle to make ends meet. Yet the Master of Lake-town’s lust for wealth extends further, beyond the borders of Lake-town and into the wider world.",
+      "The Master of Lake-town tasks the more opportunistic of his guard to travel across Middle-earth in search of riches, valuable items and trade deals with other realms – some say it was patrols such as these that founded the deal between the Elvenking and Lake-town for their wine. The guards who set out on these ventures will seldom go alone, gathering with them a band of townsfolk from all walks of life to accompany them, promising them the reward of a better life should they return."
+    ],
+
+    "companySpecialRules": [
+      { "id": "large_company", "parameters": { "maxSize": 20 } },
+      {
+        "id": "everyone_has_a_price",
+        "title": "Everyone Has a Price",
+        "description": "Lake-town Guard treat any friendly Lake-town Hero model with the Moneybags special rule as the Master for the purposes of their Everyone has a Price special rule."
+      },
+      {
+        "id": "hero_restrictions",
+        "title": "Starting Company Hero Restrictions",
+        "description": "Only Lake-town Guard may be selected as Hero models when you start your Battle Company.",
+        "heroRestrictions": [
+          {
+            "allowedBaseUnitIds": ["lake_town_guard"]
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "lake_town_guard",
+        "count": 1
+      },
+      {
+        "baseUnitId": "lake_town_guard",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "lake_town_guard",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "lake_town_guard",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "lake_town_militia",
+        "count": 2,
+        "equipment": ["light_shield"]
+      },
+      {
+        "baseUnitId": "lake_town_militia",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "lake_town_militia",
+        "count": 2,
+        "equipment": ["bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "lake_town_militia",
+        "toBaseUnitId": "lake_town_guard"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "lake_town_militia",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "lake_town_militia",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "lake_town_militia",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "lake_town_guard"
+      },
+      {
+        "roll": [6],
+        "result": "choice",
+        "baseUnitId": "lake_town_guard",
+        "count": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "moneybags",
+        "label": "Moneybags",
+        "flavor": "The Master of Lake-town uses his company leaders to distribute the flow of his money. His guards are ever eager to earn his favour and his coin.",
+        "description": "At the start of the Fight phase, before any Heroic Actions are declared, the Hero can spend a Will Point to use this special rule. If he does, then any friendly Lake-town Guard within 6\" of this Hero gains a bonus of +1 to their Fight Value and treats this Hero as a banner until the end of the turn."
+      }
+    ]
+  },
+  {
+    "id": "the_shire",
+    "label": "The Shire",
+    "factionId": "hobbits",
+    "reinforcementCost": 2,
+    "maxCompanySize": 25,
+    "gold": 0,
+
+    "flavorTexts": [
+      "The Hobbits that reside within the Shire are a peaceful race, quite content to ignore, and be ignored by, the world of the big folk that lies outside their borders. In fact, to many who live in Middle-earth, Hobbits seem of little or no relevance at all and are not considered as warriors or counted among the wise. Hobbits will seldom leave the boundaries of the four Farthings of the Shire, preferring to stay within the comfort of what and where they know.",
+      "Yet, on the rare occasion that their livelihoods are threatened, the Hobbits of the Shire can rally to form a fighting force if needed – though not one that possesses a great martial prowess. There have even been occasions, following threats to their homeland, where small bands of Hobbits have ventured beyond the boundaries of the Shire to protect it from those who seek to bring ruin to their quaint and peaceful lives."
+    ],
+
+    "companySpecialRules": [
+      { "id": "large_company", "parameters": { "maxSize": 25 } },
+      {
+        "id": "led_by_the_ranger",
+        "title": "Led By the Ranger",
+        "description": "If the company’s Ranger of the North has been slain, you may swap any successful result on the Reinforcements chart for a Ranger of the North, who may immediately take the role of Leader or Sergeant. The company may only ever have a single Ranger of the North at any time.",
+        "substitution": {
+          "unitId": "ranger_of_the_north",
+          "condition": {
+            "unitSlain": "ranger_of_the_north"
+          },
+          "replacesAnyRoll": true,
+          "minRoll": 2,
+          "limit": 1,
+          "heroRoleOptions": ["leader", "sergeant"]
+        }
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "ranger_of_the_north",
+        "count": 1,
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "hobbit_militia",
+        "count": 10
+      },
+      {
+        "baseUnitId": "hobbit_archer",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "hobbit_militia",
+        "toBaseUnitId": "battlin_brandybuck"
+      },
+      {
+        "fromBaseUnitId": "hobbit_archer",
+        "toBaseUnitId": "tookish_hunter"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "hobbit_militia"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "hobbit_archer"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "hobbit_shirriff",
+        "rare": 12
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "hobbit_militia",
+        "count": 2
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "count": 2,
+        "includeRolls": [2, 3, 4, 5]
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "of_a_party_sort",
+        "label": "Of a Party Sort",
+        "flavor": "Filled with merriment and ale, the company’s spirits are as high as they can be and many feel they can take on anything life would throw at them.",
+        "description": "The Hero will pass a Fate Roll on a 3+ rather than a 4+. Additionally, the Hero may re-roll failed Fate Rolls."
+      },
+      {
+        "id": "throwing_stones",
+        "label": "Throwing Stones",
+        "flavor": "A well placed stone at short range can cause some serious damage to an unwitting foe.",
+        "description": "Instead of using the Throw Stones special rule as normal, the Hero may use stones in the same way as a Throwing Weapon. These have a Strength of 1 and a range of 8\", and the Hero may re-roll any failed To Wound Rolls when using stones as a Throwing Weapon."
+      }
+    ],
+
+    "uniqueWargear": [
+      {
+        "equipmentId": "pony",
+        "label": "Pony",
+        "category": "mount",
+        "influenceCost": 2,
+        "rating": [10, 10],
+        "allowedKeywords": ["hobbit"],
+        "heroOnly": true
+      }
+    ]
+  },
+  {
+    "id": "wanderers_in_the_wild",
+    "label": "Wanderers in the Wild",
+    "factionId": "hobbits",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Middle-earth is filled with those of all races that wander its paths and wild lands for many reasons, and it is not uncommon for a group of such wanderers to find common ground and continue on their journeys together. In fact, groups of Men, Elves, Dwarves, and even Hobbits on rare occasions, have been known to travel together through the various realms of Middle-earth, keeping their purposes to themselves.",
+      "Often, such bands of wanderers will be called upon by the free folk to help them against those that seek to cause them harm. Though they owe little allegiance to one another, the bonds formed by travelling together with friends is a strong one, and these wanderers will give their all to protect their companions that they now hold dear."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "fearless",
+        "title": "Fearless",
+        "description": "While a friendly Hobbit model is alive and on the battlefield, all friendly Men, Elf, and Dwarf models are considered Fearless"
+      },
+      {
+        "id": "woodland_creature",
+        "title": "Woodland Creature",
+        "description": "All members of the Battle Company gain the Woodland Creature special rule for no additional cost."
+      },
+      {
+        "id": "company_of_heroes",
+        "title": "Company of Heroes",
+        "description": "All newly recruited models automatically promote to Heroes in the Making and therefore will add 1 Might, Will, and Fate to their profile."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "warrior_of_numenor",
+        "count": 1,
+        "equipment": ["longbow"],
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "hobbit_militia",
+        "count": 1,
+        "mustBeSergeant": true
+      },
+      {
+        "baseUnitId": "hobbit_shirriff",
+        "count": 1,
+        "mustBeSergeant": true
+      },
+      {
+        "baseUnitId": "tookish_hunter",
+        "count": 1,
+        "heroInTheMaking": true
+      },
+      {
+        "baseUnitId": "battlin_brandybuck",
+        "count": 1,
+        "heroInTheMaking": true
+      }
+    ],
+
+    "advancements": [],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "choiceFromPool",
+        "pool": [
+          { "baseUnitId": "hobbit_militia", "rare": 1 },
+          { "baseUnitId": "hobbit_shirriff", "rare": 1 },
+          { "baseUnitId": "tookish_hunter", "rare": 1 },
+          { "baseUnitId": "battlin_brandybuck", "rare": 1 }
+        ]
+      },
+      {
+        "roll": [3],
+        "result": "choice",
+        "baseUnitId": "dwarf_ranger",
+        "rare": 1
+      },
+      {
+        "roll": [4],
+        "result": "choice",
+        "baseUnitId": "warrior_of_numenor",
+        "rare": 2
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "lothlorien_warrior",
+        "rare": 1
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "includeRolls": [2, 3, 4, 5]
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "you_have_my_sword",
+        "label": "You Have My Sword",
+        "flavor": "The Hero’s tale has just begun where their actions might determine the fate of their party, their village, or all of Middle-Earth.",
+        "description": "During the Declare Heroic Actions step of the Fight Phase, if a friendly Hobbit is Engaged in Combat and is within 6\" of this Hero, this Hero may declare a free Heroic Combat. If this Heroic Combat is successful, then this Hero must use the following Move to join the Hobbit’s Combat. If this is not possible, then this Hero must Move as close as possible to the Hobbit. This Hero cannot use this special rule if they are engaged in the same Combat as the Hobbit in question."
+      },
+      {
+        "id": "i_have_my_own_sword",
+        "label": "I Have My Own Sword, Thank You Very Much",
+        "flavor": "Full of surprises, this unassuming Shirefolk has mustered the confidence to prove themself against Trolls, Heroes, and other foes.",
+        "description": "This model may re-roll any failed To Wound rolls when making Strikes.",
+        "allowedKeywords": ["hobbit"]
+      }
+    ]
+  },
+  {
+    "id": "angmar_and_carn_dum",
+    "label": "Angmar & Carn Dum",
+    "factionId": "mordor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "As the power of the Witch-king of Angmar grew, the realm of Arnor began to wain. Its once proud cities fell into ruin and disrepair, a prime target for the forces of Angmar to assail and conquer. Under the Witch-king’s command, Orc warbands would attack these fallen cities, delivering them to their dark ruler; for only a few Orcs would be needed to prise these cities from the depleted forces of Arnor.",
+      "These warbands were led by the most opportunistic of all the Angmar Orcs, those whose main aim is to plunder, backstab and murder their way to the head of the Witch-king’s armies. Yet there were more than mere Orcs in these warbands. Often the relentless cries of the Orcs lured to them the spirits of those long since dead. Now bound to the power of the Witch-king, these spirits would sometimes fight alongside the living – if the Witch-king willed it."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "angmar_orc_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "angmar_orc_warrior",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "angmar_orc_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "angmar_orc_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "wild_warg",
+        "count": 2
+      },
+      {
+        "baseUnitId": "warrior_of_carn_dum",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "angmar_orc_warrior",
+        "toBaseUnitId": "angmar_warg_rider"
+      },
+      {
+        "fromBaseUnitId": "wild_warg",
+        "toBaseUnitId": "fell_warg"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "wild_warg"
+      },
+      {
+        "roll": [3, 4, 5],
+        "result": "choice",
+        "baseUnitId": "angmar_orc_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "unit",
+        "baseUnitId": "warrior_of_carn_dum"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "angmar_warg_rider"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "spectre",
+        "rare": 3
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "werewolf",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "show_of_strength",
+        "label": "Show of Strength",
+        "flavor": "Fueled by the dark power of the Witch-king, the hero is a force to be reckoned with when they hit their stride.",
+        "description": "If this Hero slays one or more enemy models in Combat, then for the duration of the following turn they gain a bonus of +1 to their Fight Value."
+      }
+    ]
+  },
+  {
+    "id": "cirith_ungol",
+    "label": "Cirith Ungol",
+    "factionId": "mordor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "To the west of Mordor is Cirith Ungol, a fortress that guards the pass that runs through the mountains between Mordor and Gondor. This tall and imposing structure is garrisoned by a rabble of Orcs and Mordor Uruk-hai, two factions that constantly bicker with each other over who truly commands the forces stationed within the tower. They are the first line of defence against whatever should come through the pass, whether that be Elves, Men or something more sinister.",
+      "Under the orders of the commanders of the tower, bands of Orcs and Uruk-hai are sent into the pass to patrol its borders in search of anyone brave (or foolish) enough to attempt to cross it, knowing full well that they risk being entwined in the clutches of Shelob, who lurks within its dank tunnels. It has been known for these bands to be set upon by lesser spiders, and sometimes they manage to fend off and ‘control’ them for long enough that they can utilise them against their enemies in times of need."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "mordor_uruk_hai",
+        "count": 2
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "mirkwood_giant_spider",
+        "count": 1
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "mordor_orc_warrior",
+        "requiredEquipment": ["orc_bow"],
+        "toBaseUnitId": "orc_tracker"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "mordor_orc_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "mordor_uruk_hai"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "mirkwood_giant_spider",
+        "rare": 1
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "animosity_orc",
+        "label": "Animosity",
+        "flavor": "Uruk-hai stationed at Cirith Ungol despise one another and will take any chance to prove they are better than the other.",
+        "description": "The hero gains a bonus of +1 To Wound whilst a friendly Uruk-hai is engaged in the same combat.",
+        "allowedKeywords": ["orc"]
+      },
+      {
+        "id": "animosity_uruk",
+        "label": "Animosity",
+        "flavor": "Uruk-hai stationed at Cirith Ungol despise one another and will take any chance to prove they are better than the other.",
+        "description": "The hero gains a bonus of +1 To Wound whilst a friendly Orc is engaged in the same combat.",
+        "allowedKeywords": ["uruk-hai"]
+      },
+      {
+        "id": "she_hungers_for_sweeter_meats",
+        "label": "She Hungers for Sweeter Meats",
+        "description": "This Hero adds 1 to their Attacks characteristic whilst they are Engaged in Combat with an enemy Man, Elf, Dwarf or Hobbit model.",
+        "allowedKeywords": ["mirkwood_giant_spider"]
+      }
+    ]
+  },
+  {
+    "id": "minas_morgul",
+    "label": "Minas Morgul",
+    "factionId": "mordor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "Once a proud city of Gondor, Minas Morgul has long been under the Dark Lord’s control. Now known as the Tower of Sorcery, Minas Morgul is the home of the Nazgûl and their legions of Orcs, spirits and other creatures. The dead city is not a place that any would willingly venture into, except those under the direct influence of the Nazgûl.",
+      "As the Dark Lord’s search for the Ring of Power continues, the Nazgûl constantly send their own followers to tread the paths of Middle-earth in search of the Ring. Alongside the Orcs that are commonplace within Mordor, the Nazgûl send small numbers of highly skilled Black Númenóreans to take charge of these companies and to make sure the Orcs stay in line."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "black_numenorean_warrior",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "mordor_orc_warrior",
+        "requiredEquipment": ["orc_bow"],
+        "toBaseUnitId": "orc_tracker"
+      },
+      {
+        "fromBaseUnitId": "black_numenorean_warrior",
+        "toBaseUnitId": "black_numenorean_knight"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "unit",
+        "baseUnitId": "morgul_stalker"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "black_numenorean_warrior"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "spectre",
+        "rare": 3
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "morgul_weaponry",
+        "label": "Morgul Weaponry",
+        "flavor": "The weapons forged within the citadel of Minas Morgul are infused with malice and dark sorcery, powerful enough to drain the living.",
+        "description": "Each time this Hero inflicts an unsaved Wound on an enemy model, roll a D6. On a 5+, that model suffers an additional Wound (Fate may still be used as normal)."
+      }
+    ]
+  },
+  {
+    "id": "mordor",
+    "label": "Mordor",
+    "factionId": "mordor",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Mordor; a barren and desolate land filled with darkness and Evil creatures in the service of Sauron. Nothing good can grow in this vile realm, and those who dwell there are driven by malice and cruelty. In the shadows of this blighted place, packs of Orcs skulk in the dark, their leaders constantly looking for opportunities to improve their standing within Sauron’s armies, keeping one eye out for inevitable acts of treachery from their underlings.",
+      "When these packs become renowned within the land of Mordor, they are often commanded by the Great Eye to leave the Black Lands to bring devastation upon Middle-earth. These packs will then thieve, raid and murder their way into the favour of Sauron. Often, they will attack the outposts of Gondor, Rohan or even further afield, all the time looking to strengthen the influence of the Dark Lord and wreak as much havoc as they can."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 3,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 3,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 2,
+        "equipment": ["orc_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "mordor_orc_warrior",
+        "toBaseUnitId": "morannon_orc_warrior"
+      },
+      {
+        "fromBaseUnitId": "mordor_orc_warrior",
+        "requiredEquipment": ["orc_bow"],
+        "toBaseUnitId": "orc_tracker"
+      },
+      {
+        "fromBaseUnitId": "mordor_uruk_hai",
+        "toBaseUnitId": "black_guard_of_barad_dur"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "mordor_orc_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "choice",
+        "baseUnitId": "morannon_orc_warrior"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "mordor_uruk_hai"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "mordor_warg_rider"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "black_guard_of_barad_dur"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "black_numenorean_warrior",
+        "rare": 3
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "orcish_brawler",
+        "label": "Orcish Brawler",
+        "flavor": "When fighting against the odds, the hero reveals their most savage nature. Hacking and slashing at their enemy in order to prolong their own life.",
+        "description": "If this Hero is outnumbered during a Fight then they gain a bonus of +1 to their Attacks value for the duration of the Combat."
+      }
+    ]
+  },
+  {
+    "id": "burning_of_the_westfold",
+    "label": "Burning of the Westfold",
+    "factionId": "isengard",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "In the opening act, Isengard turned its eyes to its borders where the Rohirrim called home. Sending the Hill Tribes of Dunland into a frenzy and supplementing them with Uruk and Orc alike, the Westfold never stood a chance.",
+      "Now these raiding parties further Saruman’s will by taking to the field in further-reaching campaigns all with the same objective in mind: burn them all."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "uruk_hai_scout",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "uruk_hai_scout",
+        "count": 1,
+        "equipment": ["uruk_hai_bow"]
+      },
+      {
+        "baseUnitId": "wild_man_of_dunland",
+        "count": 3,
+        "equipment": ["flaming_brand"]
+      },
+      {
+        "baseUnitId": "isengard_orc_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "isengard_orc_warrior",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "isengard_orc_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "isengard_orc_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "wild_man_of_dunland",
+        "toBaseUnitId": "dunlending_warrior"
+      },
+      {
+        "fromBaseUnitId": "wild_man_of_dunland",
+        "toBaseUnitId": "dunlending_warrior",
+        "equipment": ["shield"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "wild_man_of_dunland"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "isengard_orc_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "choice",
+        "baseUnitId": "uruk_hai_scout"
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "feral_uruk_hai"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "crebain",
+        "rare": 1
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "pillager",
+        "label": "Pillager",
+        "flavor": "A master of countless raids, this raider knows how best to leverage the desperation their prey feels when the winter’s stock is in danger.",
+        "description": "The Hero gains +1 to Wound when making Strikes whilst within 3” of an Objective Marker, static or otherwise."
+      }
+    ]
+  },
+  {
+    "id": "hill_tribes_of_dunland",
+    "label": "Hill Tribes of Dunland",
+    "factionId": "isengard",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "When Saruman’s treachery was finally revealed, he called upon more than just Orcs and Uruk-hai to wage war upon the kingdom of Rohan. The Dunlending people have hated the Rohirrim for centuries, and they required little persuasion to join the White Wizard’s cause to see to the destruction of those they have fought to supplant for many years.",
+      "Whilst most of the Dunlendings joined Saruman’s standing armies, some smaller bands were gathered together and sent out to raid the settlements of Rohan in secret, causing panic before the main armies of Isengard would attack. These bands would often venture into the wider lands of Middle-earth in order to raid and pillage other settlements, gaining wealth and renown amongst their people as they slaughtered those in their path."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "dunlending_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "dunlending_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "dunlending_warrior",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["light_shield"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["flaming_brand"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 2,
+        "equipment": ["spear"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "hill_tribesman",
+        "toBaseUnitId": "dunlending_warrior"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "hill_tribesman"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "dunlending_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "unit",
+        "baseUnitId": "dunlending_huscarl"
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "dunlending_horseman"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "crebain",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "whipped_into_a_frenzy",
+        "label": "Whipped into a Frenzy",
+        "flavor": "The Hill Tribesmen have been driven into a frenzy by the promise of claiming the lands they believe to be theirs.",
+        "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 6, the Wound is ignored. If this Hero would later gain a special rule with the same effect (e.g. Oblivious to Pain) then treat that special rule as improving Whipped into a Frenzy to a natural 5+."
+      }
+    ]
+  },
+  {
+    "id": "muster_of_isengard",
+    "label": "Muster of Isengard",
+    "factionId": "isengard",
+    "reinforcementCost": 3,
+    "maxCompanySize": 12,
+    "gold": 0,
+
+    "flavorTexts": [
+      "As the White Wizard has fallen from grace, Isengard has done much the same. Gone are the trees and the green fields; uprooted, destroyed and replaced by machines and industry. The fires of Isengard never cease, the forges constantly churning out weapons, armour and contraptions of war in order to arm Saruman’s fighting Uruk-hai against the races of Men, Elves and Dwarves.",
+      "Saruman regularly sends forth companies of Uruk-hai to raid and burn the villages of Men, spreading fear and panic to increase the Wizard’s dominance. None felt this more than the land of Rohan, whose settlements and villages were burned to the ground by these bands. The Uruk-hai who lead these warbands are vicious and bloodthirsty warriors, the very best of Saruman’s fledgling army, looking to prove themselves worthy to lead the White Wizard’s eventual siege upon Helm’s Deep."
+    ],
+
+    "companySpecialRules": [
+      { "id": "elite_company" },
+      {
+        "id": "breaking_point",
+        "title": "Breaking Point",
+        "description": "Unlike other Battle Companies, the Break Point for a Muster of Isengard Battle Company is 66% rather than 50%."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "uruk_hai_scout",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "uruk_hai_scout",
+        "count": 2,
+        "equipment": ["uruk_hai_bow"]
+      },
+      {
+        "baseUnitId": "uruk_hai_scout",
+        "count": 3
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "uruk_hai_scout",
+        "toBaseUnitId": "uruk_hai_warrior",
+        "equipment": ["pike"]
+      },
+      {
+        "fromBaseUnitId": "uruk_hai_scout",
+        "requiredEquipment": ["shield"],
+        "toBaseUnitId": "uruk_hai_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "fromBaseUnitId": "uruk_hai_scout",
+        "requiredEquipment": ["uruk_hai_bow"],
+        "toBaseUnitId": "uruk_hai_warrior",
+        "equipment": ["crossbow"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "uruk_hai_scout"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "uruk_hai_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "unit",
+        "baseUnitId": "feral_uruk_hai"
+      },
+      {
+        "roll": [4, 5, 6],
+        "result": "unit",
+        "baseUnitId": "uruk_hai_berserker"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "there_will_be_no_dawn_for_men",
+        "label": "There Will be no Dawn for Men",
+        "flavor": "Saruman has drilled his fighting Uruk-hai to show no mercy, especially against the race of Men.",
+        "description": "The Hero gains the Hatred (Man) special rule."
+      }
+    ]
+  },
+  {
+    "id": "sharkeys_rogues",
+    "label": "Sharkey's Rogues",
+    "factionId": "isengard",
+    "reinforcementCost": 2,
+    "maxCompanySize": 20,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Following his army’s defeat at Helm’s Deep, and his subsequent banishment from Isengard, Saruman secretly made his way west to the Shire, under the guise of an old withered man with the name of Sharkey. Here he set about gathering Ruffians and wild men to him, hatching a scheme to take control over the Shire and the Halflings that lived there as vengeance for the defeat that the Travellers had brought upon him.",
+      "After plotting and buying his way into control over the Shire, Sharkey assumed full command under the name of ‘The Chief’ and sent bands of his Ruffians across the Shire and surrounding lands to spread his will. Some of these groups of Ruffians and wild men would often venture a bit further than instructed to bully local villages, especially if there was some extra money to be had."
+    ],
+
+    "companySpecialRules": [
+      { "id": "large_company", "parameters": { "maxSize": 20 } },
+      {
+        "id": "whips",
+        "title": "Whips",
+        "description": "Whips do not count against the Throwing Weapon Wargear Limit."
+      },
+      {
+        "id": "hatred_of_hobbits",
+        "title": "Hatred of Hobbits",
+        "description": "Models of the Battle Company exchange Hatred (Rohan) for Hatred (Hobbit).",
+        "specialRuleOverrides": [
+          {
+            "remove": "Hatred (Rohan)",
+            "replace": "Hatred (Hobbit)"
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "ruffian",
+        "count": 2,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "ruffian",
+        "count": 5,
+        "equipment": ["whip"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["light_shield"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "ruffian",
+        "toBaseUnitId": "hill_tribesman"
+      },
+      {
+        "fromBaseUnitId": "hill_tribesman",
+        "toBaseUnitId": "rohirrim_traitor"
+      },
+      {
+        "fromBaseUnitId": "hill_tribesman",
+        "requiredEquipment": ["spear"],
+        "toBaseUnitId": "rohirrim_traitor",
+        "equipment": ["shield", "throwing_spears"]
+      },
+      {
+        "fromBaseUnitId": "hill_tribesman",
+        "toBaseUnitId": "rohirrim_traitor",
+        "equipment": ["shield"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "ruffian"
+      },
+      {
+        "roll": [4],
+        "result": "choice",
+        "baseUnitId": "hill_tribesman"
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "ruffian",
+        "count": 2
+      },
+      {
+        "roll": [6],
+        "result": "choice",
+        "baseUnitId": "hill_tribesman",
+        "count": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "strength_in_numbers",
+        "label": "Strength in Numbers",
+        "flavor": "The hero is no more than a bully, and is in their element when fighting with the odds in their favour.",
+        "description": "The Hero gains the Backstabbers special rule."
+      }
+    ]
+  },
+  {
+    "id": "wolves_of_isengard",
+    "label": "Wolves of Isengard",
+    "factionId": "isengard",
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 3,
+
+    "flavorTexts": [
+      "The wolves of Isengard are the scouts of Saruman’s army, used by the Wizard to ambush and harass his enemies. The sound of baying Wargs heralds the imminent arrival of Isengard’s wolves, and few who witness their arrival will live to tell the tale. Those who lead the packs are ambitious and cunning Orcs who see their position as an opportunity to carve out a greater standing for themselves, gaining the pick of the plunder and giving their Wargs the freshest of the kills.",
+      "These Warg packs also contain Wargs that are yet unridden, either because they are too unruly or have not yet been brought under the heel of the Orcs that ride their trained counterparts. Saruman’s Warg Riders will cover much of Middle-earth, always in search of fresh kills and possessions that will aid the White Wizard in his aim to wield The One Ring."
+    ],
+
+    "companySpecialRules": [
+      { "id": "elite_company" },
+      {
+        "id": "cavalry_limit",
+        "title": "Cavalry Limit",
+        "description": "This Battle Company may have up to 66% of their Battle Company as Cavalry models instead of 33%.",
+        "limitOverrides": [
+          {
+            "cavalryLimit": 0.66
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "isengard_warg",
+        "count": 3
+      },
+      {
+        "baseUnitId": "isengard_warg_rider",
+        "count": 2,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "isengard_warg_rider",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "isengard_warg",
+        "toBaseUnitId": "isengard_warg_rider"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "unit",
+        "baseUnitId": "isengard_warg"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "isengard_warg",
+        "count": 2
+      },
+      {
+        "roll": [5, 6],
+        "result": "choice",
+        "baseUnitId": "isengard_warg_rider"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "savage_charge",
+        "label": "Savage Charge",
+        "flavor": "The Wolves of Isengard charge with reckless abandon and enough force to send even cavalry sprawling to the ground.",
+        "description": "The Hero still gains the Extra Attack bonus even when they Charge a Cavalry model, and will retain it even if they are subsequently Charged by a Cavalry model.",
+        "allowedKeywords": ["orc"]
+      },
+      {
+        "id": "feral_charge",
+        "label": "Feral Charge",
+        "flavor": "Those who are unfortunate to find themselves in front of a Warg’s jaws will soon meet a gruesome end.",
+        "description": "When the Hero Charges an enemy Infantry model, they gain the Knock to the Ground bonus as if they were Cavalry. This bonus is lost if they are subsequently Charged by an enemy Cavalry model.",
+        "allowedKeywords": ["warg"]
+      }
+    ]
+  },
+  {
+    "id": "goblin_town",
+    "label": "Goblin Town",
+    "factionId": "misty_mountains",
+    "reinforcementCost": 2,
+    "maxCompanySize": 25,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Whilst the Goblin-infested realm of Moria is splintered into countless factions all vying for their place at the top, the neighbouring realm of Goblin-town suffers no such problems. For atop the throne of this blighted kingdom sits the bloated Goblin King, a vile and ruthless leader who towers over his Goblin subjects.",
+      "The Goblins under their king’s rule are constantly sent out on hunting parties to cause destruction in the Goblin King’s name, or to quell those that would plot to overthrow their blubbery overlord. Yet in more recent years, news of the price put upon the head of Thorin Oakenshield has seen these hunting parties put to a different use; hunting down the would-be Dwarf king and bringing him to his knees before The Goblin King."
+    ],
+
+    "companySpecialRules": [
+      { "id": "large_company", "parameters": { "maxSize": 25 } },
+      { "id": "mercenary_ambush" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "goblin_warrior",
+        "count": 12
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "goblin_warrior",
+        "toBaseUnitId": "goblin_mercenary"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "unit",
+        "baseUnitId": "goblin_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "goblin_warrior",
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3, 4],
+        "result": "unit",
+        "baseUnitId": "goblin_warrior",
+        "count": 2
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "goblin_mercenary",
+        "count": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "swap_with_me",
+        "label": "Swap with Me!",
+        "flavor": "This character is a conniving Goblin and can easily engineer getting another Goblin into trouble rather than himself.",
+        "description": "At the start of the Fight Phase, before the Declare Heroic Actions Step, the Hero can choose a friendly Goblin model on a 25mm base within 3\"and swap places with it. This does not count as Moving."
+      }
+    ],
+
+    "specialUnits": [
+      {
+        "baseUnitId": "goblin_hulk",
+        "influenceCost": 15,
+        "rare": 1
+      }
+    ]
+  },
+  {
+    "id": "gundabad",
+    "label": "Gundabad",
+    "factionId": "misty_mountains",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "At the northernmost peaks of The Misty Mountains lies the fortress of Gundabad, the gateway to the fell kingdom of Angmar. Within its walls are harboured hosts of Gundabad Orcs, monsters and other vicious creatures, bred specifically for the purpose of waging war upon the enemies of the Dark Lord.",
+      "Under the orders of Bolg, the Castellan of Mount Gundabad, small bands of Orcs and other foul creatures ventured forth from the fortress’ bowels in order to wreak havoc and destruction upon Middle-earth. These bands attacked outposts, raided settlements and engaged travelling warbands in brutal melee, all in the name of the Dark Lord."
+    ],
+
+    "companySpecialRules": [{ "id": "mercenary_ambush" }],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "gundabad_orc_warrior",
+        "count": 3,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "gundabad_orc_warrior",
+        "count": 3,
+        "equipment": ["spear"]
+      }
+    ],
+
+    "advancements": [],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "goblin_mercenary"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "gundabad_orc_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "gundabad_orc_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "gundabad_orc_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3, 4],
+        "result": "unit",
+        "baseUnitId": "gundabad_berserker"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "war_bat",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": {
+      "id": "feel_no_pain",
+      "label": "Feel No Pain",
+      "flavor": "Driven further by the orders relayed by the Signal Towers, this hero is driven to a deeper frenzy.",
+      "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 5+, the Wound is ignored."
+    },
+
+    "specialUnits": [
+      {
+        "baseUnitId": "gundabad_ogre",
+        "influenceCost": 15,
+        "rare": 1
+      }
+    ]
+  },
+  {
+    "id": "moria",
+    "label": "Moria",
+    "factionId": "misty_mountains",
+    "reinforcementCost": 3,
+    "maxCompanySize": 20,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Since the coming of the Balrog and the rout of the Dwarves, Moria’s halls have resounded to the clamour of a different kind. Sonorous drum beats and the gleeful cackle of Goblin-kin echo where once hammer fell and harps were played. Unlike the realms of Man and Orc, Moria is a domain constantly driven by internal strife, as the fractious Goblins who dwell there jostle for power and wealth with one another, and battles are fought between rival factions for control of a particular hall or possession of some tarnished treasure or another.",
+      "In the deeps of Moria, gaining power is no easy thing, and holding onto it is even harder – any Goblin with aspirations to rule will fight to rally followers to their cause, while the many self-styled Goblin kings will unleash their warbands to forage for supplies and treasure (with which they can lure in more Goblins to their cause). This chaotic situation inevitably means there is no shortage of Goblins patrolling not only the mines of Moria, but for leagues around in every direction, fighting against Men, Elves and Dwarves, but also each other in their self-defeating quest for supremacy."
+    ],
+
+    "companySpecialRules": [
+      { "id": "large_company", "parameters": { "maxSize": 20 } }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 4,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 4,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 4,
+        "equipment": ["orc_bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "moria_goblin_warrior",
+        "toBaseUnitId": "moria_blackshield_warrior"
+      },
+      {
+        "fromBaseUnitId": "moria_goblin_warrior",
+        "toBaseUnitId": "moria_goblin_prowler"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "moria_goblin_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "moria_goblin_warrior",
+        "equipment": ["orc_bow"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "moria_goblin_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 2
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "unit",
+        "baseUnitId": "moria_goblin_prowler"
+      },
+      {
+        "roll": [4, 5, 6],
+        "result": "unit",
+        "baseUnitId": "moria_blackshield_warrior"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "callous_leadership",
+        "label": "Callous Leadership",
+        "flavor": "Those few individuals spiteful enough to rise through the ranks are willing to do whatever is necessary to secure victory, even at the cost of their own forces.",
+        "description": "At the start of the Fight Phase, before Heroic Actions are declared, the Hero may spend a Will Point to use this special rule. All friendly Goblin models within 3\" gain a +1 To Wound when making Strikes. However, any friendly Goblin model within 3\" that loses a Duel roll (including supporting models) must roll a D6 after any Strikes have been made. On a 1, the model suffers a Wound."
+      }
+    ],
+
+    "specialUnits": [
+      {
+        "baseUnitId": "cave_troll",
+        "influenceCost": 15,
+        "rare": 1
+      }
+    ]
+  },
+  {
+    "id": "dol_guldur",
+    "label": "Dol Guldur",
+    "factionId": "mirkwood",
+    "reinforcementCost": 4,
+    "maxCompanySize": 15,
+    "gold": 1,
+
+    "flavorTexts": [
+      "Within the southern reaches of the Greenwood, the old fortress of Dol Guldur was long thought to have been abandoned many years ago. As the years of the Third Age rolled on, a darkness fell upon its ruined walls. It was believed that a sorcerer now dwelt within its crumbling foundations, and that Evil emanated from it. In time, the woodsmen would no longer call the forest Greenwood. It would become known by a new name – Mirkwood.",
+      "The truth was far worse than even the woodsmen could have imagined, for it was no mere sorcerer who dwelt within Dol Guldur, but the Dark Lord himself. Sauron had drawn all manner of Orcs and Wargs to his power, including the forces of Azog the Defiler. The Pale Orc still thirsted for the blood of Thorin Oakenshield, and news of the company’s travels had reached the Orc’s ears. With this new knowledge, Azog would send out warbands of Orcs and Wargs in search of the Dwarven travellers, their sole purpose to obtain the head of Thorin Oakenshield."
+    ],
+
+    "companySpecialRules": [],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "hunter_orc_warrior",
+        "count": 2
+      },
+      {
+        "baseUnitId": "hunter_orc_warrior",
+        "count": 2,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "hunter_orc_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "fell_warg",
+        "count": 2
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "hunter_orc_warrior",
+        "toBaseUnitId": "hunter_orc_warg_rider"
+      },
+      {
+        "fromBaseUnitId": "fell_warg",
+        "toBaseUnitId": "hunter_orc_warg_rider"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "fell_warg"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "hunter_orc_warrior"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "hunter_orc_warrior",
+        "equipment": ["orc_bow"]
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "hunter_orc_warrior",
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3, 4],
+        "result": "choice",
+        "baseUnitId": "hunter_orc_warg_rider"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "mirkwood_hunting_spider",
+        "rare": 2
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "mirkwood_giant_spider",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "master_hunter",
+        "label": "Master Hunter",
+        "flavor": "A master at tracking their prey, this hero will stalk them across any terrain.",
+        "description": "This Hero does not suffer any penalties for Moving through Difficult Terrain, and therefore may still gain the bonuses for Charging whilst in Difficult Terrain if they have the Cavalry keyword."
+      }
+    ]
+  },
+  {
+    "id": "mirkwood",
+    "label": "Mirkwood",
+    "factionId": "mirkwood",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Since the fall of Greenwood the Great into the darkness now known as Mirkwood, the power of the Necromancer has turned the fauna ever deeper toward his will. Spiders, Wargs, and orcish kind gather to lay siege to the Elven kingdoms that make up the Northern realms.",
+      "From the depths of  the Misty Mountains, goblins pour forth with powerful sorcery. Orcs from Mordor, splintering off from the war effort or sent purposefully, unite with the goblins and beasts to form companies in this additional warfront."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "dark_union",
+        "title": "Dark Union",
+        "description": "A Warg Marauder takes up 3 slots of the Battle Company Roster, but only counts as a single model towards the Company’s Bow Limit. Should the Warg be removed as a casualty, whether by being slain or otherwise, then it will roll on the Warrior Injury Table during the War’s Aftermath. The result applies to the entire model. Do not make Injury rolls for the individual riders.",
+        "unitRosterOverrides": [
+          {
+            "baseUnitId": "warg_marauder",
+            "rosterSlots": 3,
+            "bowLimitCount": 1
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
+      },
+      {
+        "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "wild_warg",
+        "count": 3
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "moria_goblin_warrior",
+        "toBaseUnitId": "moria_goblin_prowler"
+      },
+      {
+        "fromBaseUnitId": "mordor_orc_warrior",
+        "requiredEquipment": ["orc_bow"],
+        "toBaseUnitId": "orc_tracker"
+      },
+      {
+        "fromBaseUnitId": "wild_warg",
+        "toBaseUnitId": "fell_warg"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "mordor_orc_warrior"
+      },
+      {
+        "roll": [4],
+        "result": "choice",
+        "baseUnitId": "moria_goblin_warrior"
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "wild_warg"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1],
+        "result": "unit",
+        "baseUnitId": "moria_goblin_prowler"
+      },
+      {
+        "roll": [2],
+        "result": "choice",
+        "baseUnitId": "mordor_warg_rider"
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "mirkwood_hunting_spider",
+        "rare": 2
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "mirkwood_giant_spider",
+        "rare": 2
+      },
+      {
+        "roll": [5],
+        "result": "unit",
+        "baseUnitId": "bat_swarm",
+        "rare": 1
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "warg_marauder",
+        "rare": 1
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "cover_of_darkness",
+        "label": "Cover of Darkness",
+        "flavor": "Using a powerful sorcery known to the Dark Lord himself, cloud coverage blots out the sunlight.",
+        "description": "As part of this Hero’s activation, they may spend a Will point and declare they are using this ability. Until the End Phase, the Fighting at Night special rules will be in play. (see page 137 of the Middle-earth Strategy Battle Game Rules Manual)"
+      }
+    ]
+  },
+  {
+    "id": "city_of_umbar",
+    "label": "City of Umbar",
+    "factionId": "the_far_east",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 0,
+
+    "flavorTexts": [
+      "Umbar is a ruthless city where treachery and corruption run rife within its shadowed streets. None that reside there better represent this than the Corsairs who man Umbar’s fleets. The captains of these ships are tyrannical and greedy Men, who will sail the coasts of Gondor and even further with the intent of pillaging the settlements upon the shores.",
+      "The crew under these captains’ command will often share their lust for plunder, and need little convincing to set off upon the black-sailed ships in search of new settlements to raze to the ground. Once this band of malicious Men has raided a town, stealing whatever they can lay their hands on, they will splinter into smaller bands, each eager to unleash their own devious brand of destruction and murder upon the villages along the coast. The more fear these bands of Evil Men can instill in their enemies, the higher they will rise up the treacherous ranks of the Corsair fleets."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "mindless_killers",
+        "title": "Mindless Killers",
+        "description": "Corsair Reavers treat the Sergeants as if they were Corsair Bosuns for the purpose of their Mindless Killers special rule."
+      },
+      {
+        "id": "smoke_bombs",
+        "title": "Smoke Bombs",
+        "description": "Smoke Bombs are a throwing weapon with a Strength of 1. Any model hit, but not slain, by these weapons must immediately expend a point of Will or be subjected to the effects of the Transfix Magical Power and have their Fight Value halved until the End Phase of the turn. Should this model ever roll a Natural 1 To Hit with their Smoke Bombs, then their supply has run out and cannot be used for the rest of the game."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "black_numenorean_warrior",
+        "count": 1,
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "corsair_of_umbar",
+        "count": 2,
+        "equipment": ["light_shield", "throwing_weapons"]
+      },
+      {
+        "baseUnitId": "haradrim_warrior",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "corsair_of_umbar",
+        "count": 2,
+        "equipment": ["bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "corsair_of_umbar",
+        "requiredEquipment": ["bow"],
+        "toBaseUnitId": "corsair_crossbowman"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "haradrim_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "corsair_of_umbar"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2],
+        "result": "unit",
+        "baseUnitId": "corsair_crossbowman"
+      },
+      {
+        "roll": [3, 4],
+        "result": "unit",
+        "baseUnitId": "corsair_reaver"
+      },
+      {
+        "roll": [5, 6],
+        "result": "unit",
+        "baseUnitId": "black_numenorean_warrior"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "seize_command",
+        "label": "Seize Command",
+        "flavor": "Should the commanders of Umbar show weakness, the next in line won’t hesitate to offer a decisive reminder...",
+        "description": "If during the End Phase of any turn your Leader has only a single Wound remaining and is within 3\" and Line of Sight of this Hero, you may choose to remove your Leader as a casualty. If you do, this Hero immediately assumes the role of “Leader” for the purposes of Victory Points instead. Do not make an Injury roll for models removed in this way. This model cannot use this special rule on itself."
+      }
+    ],
+
+    "uniqueWargear": [
+      {
+        "equipmentId": "smoke_bombs",
+        "label": "Smoke Bombs",
+        "influenceCost": 2,
+        "rating": [10, 10],
+        "limit": 1,
+        "allowedKeywords": ["corsair"]
+      }
+    ]
+  },
+  {
+    "id": "easterlings",
+    "label": "Easterlings",
+    "factionId": "the_far_east",
+    "reinforcementCost": 3,
+    "maxCompanySize": 12,
+    "gold": 3,
+
+    "flavorTexts": [
+      "It is said of the Easterlings that there is no Mannish culture in Middle-earth so devoted to warfare, with every Easterling, male and female, learning to fight with spear and sword from their youth. Those who take their devotion to martial matters further will supplicate themselves at one of the many warrior shrines across the land, learning the art of bladecraft under the brutal tutelage of the Dragon Knights, in the hope of one day being raised to become one of their chosen ‘Black Dragons’. To this end, aspirants will venture forth from their warrior shrine to test themselves, either against other shrines or, preferably, against the dwellers of other lands.",
+      "A warband that succeeds in this task does not become rich in the conventional sense, for wealth is of no consequence to those who walk the blade-path. Indeed, any treasures plucked from the fallen are offered to their shrine as proof of their feats in battle. Victories inevitably draw more like-minded soldiers to their ranks, and while many warbands dwindle through defeat, the greatest will return back to their shrine triumphant, faces scarred from battle and their packs bulging with trophies taken from the vanquished."
+    ],
+
+    "companySpecialRules": [{ "id": "elite_company" }],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "black_dragon_warrior",
+        "count": 1,
+        "mustBeLeader": true
+      },
+      {
+        "baseUnitId": "easterling_warrior",
+        "count": 1,
+        "equipment": ["shield"]
+      },
+      {
+        "baseUnitId": "easterling_warrior",
+        "count": 2,
+        "equipment": ["easterling_halberd", "shield"]
+      },
+      {
+        "baseUnitId": "easterling_warrior",
+        "count": 2,
+        "equipment": ["bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "easterling_warrior",
+        "toBaseUnitId": "black_dragon_warrior"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "easterling_warrior",
+        "equipment": ["shield"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "easterling_warrior",
+        "equipment": ["shield", "easterling_halberd"]
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "easterling_warrior",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "easterling_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "unit",
+        "baseUnitId": "easterling_kataphrakt"
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "dragon_cult_acolyte"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "war_drake_of_rhun",
+        "rare": 2
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "skilled_blade",
+        "label": "Skilled Blade",
+        "flavor": "An expert fighter, the Hero seeks out and issues a challenge to the leaders of the opposition, eager to prove themselves against the mightiest opponents in Middle-earth.",
+        "description": "When fighting an enemy Hero, this Hero may force their opponent to reroll one of their dice in the Duel roll. This is not cumulative with other special rules that confer the same effect."
+      }
+    ]
+  },
+  {
+    "id": "grand_army_of_the_south",
+    "label": "Grand Army of the South",
+    "factionId": "the_far_east",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 3,
+
+    "flavorTexts": [
+      "The people of Khand have long been allied with the Dark Lord of Mordor, their ‘friendship’ with the dark tower having proven extremely profitable over the many years. The Khandish warriors are mercenaries at heart, happy to fight for whomever will pay them the most. Far to the south of Gondor, even further than the Haradrim, dwell the Mahûd, a vicious warrior race. There are few who can survive in the harsh desert environment that the Mahûd have adapted to, and those unaccustomed to the scorching heat and arid terrain will succumb to thirst and exhaustion should they remain there for too long.",
+      "The Dark Lord’s call has summoned all manner of creatures to his banner, including these Men of self-interest looking for extra coin in exchange for their club or axe. While never neighbors before, they now frequently share camp during the War of the Ring."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "khandish_horsemen",
+        "title": "Khandish Horsemen",
+        "description": "Khandish Horsemen in this Battle Company do not count towards your Bow Limit."
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "mahud_warrior",
+        "count": 1,
+        "equipment": ["blowpipe"]
+      },
+      {
+        "baseUnitId": "khandish_warrior",
+        "count": 2
+      },
+      {
+        "baseUnitId": "corsair_of_umbar",
+        "count": 2,
+        "equipment": ["light_shield", "throwing_weapons"]
+      },
+      {
+        "baseUnitId": "haradrim_warrior",
+        "count": 2,
+        "equipment": ["bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "khandish_warrior",
+        "toBaseUnitId": "khandish_horseman"
+      },
+      {
+        "fromBaseUnitId": "haradrim_warrior",
+        "toBaseUnitId": "haradrim_raider"
+      },
+      {
+        "fromBaseUnitId": "haradrim_warrior",
+        "requiredEquipment": ["spear"],
+        "toBaseUnitId": "haradrim_raider",
+        "equipment": ["war_spear"]
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none"
+      },
+      {
+        "roll": [2],
+        "result": "choice",
+        "baseUnitId": "haradrim_warrior"
+      },
+      {
+        "roll": [3],
+        "result": "choice",
+        "baseUnitId": "mahud_warrior"
+      },
+      {
+        "roll": [4],
+        "result": "choice",
+        "baseUnitId": "khandish_warrior"
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "corsair_of_umbar"
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1, 2, 3],
+        "result": "choice",
+        "baseUnitId": "easterling_warrior"
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "khandish_horseman"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "half_troll",
+        "rare": 3
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "master_skirmisher",
+        "label": "Master Skirmisher",
+        "flavor": "The men under Sauron are renowned for their skills as skirmishers, picking off the enemies from range or using their momentum to deliver a devastating blow.",
+        "description": "The Hero may still fire a bow even if they have moved over half their Move value this turn. If the Hero fires a Blowpipe or a Throwing Weapon, they instead do not suffer the -1 penalty for moving. Additionally, the Hero does not suffer the -1 penalty for using a two-handed weapon in a turn in which they Charged."
+      }
+    ],
+
+    "uniqueWargear": [
+      {
+        "equipmentId": "war_camel",
+        "label": "War Camel",
+        "influenceCost": 5,
+        "rating": [15, 30],
+        "limit": 1,
+        "allowedKeywords": ["mahud"]
+      }
+    ]
+  },
+  {
+    "id": "harad",
+    "label": "Harad",
+    "factionId": "the_far_east",
+    "reinforcementCost": 3,
+    "maxCompanySize": 15,
+    "gold": 4,
+
+    "flavorTexts": [
+      "In the vast desert wastes of Harad, large kingdoms and realms are a rare thing to find. Most Haradrim live in small tribes, each with its own hierarchy, which lies under the influence of greater warlords. The chieftains of these tribes possess a ruthless streak, a necessity in Harad for those who wish to keep their power and not meet an untimely death.",
+      "Haradrim who live in these tribes will form raiding parties, bands of cruel Men that ride out to pillage and raid the outposts and southernmost settlements of Gondor and her Fiefdoms. These raids are often quick and bloody, with many good Men being felled by the Haradrim’s black-fletched arrows. Although these acts of war are born out of need to gather provisions to survive, it has since become ingrained into Haradrim culture, with raiding parties constantly heading out as much for enjoyment than anything else."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "bow_limit",
+        "title": "Bow Limit",
+        "description": "This Battle Company may have up to 50% of its models armed with a bow rather than 33%.",
+        "limitOverrides": [
+          {
+            "bowLimit": 0.5
+          }
+        ]
+      }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "haradrim_warrior",
+        "count": 4,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "haradrim_warrior",
+        "count": 4,
+        "equipment": ["bow"]
+      }
+    ],
+
+    "advancements": [
+      {
+        "fromBaseUnitId": "haradrim_warrior",
+        "toBaseUnitId": "haradrim_raider"
+      },
+      {
+        "fromBaseUnitId": "haradrim_warrior",
+        "requiredEquipment": ["spear"],
+        "toBaseUnitId": "haradrim_raider",
+        "equipment": ["war_spear"]
+      },
+      {
+        "fromBaseUnitId": "serpent_guard",
+        "toBaseUnitId": "serpent_rider"
+      }
+    ],
+
+    "reinforcementTable": [
+      {
+        "roll": 1,
+        "result": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "unit",
+        "baseUnitId": "haradrim_warrior",
+        "equipment": ["spear"]
+      },
+      {
+        "roll": [4, 5],
+        "result": "unit",
+        "baseUnitId": "haradrim_warrior",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [6],
+        "result": "special"
+      }
+    ],
+
+    "specialTable": [
+      {
+        "roll": [1],
+        "result": "unit",
+        "baseUnitId": "haradrim_raider",
+        "equipment": ["war_spear"]
+      },
+      {
+        "roll": [2],
+        "result": "unit",
+        "baseUnitId": "haradrim_raider",
+        "equipment": ["bow"]
+      },
+      {
+        "roll": [3],
+        "result": "unit",
+        "baseUnitId": "serpent_guard"
+      },
+      {
+        "roll": [4],
+        "result": "unit",
+        "baseUnitId": "serpent_rider"
+      },
+      {
+        "roll": [5],
+        "result": "choice",
+        "baseUnitId": "watcher_of_karna"
+      },
+      {
+        "roll": [6],
+        "result": "unit",
+        "baseUnitId": "abrakhan_merchant_guard"
+      }
+    ],
+
+    "heroUpgrade": [
+      {
+        "id": "master_of_poisons",
+        "label": "Master of Poisons",
+        "flavor": "The hero has mastered the study of the vile toxins of the Haradrim, and coats the blades of their weapons in the most potent of these.",
+        "description": "This Hero must re-roll all failed To Wound rolls."
+      }
+    ]
+  }
+]

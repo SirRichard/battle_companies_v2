@@ -1,0 +1,24 @@
+[
+  {
+    "id": "good",
+    "label": "Good",
+    "factions": [
+      { "id": "gondor", "label": "Gondor" },
+      { "id": "rohan", "label": "Rohan" },
+      { "id": "elven_realms", "label": "Elven Realms" },
+      { "id": "dwarven_realms", "label": "Dwarven Realms" },
+      { "id": "hobbits", "label": "Hobbits" }
+    ]
+  },
+  {
+    "id": "evil",
+    "label": "Evil",
+    "factions": [
+      { "id": "mordor", "label": "Mordor" },
+      { "id": "isengard", "label": "Isengard" },
+      { "id": "misty_mountains", "label": "Misty Mountains" },
+      { "id": "mirkwood", "label": "Mirkwood" },
+      { "id": "the_far_east", "label": "The Far East" }
+    ]
+  }
+]

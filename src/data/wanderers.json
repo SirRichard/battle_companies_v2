@@ -1,0 +1,106 @@
+[
+  {
+    "id": "wandering_swordsman",
+    "label": "Wandering Swordsman",
+    "keywords": ["man"],
+    "pointsCost": 70,
+    "influenceCost": 9,
+    "stats": {
+      "move": 6,
+      "fight": 6,
+      "shoot": 4,
+      "strength": 4,
+      "defence": 5,
+      "attacks": 2,
+      "wounds": 2,
+      "courage": 5,
+      "intelligence": 6,
+      "might": 1,
+      "will": 1,
+      "fate": 1
+    },
+    "equipment": ["armour", "elven_hand_and_half_weapon"],
+    "heroicActions": ["heroic_challenge"],
+    "specialRules": [
+      { "id": "dominant", "parameter": 2 },
+      { "id": "poisoned_attacks", "parameter": "elven_hand_and_half_weapon" },
+      "unyielding_combat_stance"
+    ],
+    "keywordNote": "Man keyword may be replaced with another species keyword with no impact on the profile."
+  },
+  {
+    "id": "wandering_marksman",
+    "label": "Wandering Marksman",
+    "keywords": ["man"],
+    "pointsCost": 70,
+    "influenceCost": 9,
+    "stats": {
+      "move": 6,
+      "fight": 4,
+      "shoot": 2,
+      "strength": 4,
+      "defence": 4,
+      "attacks": 2,
+      "wounds": 2,
+      "courage": 5,
+      "intelligence": 6,
+      "might": 1,
+      "will": 1,
+      "fate": 1
+    },
+    "equipment": ["armour", "longbow"],
+    "heroicActions": ["heroic_accuracy"],
+    "specialRules": ["sharpshooter", "swift_shot", "stalk_unseen"],
+    "keywordNote": "Man keyword may be replaced with another species keyword with no impact on the profile."
+  },
+  {
+    "id": "wandering_scavenger",
+    "label": "Wandering Scavenger",
+    "keywords": ["man"],
+    "pointsCost": 70,
+    "influenceCost": 9,
+    "stats": {
+      "move": 6,
+      "fight": 5,
+      "shoot": 5,
+      "strength": 4,
+      "defence": 6,
+      "attacks": 2,
+      "wounds": 2,
+      "courage": 7,
+      "intelligence": 6,
+      "might": 1,
+      "will": 1,
+      "fate": 1
+    },
+    "equipment": ["heavy_armour"],
+    "heroicActions": ["heroic_defence"],
+    "specialRules": ["backstabber", "cunning_fighter", "scavenge"],
+    "keywordNote": "Man keyword may be replaced with another species keyword with no impact on the profile."
+  },
+  {
+    "id": "wandering_sage",
+    "label": "Wandering Sage",
+    "keywords": ["man"],
+    "pointsCost": 70,
+    "influenceCost": 9,
+    "stats": {
+      "move": 6,
+      "fight": 4,
+      "shoot": 4,
+      "strength": 4,
+      "defence": 4,
+      "attacks": 1,
+      "wounds": 2,
+      "courage": 6,
+      "intelligence": 5,
+      "might": 1,
+      "will": 4,
+      "fate": 1
+    },
+    "equipment": ["armour"],
+    "heroicActions": ["heroic_resolve"],
+    "specialRules": ["incantations_of_power"],
+    "keywordNote": "Man keyword may be replaced with another species keyword with no impact on the profile."
+  }
+]

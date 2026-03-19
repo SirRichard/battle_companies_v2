@@ -1,0 +1,79 @@
+[
+  {
+    "id": "heroic_move",
+    "label": "Heroic Move",
+    "phase": "move",
+    "universal": true,
+    "description": "See page 80 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_shoot",
+    "label": "Heroic Shoot",
+    "phase": "shoot",
+    "universal": true,
+    "description": "See page 81 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_combat",
+    "label": "Heroic Combat",
+    "phase": "fight",
+    "universal": true,
+    "description": "See page 81 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_channeling",
+    "label": "Heroic Channelling",
+    "phase": "move",
+    "universal": false,
+    "description": "See page 82 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_march",
+    "label": "Heroic March",
+    "phase": "move",
+    "universal": false,
+    "description": "See page 82 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_accuracy",
+    "label": "Heroic Accuracy",
+    "phase": "shoot",
+    "universal": false,
+    "description": "See page 83 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_resolve",
+    "label": "Heroic Resolve",
+    "phase": "shoot",
+    "universal": false,
+    "description": "See page 83 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_challenge",
+    "label": "Heroic Challenge",
+    "phase": "fight",
+    "universal": false,
+    "description": "See page 84 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_defence",
+    "label": "Heroic Defence",
+    "phase": "fight",
+    "universal": false,
+    "description": "See page 85 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_strength",
+    "label": "Heroic Strength",
+    "phase": "fight",
+    "universal": false,
+    "description": "See page 85 of the Middle-Earth Strategy Battle Game Rules Manual."
+  },
+  {
+    "id": "heroic_strike",
+    "label": "Heroic Strike",
+    "phase": "fight",
+    "universal": false,
+    "description": "See page 85 of the Middle-Earth Strategy Battle Game Rules Manual."
+  }
+]

@@ -1,0 +1,866 @@
+[
+  {
+    "id": "backstabbers",
+    "label": "Backstabbers",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 124 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "bodyguard",
+    "label": "Bodyguard",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 124 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "burly",
+    "label": "Burly",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 124 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "cave_dweller",
+    "label": "Cave Dweller",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "combat_synergy",
+    "label": "Combat Synergy (X)",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 10 of the Armies of the Hobbit. Select a friendly Hero to be X when this rule is gained.",
+    "minor": true
+  },
+  {
+    "id": "command_support",
+    "label": "Command Support",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the relevant rules for Banners, War Drums, and War Horns in the Middle-Earth Strategy Battle Game Rules Manual, pages 108-109.",
+    "minor": false
+  },
+  {
+    "id": "courage_matches_master",
+    "label": "Courage Matches Master",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This model always has the same Courage value as its master.",
+    "minor": false
+  },
+  {
+    "id": "cunning_fighter",
+    "label": "Cunning Fighter",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made.",
+    "minor": false
+  },
+  {
+    "id": "dominant",
+    "label": "Dominant (X)",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "expert_rider",
+    "label": "Expert Rider",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "expert_shot",
+    "label": "Expert Shot",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "fearful",
+    "label": "Fearful",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "fearless",
+    "label": "Fearless",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "fell_sight",
+    "label": "Fell Sight",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "fly",
+    "label": "Fly",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "general_hunter",
+    "label": "General Hunter",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "handlers_glove",
+    "label": "Handler's Glove",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Creature starts the game upon the arm of its master rather than on the board. At the start of any turn in which the Creature is on their Hero model's arm, the Hero may release the creature \u2013 place it anywhere within 3\" of the Hero. Whilst separate from its Hero, the Creature may move independently. If, during the End phase of any turn, a Creature is within 3\" of their Hero, it may choose to land back on their Hero model's arm. Remove the Creature from the board. Whilst upon the Hero model's arm, the Creature cannot be targeted, attacked or hit with shooting attacks, and will not provide an In The Way roll for their Hero.",
+    "minor": false
+  },
+  {
+    "id": "harbinger_of_evil",
+    "label": "Harbinger of Evil (X)",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "hatred",
+    "label": "Hatred (X)",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "horse_lord",
+    "label": "Horse Lord",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 127 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "incantations_of_power",
+    "label": "Incantations of Power",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the profile of Fraecht, Vassal of the Witch-King in the Armies of Middle Earth book. Replace references to \"Carn Dum\" with \"friendly Battle Company members\".",
+    "minor": false
+  },
+  {
+    "id": "keen_sight",
+    "label": "Keen Sight",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Enemy models within 12\" of a Falcon that is separate from its Hero may not benefit from the Stalk Unseen special rule.",
+    "minor": false
+  },
+  {
+    "id": "laden_with_baggage",
+    "label": "Laden with Baggage",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "A Baggage Pony has a carrying capacity of up to 15 pieces of Equipment, weapons or additional wargear (except mounts). Whilst these pieces are on the Pony, the company gains no benefit from them. During the War's Aftermath, after determining injuries but before determining the next scenario, any member of a Battle Company may retrieve, store, or swap one of its pieces of Wargear or Equipment for an item from the Pony. During a scenario, any member of a Battle Company that begins its turn in base contact with the Pony may do likewise. The Battle Company must still abide by Wargear Limits at all times and each member must follow restrictions for Warriors and Heroes as normal.",
+    "minor": false
+  },
+  {
+    "id": "master_of_battle",
+    "label": "Master of Battle (X+)",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 127 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "master_of_reserves",
+    "label": "Master of Reserves",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the profile of Guritz on page 144 of the Armies of the Lord of the Rings.",
+    "minor": true
+  },
+  {
+    "id": "master_of_traps",
+    "label": "Master of Traps",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 19 of the Armies of Middle-Earth manual.",
+    "minor": false
+  },
+  {
+    "id": "mercenary_ambush",
+    "label": "Mercenary Ambush",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the profile of the Goblin Mercenary Captain on page 121 in the Armies of the Hobbit book.",
+    "minor": false
+  },
+  {
+    "id": "monstrous_charge",
+    "label": "Monstrous Charge",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 128 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "mountain_dweller",
+    "label": "Mountain Dweller",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 128 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "poisoned_attacks",
+    "label": "Poisoned Attacks (X)",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 128 of the Middle-Earth Strategy Battle Game Rules Manual. X denotes the specific weapon that benefits from this rule, if applicable.",
+    "minor": true
+  },
+  {
+    "id": "resistant_to_magic",
+    "label": "Resistant to Magic",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 128 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "scavenge",
+    "label": "Scavenge",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the profile of Nazthak, Orc Captain in the Armies of Middle Earth book, page 129.",
+    "minor": false
+  },
+  {
+    "id": "sharpshooter",
+    "label": "Sharpshooter",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "shieldwall",
+    "label": "Shieldwall",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "spectral_walk",
+    "label": "Spectral Walk",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "stalk_unseen",
+    "label": "Stalk Unseen",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "swift_movement",
+    "label": "Swift Movement",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "swift_shot",
+    "label": "Swift Shot",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero never suffers the -1 penalty To Hit for Moving and Shooting. May fire a Crossbow after moving up to half of their Movement value, but with a -1 penalty.",
+    "minor": false
+  },
+  {
+    "id": "terror",
+    "label": "Terror",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "terror_x",
+    "label": "Terror (X)",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": true,
+    "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual. X denotes a specific keyword if the Terror only applies to certain models.",
+    "minor": false
+  },
+  {
+    "id": "throw_stones",
+    "label": "Throw Stones",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "timid",
+    "label": "Timid",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "unyielding_combat_stance",
+    "label": "Unyielding Combat Stance",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "venom",
+    "label": "Venom",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 131 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "well_aimed_shot",
+    "label": "Well-aimed Shot",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See the profile of Damrod on page 56 of the Armies of the Lord of the Rings.",
+    "minor": true
+  },
+  {
+    "id": "will_of_evil",
+    "label": "Will of Evil",
+    "activationType": "passive",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 131 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": false
+  },
+  {
+    "id": "woodland_creature",
+    "label": "Woodland Creature",
+    "activationType": "active",
+    "source": "external",
+    "parameterised": false,
+    "description": "See page 131 of the Middle-Earth Strategy Battle Game Rules Manual.",
+    "minor": true
+  },
+  {
+    "id": "a_good_sort",
+    "label": "A Good Sort",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Whilst within 3\" of another friendly Hero, this Hero increases their Attacks by 1 and may re-roll any rolls of a 1 in this Hero's Duel rolls.",
+    "minor": false
+  },
+  {
+    "id": "adaptive_fighter",
+    "label": "Adaptive Fighter",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero wins a Duel Roll, then before models Back Away this Hero may choose a single enemy model involved in the combat. The chosen model is Backed Away in a direction chosen by this Hero. This direction may be chosen so that the model is forced to Back Away over the edge of a cliff, in which case they will suffer falling damage as normal. Once this has been resolved, other models Back Away as normal and Strikes are resolved. However, if a model has been Backed Away over the edge of a cliff as described earlier, this Hero cannot make Strikes against that model.",
+    "minor": false
+  },
+  {
+    "id": "archers_this_way",
+    "label": "Archers, This Way!",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Friendly Battle Company models within 6\" and Line of Sight of this Hero may reroll To Hit Rolls of a 1 when making Shooting Attacks.",
+    "minor": false
+  },
+  {
+    "id": "chief_advisor",
+    "label": "Chief Advisor",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Whenever a friendly Battle Company Hero model within 6\" spends a Might Point, they may roll a D6. On a natural 6, the Might Point is free and is not spent.",
+    "minor": false
+  },
+  {
+    "id": "claim_the_throne",
+    "label": "Claim the Throne",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If the enemy Leader is removed as a casualty whilst within 6\" of this Hero, then for the duration of the battle friendly Battle Company models treat this Hero as a banner with a range of 6\".",
+    "minor": false
+  },
+  {
+    "id": "commanding_bellow",
+    "label": "Commanding Bellow",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Friendly Battle Company models treat this Hero as a banner with a range of 3\".",
+    "minor": false
+  },
+  {
+    "id": "dead_eye_shot",
+    "label": "Dead Eye Shot",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "When benefiting from a Heroic Shoot, this model may reroll failed To Wound Rolls when making shooting attacks.",
+    "minor": false
+  },
+  {
+    "id": "deceptive_caster",
+    "label": "Deceptive Caster",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the beginning of the game, after both sides have deployed, this Hero may choose a single enemy Hero. The chosen Hero suffers a -1 penalty to any Resist Tests they take when targeted by a Magical Power cast by this Hero, except any natural 6.",
+    "minor": false
+  },
+  {
+    "id": "defender_of_the_city",
+    "label": "Defender of the City",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero may use the Shielding special rule even if they are not armed with a shield. If this Hero elects to shield, and wins the ensuing Combat, they may make a single Strike against one enemy model that was involved in the Combat.",
+    "minor": false
+  },
+  {
+    "id": "duelists_blade",
+    "label": "Duelist's Blade",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero will always win the roll-off during a Drawn Combat on a roll of a 3+ if they're Good, or 1-4 if they're Evil, regardless of any abilities on the opposing side. If both sides have a Hero with this special rule, neither side will benefit from this special rule.",
+    "minor": false
+  },
+  {
+    "id": "experienced_tracker",
+    "label": "Experienced Tracker",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the start of each game, you may choose either Woodland Creature or Mountain Dweller. Friendly Battle Company models gain the chosen special rule for the duration of the game.",
+    "minor": false
+  },
+  {
+    "id": "fearsome_charge",
+    "label": "Fearsome Charge",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero Charges into Combat, then until the end of the turn they count as having the Terror special rule.",
+    "minor": false
+  },
+  {
+    "id": "for_glory",
+    "label": "For Glory",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Once per game, at the start of any Fight Phase, this Hero can use this special rule so long as they are alive and on the battlefield. If they do, then friendly Battle Company models within 6\" of this Hero gain a bonus of +1 Fight Value and may reroll To Wound Rolls of a natural 1 when making Strikes until the end of the turn.",
+    "minor": false
+  },
+  {
+    "id": "furious_tirade",
+    "label": "Furious Tirade",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Enemy Warrior models cannot benefit from a Hero model's Stand Fast whilst within 6\" of this Hero.",
+    "minor": false
+  },
+  {
+    "id": "fury_of_the_bear",
+    "label": "Fury of the Bear",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero is involved in a Combat and kills every model he was Engaged in Combat with, then in the following turn he may declare a Heroic Move for free.",
+    "minor": false
+  },
+  {
+    "id": "gatekeeper",
+    "label": "Gatekeeper",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the end of the Priority Phase, this Hero may spend a Will Point to use this special rule. If they do, this Hero may select a single enemy Infantry model within 6\" and Line of Sight and roll a D6. On a 3+, the chosen model may not Move during their Activation, but may otherwise act normally. Monster models are unaffected by this special rule.",
+    "minor": false
+  },
+  {
+    "id": "lethal_aim",
+    "label": "Lethal Aim",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Each turn, this Hero gains a free Might Point that can only be spent during a shooting attack on either a To Hit Roll, a To Wound Roll, or an In The Way Test. If this free Might Point is not spent by the end of the turn, it is lost.",
+    "minor": false
+  },
+  {
+    "id": "longbeard",
+    "label": "Longbeard",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "During the Priority Phase, after the roll for Priority has taken place, this Hero can spend a Will Point to allow their controlling player to re-roll their roll for Priority.",
+    "minor": false
+  },
+  {
+    "id": "lord_of_the_vale",
+    "label": "Lord of the Vale",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Other friendly models within 3\" of this Hero may re-roll To Hit Rolls of a 1 when making a shooting attack in the Shoot Phase, provided they did not Move in the preceding Move Phase.",
+    "minor": false
+  },
+  {
+    "id": "marshal",
+    "label": "Marshal",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero and friendly Battle Company Warriors that can draw Line of Sight to this Hero may re-roll any failed Intelligence Tests and gain the Shieldwall special rule.",
+    "minor": false
+  },
+  {
+    "id": "master_of_accuracy",
+    "label": "Master of Accuracy",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Accuracy without expending a point of Might if they did not move in the preceding Move Phase.",
+    "minor": false
+  },
+  {
+    "id": "master_of_challenge",
+    "label": "Master of Challenge",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1.",
+    "minor": false
+  },
+  {
+    "id": "master_of_channeling",
+    "label": "Master of Channeling",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Channeling without expending Might in a turn in which you do not have Priority.",
+    "minor": false
+  },
+  {
+    "id": "master_of_combat",
+    "label": "Master of Combat",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Combat without expending a point of Might if they slew an enemy model they were Engaged in Combat with in the previous turn.",
+    "minor": false
+  },
+  {
+    "id": "master_of_defence",
+    "label": "Master of Defence",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat.",
+    "minor": false
+  },
+  {
+    "id": "master_of_magic",
+    "label": "Master of Magic",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero may still be Activated whilst Engaged in Combat in order to attempt to Cast Magical Powers, with the exception of the following: Nature's Wrath, Sorcerous Blast, Call Winds, and Tremor.",
+    "minor": false
+  },
+  {
+    "id": "master_of_march",
+    "label": "Master of March",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic March without expending Might on a turn in which you have Priority.",
+    "minor": false
+  },
+  {
+    "id": "master_of_move",
+    "label": "Master of Move",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6\" of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4.",
+    "minor": false
+  },
+  {
+    "id": "master_of_resolve",
+    "label": "Master of Resolve",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Resolve without expending Might if their force is Broken.",
+    "minor": false
+  },
+  {
+    "id": "master_of_shoot",
+    "label": "Master of Shoot",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Shoot without expending a point of Might if they moved in the preceding Move Phase.",
+    "minor": false
+  },
+  {
+    "id": "master_of_strength",
+    "label": "Master of Strength",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Strength without expending Might if they are the only friendly model contributing to the Combat.",
+    "minor": false
+  },
+  {
+    "id": "master_of_strike",
+    "label": "Master of Strike",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Strike without expending Might if the Hero's side of the Combat has a lower Fight Value than the opposing side.",
+    "minor": false
+  },
+  {
+    "id": "master_duelist",
+    "label": "Master Duelist",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with.",
+    "minor": false
+  },
+  {
+    "id": "oblivious_to_pain",
+    "label": "Oblivious to Pain",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 6, the Wound is ignored.",
+    "minor": false
+  },
+  {
+    "id": "pinpoint_shot",
+    "label": "Pinpoint Shot",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Instead of shooting normally in the Shoot Phase, this Hero may make a single shooting attack against an enemy model Engaged in Combat with a friendly model (including himself). If they do, then if the To Hit Roll is successful, this Hero doesn't need to make any In The Way Rolls \u2013 the shot will automatically hit its target.",
+    "minor": false
+  },
+  {
+    "id": "rallying_cry",
+    "label": "Rallying Cry",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Friendly Battle Company Infantry models can still charge after participating in a Heroic March called by this Hero.",
+    "minor": false
+  },
+  {
+    "id": "rapid_fire",
+    "label": "Rapid Fire",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero hits a target with its ranged weapon in the Shoot Phase, it may make another shooting attack with its weapon that targets a model within 3\" of the initial target \u2013 it may even be the same target. If that second shot also hits, then this model may Shoot again as described above. This model can make a maximum of three shots per turn as a result of this special rule.",
+    "minor": false
+  },
+  {
+    "id": "reading_the_portents",
+    "label": "Reading the Portents",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "During the Fight Phase, this Hero can spend a Will Point to allow a friendly model within 6\" to re-roll a single die during their Duel Roll. This Hero can use this special rule multiple times during the same Fight Phase, so long as they have Will Points remaining.",
+    "minor": false
+  },
+  {
+    "id": "reckless_charge",
+    "label": "Reckless Charge",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero Charges into Combat, they must reroll failed To Wound rolls when making Strikes.",
+    "minor": false
+  },
+  {
+    "id": "relentless_commander",
+    "label": "Relentless Commander",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Whilst this Hero is alive and on the battlefield, if you win the roll to choose who has Priority, and choose to give Priority to your opponent, then until the end of the turn friendly Battle Company models within 6\" of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes.",
+    "minor": false
+  },
+  {
+    "id": "sorcerous_adept",
+    "label": "Sorcerous Adept",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Each time this Hero rolls one or more natural 6s when making a Casting Test, they will regain a single Will Point after resolving the effects of the Magical Power.",
+    "minor": false
+  },
+  {
+    "id": "spy",
+    "label": "Spy",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the beginning of the game, after both sides have deployed, this Hero may choose one enemy Hero in your opponent's Company. Whilst this Hero is within 12\" of, and has Line of Sight to, the chosen Hero, whenever the chosen Hero declares a Heroic Action they must roll a D6. On a 1-2, the Heroic Action is immediately cancelled and the Might Point is not spent. The chosen Hero may not then attempt to declare the same Heroic Action again that turn.",
+    "minor": false
+  },
+  {
+    "id": "strength_of_the_marshal",
+    "label": "Strength of the Marshal",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Each time this Hero rolls a natural 6 To Wound when making a Strike with a hand weapon, they may immediately make a single additional To Wound Roll against the same target. If this additional To Wound Roll is a natural 6, this will not benefit from this special rule.",
+    "minor": false
+  },
+  {
+    "id": "swift_parry",
+    "label": "Swift Parry",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero may force one enemy model involved in the same Combat as them to re-roll a single D6 for their Duel Roll. This must be done before all other re-rolls, and before any Might Points are spent.",
+    "minor": false
+  },
+  {
+    "id": "the_kings_protector",
+    "label": "The King's Protector",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "At the start of the game, choose one friendly Battle Company Hero. If the target Hero is Engaged in Combat and within 6\" of this Hero, this Hero may declare a Heroic Combat for free. If the Heroic Combat is successful then this Hero must use the following Move to join the target Hero's combat. If this is not possible, then this Hero must Move as close as possible to the target Hero.",
+    "minor": false
+  },
+  {
+    "id": "to_arms",
+    "label": "To Arms!",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Once per game, at the start of his Activation, this Hero can declare they are using this special rule. If they do, then until the end of the turn all friendly models within 3\" of this Hero increase their Strength by 1.",
+    "minor": false
+  },
+  {
+    "id": "usurper_of_kings",
+    "label": "Usurper of Kings",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero is Engaged in Combat with an enemy Hero, this Hero may re-roll a single D6 during the Duel Roll. Additionally, this Hero must reroll To Wound Rolls of a natural 1 when making Strikes against an enemy Hero.",
+    "minor": false
+  },
+  {
+    "id": "voice_of_command",
+    "label": "Voice of Command",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The range of this Hero's Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero's Stand Fast.",
+    "minor": false
+  },
+  {
+    "id": "volley_fire",
+    "label": "Volley Fire",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero increases the range of their shooting attacks by 6\", provided they have not moved that turn. This special rule does not apply to throwing weapons.",
+    "minor": false
+  }
+]

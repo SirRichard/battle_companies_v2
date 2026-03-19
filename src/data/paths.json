@@ -1,0 +1,1291 @@
+[
+  {
+    "id": "path_of_move",
+    "label": "Path of Move",
+    "maximums": {
+      "relative": {
+        "fight": 3,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "attacks": 2,
+        "wounds": 2,
+        "might": 2,
+        "will": 6,
+        "fate": 1
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "spy",
+        "label": "Spy",
+        "activationType": "active",
+        "description": "At the beginning of the game, after both sides have deployed, this Hero may choose one enemy Hero in your opponent's Company. Whilst this Hero is within 12\" of, and has Line of Sight to, the chosen Hero, whenever the chosen Hero declares a Heroic Action they must roll a D6. On a 1-2, the Heroic Action is immediately cancelled and the Might Point is not spent. The chosen Hero may not then attempt to declare the same Heroic Action again that turn."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "gatekeeper",
+        "label": "Gatekeeper",
+        "activationType": "active",
+        "description": "At the end of the Priority Phase, this Hero may spend a Will Point to use this special rule. If they do, this Hero may select a single enemy Infantry model within 6\" and Line of Sight and roll a D6. On a 3+, the chosen model may not Move during their Activation, but may otherwise act normally. Monster models are unaffected by this special rule."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_move",
+            "label": "Master of Move",
+            "activationType": "active",
+            "description": "If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6\" of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4."
+          },
+          {
+            "type": "stat",
+            "options": ["will"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "choice",
+        "options": [
+          {
+            "type": "stat",
+            "options": ["might"]
+          },
+          {
+            "type": "stat",
+            "options": ["will"],
+            "amount": 2
+          },
+          {
+            "type": "stat",
+            "options": ["fate"]
+          }
+        ]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 4
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 5
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "longbeard",
+        "label": "Longbeard",
+        "activationType": "active",
+        "description": "During the Priority Phase, after the roll for Priority has taken place, this Hero can spend a Will Point to allow their controlling player to re-roll their roll for Priority."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "reading_the_portents",
+        "label": "Reading the Portents",
+        "activationType": "active",
+        "description": "During the Fight Phase, this Hero can spend a Will Point to allow a friendly model within 6\" to re-roll a single die during their Duel Roll. This Hero can use this special rule multiple times during the same Fight Phase, so long as they have Will Points remaining."
+      }
+    ]
+  },
+  {
+    "id": "path_of_shoot",
+    "label": "Path of Shoot",
+    "maximums": {
+      "relative": {
+        "fight": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "shoot": 3,
+        "attacks": 1,
+        "wounds": 2,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "dead_eye_shot",
+        "label": "Dead Eye Shot",
+        "activationType": "active",
+        "description": "When benefiting from a Heroic Shoot, this model may reroll failed To Wound Rolls when making shooting attacks."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "archers_this_way",
+        "label": "Archers, this way!",
+        "activationType": "active",
+        "description": "Friendly Battle Company models within 6\" and Line of Sight of this Hero may reroll To Hit Rolls of a 1 when making Shooting Attacks."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_shoot",
+            "label": "Master of Shoot",
+            "description": "The Hero may call Heroic Shoot without expending a point of Might if they moved in the preceding Move Phase."
+          },
+          {
+            "type": "stat",
+            "options": ["shoot"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "swift_shot",
+        "label": "Swift Shot",
+        "activationType": "active",
+        "description": "This Hero never suffers the -1 penalty To Hit for Moving and Shooting. May fire a Crossbow after moving up to half of their Movement value, but with a -1 penalty."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "rapid_fire",
+        "label": "Rapid Fire",
+        "activationType": "active",
+        "description": "If this Hero hits a target with its ranged weapon in the Shoot Phase, it may make another shooting attack with its weapon that targets a model within 3\" of the initial target - it may even be the same target. If that second shot also hits, then this model may Shoot again as described above. This model can make a maximum of three shots per turn as a result of this special rule."
+      }
+    ]
+  },
+  {
+    "id": "path_of_combat",
+    "label": "Path of Combat",
+    "maximums": {
+      "relative": {
+        "fight": 4,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "attacks": 2,
+        "wounds": 2,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "a_good_sort",
+        "label": "A Good Sort",
+        "activationType": "active",
+        "description": "Whilst within 3\" of another friendly Hero, this Hero increases their Attacks by 1 and may re-roll any rolls of a 1 in this Hero's Duel rolls."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "relentless_commander",
+        "label": "Relentless Commander",
+        "activationType": "active",
+        "description": "Whilst this Hero is alive and on the battlefield, if you win the roll to choose who has Priority, and choose to give Priority to your opponent, then until the end of the turn friendly Battle Company models within 6\" of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_combat",
+            "label": "Master of Combat",
+            "activationType": "active",
+            "description": "The Hero may call Heroic Combat without expending a point of Might if they slew an enemy model they were Engaged in Combat with in the previous turn."
+          },
+          {
+            "type": "stat",
+            "options": ["fight"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "fearsome_charge",
+        "label": "Fearsome Charge",
+        "activationType": "active",
+        "description": "If this Hero Charges into Combat, then until the end of the turn they count as having the Terror special rule."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "reckless_charge",
+        "label": "Reckless Charge",
+        "activationType": "active",
+        "description": "If this Hero Charges into Combat, they must reroll failed To Wound rolls when making Strikes."
+      }
+    ]
+  },
+  {
+    "id": "path_of_accuracy",
+    "label": "Path of Accuracy",
+    "heroicAction": "heroic_accuracy",
+    "maximums": {
+      "relative": {
+        "fight": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "shoot": 2,
+        "attacks": 1,
+        "wounds": 2,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "pinpoint_shot",
+        "label": "Pinpoint Shot",
+        "activationType": "active",
+        "description": "Instead of shooting normally in the Shoot Phase, this Hero may make a single shooting attack against an enemy model Engaged in Combat with a friendly model (including himself). If they do, then if the To Hit Roll is successful, this Hero doesn’t need to make any In The Way Rolls – the shot will automatically hit its target."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "lord_of_the_vale",
+        "label": "Lord of the Vale",
+        "activationType": "active",
+        "description": "Other friendly models within 3\" of this Hero may re-roll To Hit Rolls of a 1 when making a shooting attack in the Shoot Phase, provided they did not Move in the preceding Move Phase."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_accuracy",
+            "label": "Master of Accuracy",
+            "description": "The Hero may call Heroic Accuracy without expending a point of Might if they did not move in the preceding Move Phase."
+          },
+          {
+            "type": "stat",
+            "options": ["shoot"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "volley_fire",
+        "label": "Volley Fire",
+        "activationType": "active",
+        "description": "This Hero increases the range of their shooting attacks by 6\", provided they have not moved that turn. This special rule does not apply to throwing weapons."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "lethal_aim",
+        "label": "Lethal Aim",
+        "activationType": "active",
+        "description": "Each turn, this Hero gains a free Might Point that can only be spent during a shooting attack on either a To Hit Roll, a To Wound Roll, or an In The Way Test. If this free Might Point is not spent by the end of the turn, it is lost."
+      }
+    ]
+  },
+  {
+    "id": "path_of_challenge",
+    "label": "Path of Challenge",
+    "heroicAction": "heroic_challenge",
+    "maximums": {
+      "relative": {
+        "fight": 4,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "attacks": 3,
+        "wounds": 2,
+        "might": 3,
+        "will": 2,
+        "fate": 1
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "usurper_of_kings",
+        "label": "Usurper of Kings",
+        "activationType": "active",
+        "description": "If this Hero is Engaged in Combat with an enemy Hero, this Hero may re-roll a single D6 during the Duel Roll. Additionally, this Hero Must reroll To Wound Rolls of a natural 1 when making Strikes against an enemy Hero."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "claim_the_throne",
+        "label": "Claim the Throne",
+        "activationType": "passive",
+        "description": "If the enemy Leader is removed as a casualty whilst within 6\" of this Hero, then for the duration of the battle friendly Battle Company models treat this Hero as a banner with a range of 6\"."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_challenge",
+            "label": "Master of Challenge",
+            "description": "The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1."
+          },
+          {
+            "type": "stat",
+            "options": ["might"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "master_duelist",
+        "label": "Master Duelist",
+        "activationType": "active",
+        "description": "At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "general_hunter",
+        "label": "General Hunter",
+        "activationType": "active",
+        "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual"
+      }
+    ]
+  },
+  {
+    "id": "path_of_channeling",
+    "label": "Path of Channeling",
+    "heroicAction": "heroic_channeling",
+    "startingBonus": {
+      "type": "choice",
+      "description": "Choose one Magical Power to add to spell list on embarking this path."
+    },
+    "maximums": {
+      "relative": {
+        "fight": 2,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "attacks": 2,
+        "wounds": 3,
+        "might": 1,
+        "will": 6,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "deceptive_caster",
+        "label": "Deceptive Caster",
+        "activationType": "passive",
+        "description": "At the beginning of the game, after both sides have deployed, this Hero may choose a single enemy Hero. The chosen Hero suffers a -1 penalty to any Resist Tests they take when targeted by a Magical Power cast by this Hero, except any natural 6."
+      },
+      {
+        "roll": 3,
+        "type": "choice",
+        "options": [
+          {
+            "type": "magical_power",
+            "description": "Choose a new Magical Power to add to spell list."
+          },
+          {
+            "type": "improve_casting_value",
+            "description": "Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power."
+          }
+        ]
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_channeling",
+            "label": "Master of Channeling",
+            "activationType": "active",
+            "description": "The Hero may call Heroic Channeling without expending Might in a turn in which you do not have Priority."
+          },
+          {
+            "type": "stat",
+            "options": ["will"]
+          },
+          {
+            "type": "choice",
+            "options": [
+              {
+                "type": "magical_power",
+                "description": "Choose a new Magical Power to add to spell list."
+              },
+              {
+                "type": "improve_casting_value",
+                "description": "Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "choice",
+        "options": [
+          {
+            "type": "stat",
+            "options": ["fate"]
+          },
+          {
+            "type": "stat",
+            "options": ["will"],
+            "amount": 2,
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 4
+          },
+          {
+            "type": "magical_power",
+            "description": "Choose a new Magical Power to add to spell list."
+          },
+          {
+            "type": "improve_casting_value",
+            "description": "Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power."
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "sorcerous_adept",
+        "label": "Sorcerous Adept",
+        "activationType": "active",
+        "description": "Each time this Hero rolls one or more natural 6s when making a Casting Test, they will regain a single Will Point after resolving the effects of the Magical Power."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "master_of_magic",
+        "label": "Master of Magic",
+        "activationType": "passive",
+        "description": "This Hero may still be Activated whilst Engaged in Combat in order to attempt to Cast Magical Powers, with the exception of the following: Nature's Wrath, Sorcerous Blast, Call Winds, and Tremor."
+      }
+    ]
+  },
+  {
+    "id": "path_of_defence",
+    "label": "Path of Defence",
+    "heroicAction": "heroic_defence",
+    "maximums": {
+      "relative": {
+        "fight": 3,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 4,
+        "intelligence": 4
+      },
+      "absolute": {
+        "attacks": 2,
+        "wounds": 3,
+        "might": 2,
+        "will": 1,
+        "fate": 3
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "swift_parry",
+        "label": "Swift Parry",
+        "activationType": "active",
+        "description": "This Hero may force one enemy model involved in the same Combat as them to re-roll a single D6 for their Duel Roll. This must be done before all other re-rolls, and before any Might Points are spent."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "marshal",
+        "label": "Marshal",
+        "activationType": "passive",
+        "description": "This Hero and friendly Battle Company Warriors that can draw Line of Sight to this Hero may re-roll any failed Intelligence Tests and gain the Shieldwall special rule."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_defence",
+            "label": "Master of Defence",
+            "description": "The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat."
+          },
+          {
+            "type": "stat",
+            "options": ["defence"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 2
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "defender_of_the_city",
+        "label": "Defender of the City",
+        "activationType": "active",
+        "description": "This Hero may use the Shielding special rule even if they are not armed with a shield. If this Hero elects to shield, and wins the ensuing Combat, they may make a single Strike against one enemy model that was involved in the Combat."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "the_kings_protector",
+        "label": "The Kings Protector",
+        "activationType": "active",
+        "description": "At the start of the game, choose one friendly Battle Company Hero. If the target Hero is Engaged in Combat and within 6\" of this Hero, this Hero may declare a Heroic Combat for free. If the Heroic Combat is successful then this Hero must use the following Move to join the target Hero’s combat. If this is not possible, then this Hero must Move as close as possible to the target Hero."
+      }
+    ]
+  },
+  {
+    "id": "path_of_march",
+    "label": "Path of March",
+    "heroicAction": "heroic_march",
+    "maximums": {
+      "relative": {
+        "move": 2,
+        "fight": 2,
+        "shoot": 2,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 4
+      },
+      "absolute": {
+        "attacks": 2,
+        "wounds": 2,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "spectral_walk",
+        "label": "Spectral Walk",
+        "activationType": "passive",
+        "description": "See page 129 of the Middle-Earth Strategy Battle Game Rules Manual"
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "experienced_tracker",
+        "label": "Experienced Tracker",
+        "activationType": "passive",
+        "description": "At the start of each game, you may choose either Woodland Creature or Mountain Dwellers. Friendly Battle Company models gain the chosen special rule for the duration of the game."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_march",
+            "label": "Master of March",
+            "description": "The Hero may call Heroic March without expending Might on a turn in which you have Priority."
+          },
+          {
+            "type": "stat",
+            "options": ["move"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 5
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "chief_advisor",
+        "label": "Chief Advisor",
+        "activationType": "active",
+        "description": "Whenever a friendly Battle Company Hero model within 6\" spends a Might Point, they may roll a D6. On a natural 6, the Might Point is free and is not spent."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "rallying_cry",
+        "label": "Rallying Cry",
+        "activationType": "passive",
+        "description": "Friendly Battle Company Infantry models can still charge after participating in a Heroic March called by this Hero."
+      }
+    ]
+  },
+  {
+    "id": "path_of_resolve",
+    "label": "Path of Resolve",
+    "heroicAction": "heroic_resolve",
+    "maximums": {
+      "relative": {
+        "fight": 4,
+        "shoot": 2,
+        "strength": 1,
+        "defence": 1,
+        "courage": 3,
+        "intelligence": 3
+      },
+      "absolute": {
+        "attacks": 3,
+        "wounds": 3,
+        "might": 3,
+        "will": 3,
+        "fate": 3
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "furious_tirade",
+        "label": "Furious Tirade",
+        "activationType": "active",
+        "description": "Enemy Warrior models cannot benefit from a Hero model’s Stand Fast whilst within 6\" of this Hero."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "commanding_bellow",
+        "label": "Commanding Bellow",
+        "activationType": "passive",
+        "description": "Friendly Battle Company models treat this Hero as a banner with a range of 3\"."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_resolve",
+            "label": "Master of Resolve",
+            "description": "The Hero may call Heroic Resolve without expending Might if their force is Broken."
+          },
+          {
+            "type": "stat",
+            "options": ["courage", "intelligence"],
+            "bonus": "take_other_roll"
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 4
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 7
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "master_of_battle",
+        "parameter": 3,
+        "label": "Master of Battle (3+)",
+        "activationType": "active",
+        "description": "See page 127 of the Middle-Earth Strategy Battle Game Rules Manual"
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "voice_of_command",
+        "label": "Voice of Command",
+        "activationType": "active",
+        "description": "The range of this Hero’s Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero’s Stand Fast."
+      }
+    ]
+  },
+  {
+    "id": "path_of_strength",
+    "label": "Path of Strength",
+    "heroicAction": "heroic_strength",
+    "maximums": {
+      "relative": {
+        "fight": 4,
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 4,
+        "intelligence": 2
+      },
+      "absolute": {
+        "attacks": 3,
+        "wounds": 2,
+        "might": 3,
+        "will": 1,
+        "fate": 2
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "strength_of_the_marshal",
+        "label": "Strength of the Marshal",
+        "activationType": "active",
+        "description": "Each time this Hero rolls a natural 6 To Wound when making a Strike with a hand weapon, they may immediately make a single additional To Wound Roll against the same target. If this additional To Wound Roll is a natural 6, this will not benefit from this special rule."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "to_arms",
+        "label": "To Arms!",
+        "activationType": "active",
+        "description": "Once per game, at the start of his Activation, this Hero can declare they are using this special rule. If they do, then until the end of the turn all friendly models within 3\" of this Hero increase their Strength by 1."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_strength",
+            "label": "Master of Strength",
+            "description": "The Hero may call Heroic Strength without expending Might if they are the only friendly model contributing to the Combat."
+          },
+          {
+            "type": "special_rule",
+            "specialRuleId": "burly",
+            "label": "Burly",
+            "description": "See page 124 of the Middle-Earth Strategy Battle Game Rules Manual"
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "oblivious_to_pain",
+        "label": "Oblivious to Pain",
+        "activationType": "passive",
+        "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of natural 6, the Wound is ignored."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "fury_of_the_bear",
+        "label": "Fury of the Bear",
+        "activationType": "active",
+        "description": "If this Hero is involved in a Combat and kills every model he was Engaged in Combat with, then in the following turn he may declare a Heroic Move for free."
+      }
+    ]
+  },
+  {
+    "id": "path_of_strike",
+    "label": "Path of Strike",
+    "heroicAction": "heroic_strike",
+    "maximums": {
+      "relative": {
+        "shoot": 1,
+        "strength": 1,
+        "defence": 1,
+        "courage": 4,
+        "intelligence": 2
+      },
+      "absolute": {
+        "fight": 9,
+        "attacks": 2,
+        "wounds": 2,
+        "might": 2,
+        "will": 3,
+        "fate": 1
+      }
+    },
+    "progression": [
+      {
+        "roll": 2,
+        "type": "special_rule",
+        "specialRuleId": "cunning_fighter",
+        "label": "Cunning Fighter",
+        "activationType": "active",
+        "description": "If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made."
+      },
+      {
+        "roll": 3,
+        "type": "special_rule",
+        "specialRuleId": "for_glory",
+        "label": "For Glory",
+        "activationType": "active",
+        "description": "Once per game, at the start of any Fight Phase, this Hero can use this special rule so long as they are alive and on the battlefield. If they do, then friendly Battle Company models within 6\" of this Hero gain a bonus of +1 Fight Value and may reroll To Wound Rolls of a natural 1 when making Strikes until the end of the turn."
+      },
+      {
+        "roll": 4,
+        "type": "stat",
+        "options": ["attacks", "wounds"]
+      },
+      {
+        "roll": 5,
+        "type": "stat",
+        "options": ["courage", "intelligence"],
+        "bonus": "take_other_roll"
+      },
+      {
+        "roll": 6,
+        "type": "stat",
+        "options": ["strength", "defence"]
+      },
+      {
+        "roll": 7,
+        "type": "choice",
+        "options": [
+          {
+            "type": "special_rule",
+            "specialRuleId": "master_of_strike",
+            "label": "Master of Strike",
+            "description": "The Hero may call Heroic Strike without expending Might if the Hero’s side of the Combat has a lower Fight Value than the opposing side."
+          },
+          {
+            "type": "stat",
+            "options": ["fight"]
+          }
+        ]
+      },
+      {
+        "roll": 8,
+        "type": "stat",
+        "options": ["fight", "shoot"]
+      },
+      {
+        "roll": 9,
+        "type": "stat",
+        "options": ["might", "will", "fate"]
+      },
+      {
+        "roll": 10,
+        "type": "choice",
+        "options": [
+          {
+            "type": "minor_special_rule",
+            "maximum": 3
+          },
+          {
+            "type": "heroic_action",
+            "maximum": 6
+          }
+        ]
+      },
+      {
+        "roll": 11,
+        "type": "special_rule",
+        "specialRuleId": "duelists_blade",
+        "label": "Duelist's Blade",
+        "activationType": "active",
+        "description": "This Hero will always win the roll-off during a Drawn Combat on a roll of a 3+ if they’re Good, or 1-4 if they’re Evil, regardless of any abilities on the opposing side. If both sides have a Hero with this special rule, neither side will benefit from this special rule."
+      },
+      {
+        "roll": 12,
+        "type": "special_rule",
+        "specialRuleId": "adaptive_fighter",
+        "label": "Adaptive Fighter",
+        "activationType": "active",
+        "description": "If this Hero wins a Duel Roll, then before models Back Away this Hero may choose a single enemy model involved in the combat. The chosen model is Backed Away in a direction chosen by this Hero. This direction may be chosen so that the model is forced to Back Away over the edge of a cliff, in which case they will suffer falling damage as normal. Once this has been resolved, other models Back Away as normal and Strikes are resolved. However, if a model has been Backed Away over the edge of a cliff as described earlier, this Hero cannot make Strikes against that model."
+      }
+    ]
+  }
+]

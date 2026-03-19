@@ -1,0 +1,217 @@
+[
+  {
+    "id": "backpack",
+    "label": "Backpack",
+    "size": "large",
+    "rating": 2,
+    "influenceCost": 1,
+    "description": "A model with a Backpack may carry an additional three Small pieces of Equipment within it (for a maximum of four)."
+  },
+  {
+    "id": "badge_of_courage",
+    "label": "Badge of Courage",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 2,
+    "grantsSpecialRules": ["fearless"]
+  },
+  {
+    "id": "barding",
+    "label": "Barding",
+    "size": "large",
+    "rating": 10,
+    "influenceCost": 2,
+    "cavalryOnly": true,
+    "grantsSpecialRules": ["expert_rider", "horse_lord"]
+  },
+  {
+    "id": "climbing_ropes",
+    "label": "Climbing Ropes",
+    "size": "small",
+    "rating": 1,
+    "influenceCost": 1,
+    "description": "A model with Climbing Ropes will add +1 to any Climb tests they make. Additionally, after the model makes a Climb test they may choose to leave their rope behind. If they do so they cannot use it for the rest of the game, mark the location with a marker, counter or token. Any friendly model that makes a Climb test from the same point also gains a bonus of +1 to the result. At the end of the game, the model is assumed to retrieve the rope."
+  },
+  {
+    "id": "company_drum",
+    "label": "Company Drum",
+    "size": "large",
+    "rating": 25,
+    "influenceCost": 3,
+    "grantsSpecialRules": ["command_support"],
+    "description": "This is a War Drum that grants the bearer the Command Support keyword."
+  },
+  {
+    "id": "company_horn",
+    "label": "Company Horn",
+    "size": "small",
+    "rating": 15,
+    "influenceCost": 3,
+    "grantsSpecialRules": ["command_support"],
+    "description": "This is a War Horn that grants the bearer the Command Support keyword."
+  },
+  {
+    "id": "company_standard",
+    "label": "Company Standard",
+    "size": "large",
+    "rating": 15,
+    "influenceCost": 3,
+    "grantsSpecialRules": ["command_support"],
+    "description": "This is a Pennant that grants the bearer the Command Support keyword. Friendly models within 3\" of this model may re-roll any rolls of a 1 when making a Duel Roll."
+  },
+  {
+    "id": "concealing_cloak",
+    "label": "Concealing Cloak",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 2,
+    "grantsSpecialRules": ["stalk_unseen"]
+  },
+  {
+    "id": "dwarven_brew",
+    "label": "Dwarven Brew",
+    "size": "large",
+    "rating": 2,
+    "influenceCost": 1,
+    "description": "A model may elect to use their Dwarven Brew at the start of any game, if they do so, every model within the model’s Battle Company adds +1 to their Courage value for the remainder of the game. Once used, take an Intelligence Test. On an unsuccessful roll, the keg has run dry; remove it from the Hero model’s Equipment."
+  },
+  {
+    "id": "envenom_weapon",
+    "label": "Envenom Weapon",
+    "size": "small",
+    "rating": [1, 5],
+    "influenceCost": 1,
+    "alignment": "evil",
+    "parameterised": true,
+    "description": "When purchased, choose one weapon on the model's profile. That weapon gains the Poisoned Attacks special rule."
+  },
+  {
+    "id": "healing_herbs",
+    "label": "Healing Herbs",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 2,
+    "heroOnly": true,
+    "consumable": true,
+    "description": "At the end of any game the Hero participated in without being removed as a casualty, the Hero may use these. All models in the Battle Company add +1 to Injury rolls. Take an Intelligence Test; on a fail, remove from Equipment."
+  },
+  {
+    "id": "small_shield",
+    "label": "Small Shield",
+    "size": "small",
+    "rating": [1, 5],
+    "influenceCost": 1,
+    "grantsSpecialRules": ["shieldwall"],
+    "description": "This is a Light Shield that adds 1 to the bearer's Defence Characteristic against Strikes. This may not be carried in conjunction with another kind of Shield."
+  },
+  {
+    "id": "lucky_talisman",
+    "label": "Lucky Talisman",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 2,
+    "heroOnly": true,
+    "description": "A Hero with a Lucky Talisman may re-roll any failed Fate rolls."
+  },
+  {
+    "id": "map",
+    "label": "Map",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 1,
+    "heroOnly": true,
+    "description": "After both Battle Companies have deployed, before the first Priority is rolled, a Battle Company with a Map may redeploy D6 models using the normal rules. If both players have a Map, the player with Priority redeploys their models first. In scenarios where you roll for when or where models arrive or deploy, you may modify the roll for this model by +1 or -1. In scenarios where the bearer would be grouped with other models for these rolls, then they may confer this bonus to the whole group."
+  },
+  {
+    "id": "ring_of_warding",
+    "label": "Ring of Warding",
+    "size": "small",
+    "rating": 5,
+    "influenceCost": 1,
+    "grantsSpecialRules": ["resistant_to_magic"]
+  },
+  {
+    "id": "scroll_of_courage",
+    "label": "Scroll of Courage",
+    "size": "small",
+    "rating": 3,
+    "influenceCost": 1,
+    "heroOnly": true,
+    "conditionallyConsumable": true,
+    "description": "At the start of any game, the Hero may read the Scroll of Courage. If they do, all friendly models add +1 to their Courage value for the remainder of the game. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model’s Equipment."
+  },
+  {
+    "id": "scroll_of_hidden_paths",
+    "label": "Scroll of Hidden Paths",
+    "size": "small",
+    "rating": 3,
+    "influenceCost": 1,
+    "heroOnly": true,
+    "conditionallyConsumable": true,
+    "description": "At the start of any game, before forces are deployed, the Hero may read the Scroll of Hidden Paths. If they do, you may keep D3 Warrior models off the board when deploying your forces. These models will arrive from any board edge of your choosing at the end of your company’s second Move phase via the rules for Reinforcements. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model’s Equipment."
+  },
+  {
+    "id": "seeing_stone",
+    "label": "Seeing Stone",
+    "size": "small",
+    "rating": 10,
+    "influenceCost": 4,
+    "heroOnly": true,
+    "unique": true,
+    "description": "Once per game, during the Priority Phase before the roll for Priority, the bearer may automatically win the roll to choose who has Priority."
+  },
+  {
+    "id": "torching_brand",
+    "label": "Torching Brand",
+    "size": "large",
+    "rating": [1, 5],
+    "influenceCost": 1,
+    "grantsSpecialRules": [
+      { "id": "terror_x", "parameter": "Beast" },
+      { "id": "terror_x", "parameter": "Cavalry" },
+      { "id": "dominant", "parameter": 2 }
+    ],
+    "description": "This unit illuminates the area within 6\" of them; models within this area can be seen as if it were daylight. "
+  },
+  {
+    "id": "traps_snares",
+    "label": "Traps & Snares",
+    "size": "large",
+    "rating": 20,
+    "influenceCost": 4,
+    "grantsSpecialRules": ["master_of_traps"]
+  },
+  {
+    "id": "trophy_pelt",
+    "label": "Trophy Pelt",
+    "size": "large",
+    "rating": [3, 5],
+    "influenceCost": 2,
+    "grantsSpecialRules": ["terror"]
+  },
+  {
+    "id": "mountain_boots",
+    "label": "Mountain Boots",
+    "size": "large",
+    "rating": 3,
+    "influenceCost": 1,
+    "grantsSpecialRules": ["mountain_dweller"]
+  },
+  {
+    "id": "wondrous_cram",
+    "label": "Wondrous Cram",
+    "size": "small",
+    "rating": 3,
+    "influenceCost": 2,
+    "consumable": true,
+    "description": "A model that has purchased Wondrous Cram may elect to use it at the end of any game they participated in that they were removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Wondrous Cram from their Equipment; additionally, do not roll on the Injury chart for them, instead they will automatically count as having rolled the Full Recovery result."
+  },
+  {
+    "id": "woodland_belt",
+    "label": "Woodland Belt",
+    "size": "small",
+    "rating": 3,
+    "influenceCost": 1,
+    "grantsSpecialRules": ["woodland_creature"]
+  }
+]
