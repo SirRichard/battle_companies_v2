@@ -155,6 +155,7 @@ export interface Member {
   pathId?: string
   statIncreases: Partial<MemberStats> // advances above base
   statDecreases: Partial<MemberStats> // injuries that reduce stats
+  armourUpgraded?: boolean // hero has purchased one armour upgrade
 }
 
 export interface MatchRecord {

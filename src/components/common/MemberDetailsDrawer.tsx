@@ -2,7 +2,7 @@
  * MemberDetailsDrawer
  *
  * Slides up from the bottom to show full details for a single company member.
- * Covers: stats grid with colour-coded modifiers, equipment, M/W/F for heroes,
+ * Covers: stats grid with colour-coded modifiers, wargear, M/W/F for heroes,
  * XP progress bar, injuries, special rules, point value, editable name.
  */
 
@@ -23,6 +23,8 @@ import type { Member, StoredBaseUnitStats } from '../../models'
 import { getUnitLabel, getWargearLabel } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
 import pathsData from '../../data/paths.json'
+import baseUnitsData from '../../data/baseUnits.json'
+import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -37,6 +39,17 @@ function getPathLabel(pathId: string): string {
   return (
     ALL_PATHS.find((p) => p.id === pathId)?.label ?? pathId.replace(/_/g, ' ')
   )
+}
+
+// ─── Base equipment lookup ────────────────────────────────────────────────────
+
+const BASE_UNITS_RAW = baseUnitsData as Array<{
+  id: string
+  baseEquipment?: string[]
+}>
+
+function getBaseEquipment(baseUnitId: string): string[] {
+  return BASE_UNITS_RAW.find((u) => u.id === baseUnitId)?.baseEquipment ?? []
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -116,9 +129,13 @@ export default function MemberDetailsDrawer({
 }: Props) {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  // snapshot of name when editing started — used for cancel/discard
+  const [nameSnapshot, setNameSnapshot] = useState('')
 
   const handleEditName = () => {
-    setNameInput(member?.name ?? '')
+    const current = member?.name ?? ''
+    setNameInput(current)
+    setNameSnapshot(current)
     setEditingName(true)
   }
 
@@ -130,21 +147,48 @@ export default function MemberDetailsDrawer({
     setEditingName(false)
   }, [nameInput, member, onRename])
 
+  const handleCancelName = () => {
+    setNameInput(nameSnapshot)
+    setEditingName(false)
+  }
+
+  // Close button: cancel edit if editing, otherwise close drawer
+  const handleCloseOrCancel = () => {
+    if (editingName) {
+      handleCancelName()
+    } else {
+      onClose()
+    }
+  }
+
   if (!member) return null
 
   const isHero = member.role !== 'warrior'
   const rating = calcMemberRating(member, baseStats)
 
-  // Build effective stat values: base + increases + decreases (injuries)
+  // Combined wargear: base equipment + assigned option / purchased wargear
+  // De-duplicated while preserving order (base first, then assigned)
+  const baseEquip = getBaseEquipment(member.baseUnitId)
+  const assignedEquip = member.equipment ?? []
+  const allWargear = Array.from(new Set([...baseEquip, ...assignedEquip]))
+
+  // Equipment-derived stat bonuses (shield +1D, armour upgrade, etc.)
+  const equipBonus = calcEquipmentStatBonus(
+    member.equipment ?? [],
+    member.baseUnitId,
+    member.armourUpgraded
+  )
+
+  // Build effective stat values: base + increases + decreases (injuries) + equipment bonuses
   const base = baseStats?.stats
   const effectiveStats = base
     ? STAT_DEFS.map(({ key, label, isTargetNumber }) => {
         const baseVal = base[key] ?? 0
         const increase = (member.statIncreases ?? {})[key] ?? 0
         const decrease = (member.statDecreases ?? {})[key] ?? 0
-        const effectiveVal = baseVal + increase - decrease
+        const eqBonus = key === 'defence' ? equipBonus.defence : 0
+        const effectiveVal = baseVal + increase - decrease + eqBonus
 
-        // Colour: target-number stats improve by going DOWN, regular stats improve by going UP
         let colour: 'inherit' | 'success.main' | 'error.main' = 'inherit'
         if (isTargetNumber) {
           if (effectiveVal < baseVal) colour = 'success.main'
@@ -180,7 +224,7 @@ export default function MemberDetailsDrawer({
     <Drawer
       anchor="bottom"
       open={open}
-      onClose={onClose}
+      onClose={editingName ? undefined : onClose}
       PaperProps={{
         sx: {
           background: 'linear-gradient(160deg, #2E1E0A 0%, #1A0F05 100%)',
@@ -230,7 +274,7 @@ export default function MemberDetailsDrawer({
                 onChange={(e) => setNameInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSaveName()
-                  if (e.key === 'Escape') setEditingName(false)
+                  if (e.key === 'Escape') handleCancelName()
                 }}
                 autoFocus
                 size="small"
@@ -301,10 +345,16 @@ export default function MemberDetailsDrawer({
           </Box>
         </Box>
 
+        {/* Close / Cancel button — red while editing */}
         <IconButton
-          onClick={onClose}
+          onClick={handleCloseOrCancel}
           size="small"
-          sx={{ color: 'text.secondary', flexShrink: 0, mt: 0.5 }}
+          sx={{
+            flexShrink: 0,
+            mt: 0.5,
+            color: editingName ? 'error.main' : 'text.secondary',
+            transition: 'color 0.15s',
+          }}
         >
           <CloseIcon />
         </IconButton>
@@ -470,10 +520,10 @@ export default function MemberDetailsDrawer({
           </Box>
         )}
 
-        {/* ── Equipment ────────────────────────────────────────────────────── */}
+        {/* ── Wargear ───────────────────────────────────────────────────────── */}
         <Box sx={{ mb: 2.5 }}>
-          <SectionLabel>Equipment</SectionLabel>
-          {member.equipment.length === 0 ? (
+          <SectionLabel>Wargear</SectionLabel>
+          {allWargear.length === 0 ? (
             <Typography
               variant="caption"
               sx={{
@@ -483,11 +533,11 @@ export default function MemberDetailsDrawer({
                 display: 'block',
               }}
             >
-              No equipment
+              No wargear
             </Typography>
           ) : (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
-              {member.equipment.map((eq) => (
+              {allWargear.map((eq) => (
                 <Chip
                   key={eq}
                   label={getWargearLabel(eq)}

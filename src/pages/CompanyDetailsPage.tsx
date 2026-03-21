@@ -487,27 +487,40 @@ function MemberRow({ member, isHero, delay, onClick }: MemberRowProps) {
         </Box>
       )}
 
-      {!isHero && member.equipment.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.5,
-            flexWrap: 'wrap',
-            justifyContent: 'flex-end',
-            flexShrink: 0,
-            maxWidth: 180,
-          }}
-        >
-          {member.equipment.map((eq) => (
-            <Chip
-              key={eq}
-              label={getWargearLabel(eq)}
-              size="small"
-              sx={{ fontSize: '0.6rem', height: 20 }}
-            />
-          ))}
-        </Box>
-      )}
+      {(() => {
+        // Warriors: assigned option only. Heroes: base equipment + assigned/purchased.
+        const assignedEquip = member.equipment ?? []
+        const displayWargear = isHero
+          ? Array.from(
+              new Set([
+                ...(BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+                  ?.baseEquipment ?? []),
+                ...assignedEquip,
+              ])
+            )
+          : assignedEquip
+        return displayWargear.length > 0 ? (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 0.5,
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              flexShrink: 0,
+              maxWidth: 180,
+            }}
+          >
+            {displayWargear.map((eq) => (
+              <Chip
+                key={eq}
+                label={getWargearLabel(eq)}
+                size="small"
+                sx={{ fontSize: '0.6rem', height: 20 }}
+              />
+            ))}
+          </Box>
+        ) : null
+      })()}
 
       <Typography
         variant="caption"
