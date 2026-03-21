@@ -303,6 +303,7 @@ export default function CompanyDetailsPage() {
         <Fab
           variant="extended"
           size="medium"
+          onClick={() => navigate(`/companies/${company.id}/match/setup`)}
           sx={{
             position: 'fixed',
             bottom: 24,
@@ -601,7 +602,7 @@ function HistoryTab({ company }: { company: Company }) {
               }}
             >
               <Typography variant="h6">
-                {match.scenarioId.replace(/_/g, ' ')}
+                {match.scenarioLabel ?? match.scenarioId.replace(/_/g, ' ')}
               </Typography>
               <Chip
                 label={match.result.toUpperCase()}

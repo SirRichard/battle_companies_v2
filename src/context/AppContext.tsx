@@ -6,12 +6,14 @@ import React, {
   useState,
 } from 'react'
 import type { Company, StoredBaseUnitStats } from '../models'
+import type { ActiveMatchState } from '../models/match'
 import {
   companyService,
   statsService,
   appStateService,
   cascadeStatsUpdate,
 } from '../services/company/companyService'
+import { db } from '../services/db/database'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,11 @@ interface AppContextValue {
   // App state
   hasSeenDisclaimer: boolean
   markDisclaimerSeen: () => Promise<void>
+
+  // Active match
+  saveActiveMatch: (match: ActiveMatchState) => Promise<void>
+  loadActiveMatch: (companyId: string) => Promise<ActiveMatchState | null>
+  clearActiveMatch: (companyId: string) => Promise<void>
 
   // Loading
   isLoading: boolean
@@ -158,6 +165,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setHasSeenDisclaimer(true)
   }, [])
 
+  // ─── Active match operations ──────────────────────────────────────────────
+
+  const saveActiveMatch = useCallback(async (match: ActiveMatchState) => {
+    await db.activeMatches.put(match)
+  }, [])
+
+  const loadActiveMatch = useCallback(
+    async (companyId: string): Promise<ActiveMatchState | null> => {
+      return (await db.activeMatches.get(companyId)) ?? null
+    },
+    []
+  )
+
+  const clearActiveMatch = useCallback(async (companyId: string) => {
+    await db.activeMatches.delete(companyId)
+  }, [])
+
   // ─── Context value ────────────────────────────────────────────────────────
 
   const value: AppContextValue = {
@@ -174,6 +198,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     clearAllStats,
     hasSeenDisclaimer,
     markDisclaimerSeen,
+    saveActiveMatch,
+    loadActiveMatch,
+    clearActiveMatch,
     isLoading,
   }
 

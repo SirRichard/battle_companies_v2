@@ -5,6 +5,8 @@ import LoadCompanyPage from '../pages/LoadCompanyPage'
 import CreateCompanyPage from '../pages/CreateCompanyPage'
 import CompanyDetailsPage from '../pages/CompanyDetailsPage'
 import EditStatsPage from '../pages/EditStatsPage'
+import MatchSetupPage from '../pages/MatchSetupPage'
+import MatchTrackingPage from '../pages/MatchTrackingPage'
 import NotFoundPage from '../pages/NotFoundPage'
 
 export const router = createBrowserRouter([
@@ -16,6 +18,8 @@ export const router = createBrowserRouter([
       { path: 'companies', element: <LoadCompanyPage /> },
       { path: 'companies/new', element: <CreateCompanyPage /> },
       { path: 'companies/:companyId', element: <CompanyDetailsPage /> },
+      { path: 'companies/:companyId/match/setup', element: <MatchSetupPage /> },
+      { path: 'companies/:companyId/match', element: <MatchTrackingPage /> },
       { path: 'stats', element: <EditStatsPage /> },
     ],
   },

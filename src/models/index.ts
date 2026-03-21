@@ -164,6 +164,7 @@ export interface MatchRecord {
   result: 'win' | 'draw' | 'loss'
   opponentRating: number
   scenarioId: string
+  scenarioLabel: string
   influenceGained: number
   casualties: Array<{
     memberId: string
