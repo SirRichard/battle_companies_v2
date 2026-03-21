@@ -208,7 +208,8 @@ export default function CreateCompanyPage() {
         const draft = sessionStorage.getItem(WIZARD_DRAFT_KEY)
         if (draft) {
           const parsed = JSON.parse(draft) as WizardState
-          setWizard(parsed)
+          // Advance straight to path selection — stats are now all entered
+          setWizard({ ...parsed, step: 6 })
         }
       } catch {
         /* ignore */
@@ -436,78 +437,198 @@ export default function CreateCompanyPage() {
             <Box>
               <Typography
                 variant="body2"
-                sx={{ fontStyle: 'italic', opacity: 0.7, mb: 2 }}
+                sx={{ fontStyle: 'italic', opacity: 0.7, mb: 3 }}
               >
-                All heroes have chosen their paths. Review below, then form your
-                company.
+                All heroes have chosen their paths. Review below, then press
+                Form Company.
               </Typography>
-              {heroTempIds.map((tid) => {
-                const pathId = wizard.heroPaths[tid]
-                const pathLabel =
-                  pathId
-                    ?.replace(/_/g, ' ')
-                    .replace(/path of/i, '')
-                    .trim() ?? '—'
-                const isLeader = tid === wizard.leaderId
-                const name = wizard.memberNames[tid] ?? tid
-                const spell = wizard.heroSpellChoices[tid]
-                return (
-                  <Box
-                    key={tid}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      py: 1,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="h6">{name}</Typography>
-                      <Typography variant="caption">
-                        {isLeader ? 'Leader' : 'Sergeant'}
-                      </Typography>
-                      {(() => {
-                        const tidIdx = parseInt(tid.replace('member_', ''), 10)
-                        let run = 0
-                        for (const e of selectedCompany!.startingRoster) {
-                          if (tidIdx < run + e.count) {
-                            return (
-                              <Typography
-                                variant="caption"
-                                sx={{ display: 'block', opacity: 0.5 }}
-                              >
-                                {getUnitLabel(e.baseUnitId)}
-                              </Typography>
-                            )
-                          }
-                          run += e.count
-                        }
-                        return null
-                      })()}
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="body2"
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                {heroTempIds.map((tid) => {
+                  const pathId = wizard.heroPaths[tid]
+                  const pLabel =
+                    pathId
+                      ?.replace(/_/g, ' ')
+                      .replace(/\bpath of\b/i, '')
+                      .trim() ?? '—'
+                  const formattedPath =
+                    pLabel.charAt(0).toUpperCase() + pLabel.slice(1)
+                  const isLeader = tid === wizard.leaderId
+                  const name = wizard.memberNames[tid] ?? tid
+                  const spell = wizard.heroSpellChoices[tid]
+
+                  // Resolve roster entry for unit type + equipment
+                  const tidIdx = parseInt(tid.replace('member_', ''), 10)
+                  let run = 0
+                  let rosterEntry: {
+                    baseUnitId: string
+                    equipment?: string[]
+                  } | null = null
+                  for (const e of selectedCompany!.startingRoster) {
+                    if (tidIdx < run + e.count) {
+                      rosterEntry = e
+                      break
+                    }
+                    run += e.count
+                  }
+                  const equipment = rosterEntry?.equipment ?? []
+
+                  return (
+                    <Box
+                      key={tid}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: isLeader ? 'primary.main' : 'primary.dark',
+                        borderRadius: 2,
+                        p: 2,
+                        background: 'rgba(201,168,76,0.03)',
+                      }}
+                    >
+                      {/* Header: name + role badge + change button */}
+                      <Box
                         sx={{
-                          color: 'primary.main',
-                          textTransform: 'capitalize',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          mb: 1,
                         }}
                       >
-                        {pathLabel.charAt(0).toUpperCase() + pathLabel.slice(1)}
+                        <Box>
+                          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
+                            {name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              textTransform: 'uppercase',
+                              letterSpacing: 1,
+                              color: isLeader ? 'primary.main' : 'primary.dark',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {isLeader ? 'Leader' : 'Sergeant'}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setWizard((w) => ({
+                              ...w,
+                              heroPaths: Object.fromEntries(
+                                Object.entries(w.heroPaths).filter(
+                                  ([k]) => k !== tid
+                                )
+                              ),
+                              heroSpellChoices: Object.fromEntries(
+                                Object.entries(w.heroSpellChoices).filter(
+                                  ([k]) => k !== tid
+                                )
+                              ),
+                            }))
+                          }}
+                          sx={{
+                            mt: 0.5,
+                            fontSize: '0.7rem',
+                            py: 0.5,
+                            px: 1.5,
+                            minHeight: 0,
+                          }}
+                        >
+                          Change Path
+                        </Button>
+                      </Box>
+
+                      <Box
+                        sx={{
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                          opacity: 0.3,
+                          mb: 1.5,
+                        }}
+                      />
+
+                      {/* Unit type */}
+                      {rosterEntry && (
+                        <>
+                          <Typography
+                            variant="caption"
+                            sx={{ opacity: 0.55, display: 'block', mb: 0.25 }}
+                          >
+                            Unit Type
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1.25 }}>
+                            {getUnitLabel(rosterEntry.baseUnitId)}
+                          </Typography>
+                        </>
+                      )}
+
+                      {/* Equipment */}
+                      {equipment.length > 0 && (
+                        <>
+                          <Typography
+                            variant="caption"
+                            sx={{ opacity: 0.55, display: 'block', mb: 0.5 }}
+                          >
+                            Equipment
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: 0.5,
+                              mb: 1.25,
+                            }}
+                          >
+                            {equipment.map((eq: string) => (
+                              <Box
+                                key={eq}
+                                sx={{
+                                  px: 1,
+                                  py: 0.25,
+                                  borderRadius: 1,
+                                  border: '1px solid',
+                                  borderColor: 'rgba(200,164,90,0.35)',
+                                  fontSize: '0.7rem',
+                                }}
+                              >
+                                {eq
+                                  .replace(/_/g, ' ')
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </Box>
+                            ))}
+                          </Box>
+                        </>
+                      )}
+
+                      {/* Path */}
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.55, display: 'block', mb: 0.25 }}
+                      >
+                        Heroic Path
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'primary.main', fontWeight: 600 }}
+                      >
+                        Path of {formattedPath}
                       </Typography>
                       {spell && (
-                        <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.6, display: 'block', mt: 0.25 }}
+                        >
+                          Starting spell:{' '}
                           {spell
                             .replace(/_/g, ' ')
-                            .replace(/\w/g, (l) => l.toUpperCase())}
+                            .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </Typography>
                       )}
                     </Box>
-                  </Box>
-                )
-              })}
+                  )
+                })}
+              </Box>
             </Box>
           )
         }
