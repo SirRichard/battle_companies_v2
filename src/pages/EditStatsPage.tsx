@@ -177,6 +177,15 @@ export default function EditStatsPage() {
   const companyIdParam = searchParams.get('companyId')
   const isNewCompany = searchParams.get('new') === '1'
 
+  // Focused wizard mode: arrived from mid-wizard stats check.
+  // units= is a comma-separated list of baseUnitIds that need stats.
+  const wizardMode = searchParams.get('wizard') === '1'
+  const wizardUnits = useMemo(() => {
+    const raw = searchParams.get('units')
+    if (!wizardMode || !raw) return []
+    return raw.split(',').filter(Boolean)
+  }, [wizardMode, searchParams])
+
   // ─── Determine work queue ─────────────────────────────────────────────────
   // companyIdParam is the UUID of the saved Company instance.
   // getUnitsForCompany needs the companyTypeId (e.g. 'arnor'), not the UUID.
@@ -186,18 +195,37 @@ export default function EditStatsPage() {
     return companies.find((c) => c.id === companyIdParam)?.companyTypeId ?? null
   }, [companyIdParam, companies])
 
-  const { unitQueue, mountQueue } = useMemo(() => {
-    if (companyTypeId) {
-      const allUnits = getUnitsForCompany(companyTypeId)
-      const allMounts = getMountsForUnits(allUnits)
-      return {
-        unitQueue: allUnits.filter((id) => !getStatsForUnit(id)),
-        mountQueue: allMounts.filter((id) => !getStatsForUnit(id)),
+  // Compute the work queues once on mount and lock them.
+  // We must NOT re-filter as statsLibrary updates mid-session — doing so
+  // causes the queue to shrink beneath currentIndex, breaking the counter
+  // and making currentId undefined before navigation fires.
+  const [queues] = useState<{ unitQueue: string[]; mountQueue: string[] }>(
+    () => {
+      if (wizardMode && wizardUnits.length > 0) {
+        const units = wizardUnits
+          .filter(
+            (id) => !WARGEAR.some((w) => w.id === id && w.category === 'mount')
+          )
+          .filter((id) => !getStatsForUnit(id))
+        const mounts = wizardUnits
+          .filter((id) =>
+            WARGEAR.some((w) => w.id === id && w.category === 'mount')
+          )
+          .filter((id) => !getStatsForUnit(id))
+        return { unitQueue: units, mountQueue: mounts }
       }
+      if (companyTypeId) {
+        const allUnits = getUnitsForCompany(companyTypeId)
+        const allMounts = getMountsForUnits(allUnits)
+        return {
+          unitQueue: allUnits.filter((id) => !getStatsForUnit(id)),
+          mountQueue: allMounts.filter((id) => !getStatsForUnit(id)),
+        }
+      }
+      return { unitQueue: [], mountQueue: [] }
     }
-    // Browse/edit mode — show everything in library
-    return { unitQueue: [], mountQueue: [] }
-  }, [companyTypeId, statsLibrary])
+  )
+  const { unitQueue, mountQueue } = queues
 
   // Phase: 'units' first, then 'mounts', then done
   const [phase, setPhase] = useState<'units' | 'mounts'>('units')
@@ -297,7 +325,12 @@ export default function EditStatsPage() {
       return
     }
 
-    // All done — navigate to company or home
+    // All done
+    if (wizardMode) {
+      // Return to wizard — it will rehydrate from sessionStorage
+      navigate('/companies/new?from=stats')
+      return
+    }
     navigate(companyIdParam ? `/companies/${companyIdParam}` : '/')
   }, [
     currentId,
@@ -311,6 +344,7 @@ export default function EditStatsPage() {
     phase,
     mountQueue.length,
     companyIdParam,
+    wizardMode,
     saveStats,
     saveStatsAndCascade,
     navigate,
@@ -331,9 +365,9 @@ export default function EditStatsPage() {
     if (warnings[key]) setWarnings((prev) => ({ ...prev, [key]: undefined }))
   }
 
-  // ─── Browse / edit mode (no companyId) ───────────────────────────────────
+  // ─── Browse / edit mode (no companyId, not wizard mode) ────────────────────
 
-  if (!companyIdParam) {
+  if (!companyIdParam && !wizardMode) {
     return <BrowseStatsMode />
   }
 
@@ -341,6 +375,12 @@ export default function EditStatsPage() {
 
   const totalNeeded = unitQueue.length + mountQueue.length
   if (totalNeeded === 0) {
+    // In wizard mode this means we landed here but everything was already saved —
+    // redirect straight back to the wizard.
+    if (wizardMode) {
+      navigate('/companies/new', { replace: true })
+      return null
+    }
     return (
       <Box
         sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
@@ -348,7 +388,7 @@ export default function EditStatsPage() {
         <PageHeader
           title="Stats Entry"
           subtitle="All done"
-          backTo={`/companies/${companyIdParam}`}
+          backTo={companyIdParam ? `/companies/${companyIdParam}` : '/'}
         />
         <Box
           sx={{
@@ -374,7 +414,9 @@ export default function EditStatsPage() {
             </Typography>
             <Button
               variant="contained"
-              onClick={() => navigate(`/companies/${companyIdParam}`)}
+              onClick={() =>
+                navigate(companyIdParam ? `/companies/${companyIdParam}` : '/')
+              }
             >
               View Company
             </Button>
@@ -404,7 +446,11 @@ export default function EditStatsPage() {
             ? `Mount Stats — ${currentLabel}`
             : `Unit Stats — ${currentLabel}`
         }
-        subtitle={`${phaseLabel} · ${phaseSubtitle}`}
+        subtitle={
+          wizardMode
+            ? `Company Creation · ${phaseLabel} · ${phaseSubtitle}`
+            : `${phaseLabel} · ${phaseSubtitle}`
+        }
         onBack={() => setConfirmExit(true)}
       />
 

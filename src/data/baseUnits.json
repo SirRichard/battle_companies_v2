@@ -208,7 +208,13 @@
     "id": "ranger_of_ithilien",
     "label": "Ranger of Ithilien",
     "derivedFrom": "ranger_of_gondor",
-    "additionalSpecialRules": ["loyal_to_the_captains"]
+    "additionalSpecialRules": [
+      "loyal_to_the_captains"
+    ],
+    "keywords": [
+      "man"
+    ],
+    "pointsCost": 8
   },
   {
     "id": "warrior_of_numenor",
@@ -348,10 +354,13 @@
     "id": "helminga",
     "label": "Helminga",
     "derivedFrom": "warrior_of_rohan",
-    "pointsCost": 9,
+    "pointsCost": 7,
     "statOverrides": {
       "strength": 4
-    }
+    },
+    "keywords": [
+      "man"
+    ]
   },
   {
     "id": "woses_warrior",
@@ -547,8 +556,13 @@
     "id": "lorien_guard",
     "label": "Lorien Guard",
     "derivedFrom": "galadhrim_warrior",
-    "additionalSpecialRules": ["lorien_guard_reroll"],
-    "pointsCost": 10
+    "additionalSpecialRules": [
+      "lorien_guard_reroll"
+    ],
+    "pointsCost": 10,
+    "keywords": [
+      "elf"
+    ]
   },
   {
     "id": "rivendell_warrior",
@@ -611,7 +625,10 @@
     "pointsCost": 9,
     "statOverrides": {
       "move": 8
-    }
+    },
+    "keywords": [
+      "elf"
+    ]
   },
   {
     "id": "erebor_dwarf_warrior",
@@ -918,14 +935,22 @@
     "pointsCost": 5,
     "statOverrides": {
       "strength": 3
-    }
+    },
+    "keywords": [
+      "hobbit"
+    ]
   },
   {
     "id": "tookish_hunter",
     "label": "Tookish Hunter",
     "derivedFrom": "hobbit_archer",
     "pointsCost": 6,
-    "additionalSpecialRules": ["tookish_hunter_reroll"]
+    "additionalSpecialRules": [
+      "tookish_hunter_reroll"
+    ],
+    "keywords": [
+      "hobbit"
+    ]
   },
   {
     "id": "mordor_orc_warrior",
@@ -1401,8 +1426,8 @@
     }
   },
   {
-    "id": "uruk_hai_beserker",
-    "label": "Uruk-Hai Beserker",
+    "id": "uruk_hai_berserker",
+    "label": "Uruk-Hai Berserker",
     "pointsCost": 15,
     "keywords": ["uruk_hai"],
     "baseEquipment": ["light_armour"],
@@ -1660,12 +1685,25 @@
     "label": "Warg Marauder",
     "pointsCost": 35,
     "derivedFrom": "moria_goblin_warrior",
-    "keywords": ["orc"],
+    "keywords": [
+      "orc"
+    ],
     "riderCount": 3,
-    "baseEquipment": ["shield", "warg"],
+    "baseEquipment": [
+      "shield",
+      "warg"
+    ],
     "additionalRiders": [
-      { "equipment": ["orc_bow"] },
-      { "equipment": ["orc_bow"] }
+      {
+        "equipment": [
+          "orc_bow"
+        ]
+      },
+      {
+        "equipment": [
+          "orc_bow"
+        ]
+      }
     ],
     "onTheirOwnPath": true
   },
@@ -2095,7 +2133,13 @@
     "id": "goblin_hulk",
     "label": "Goblin Hulk",
     "derivedFrom": "gundabad_ogre",
-    "keywordOverride": ["goblin"],
-    "onTheirOwnPath": true
+    "keywordOverride": [
+      "goblin"
+    ],
+    "onTheirOwnPath": true,
+    "keywords": [
+      "ogre"
+    ],
+    "pointsCost": 60
   }
 ]

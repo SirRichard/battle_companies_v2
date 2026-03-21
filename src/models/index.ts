@@ -190,4 +190,6 @@ export interface WizardState {
   memberNames: Record<string, string> // tempId -> name
   leaderId: string | null
   sergeantIds: string[]
+  heroPaths: Record<string, string> // tempId -> pathId
+  heroSpellChoices: Record<string, string> // tempId -> magicalPowerId (Channeling only)
 }

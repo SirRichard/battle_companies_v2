@@ -13,7 +13,6 @@ import {
   Drawer,
   IconButton,
   TextField,
-  Divider,
   Chip,
   LinearProgress,
 } from '@mui/material'
@@ -23,6 +22,22 @@ import CheckIcon from '@mui/icons-material/Check'
 import type { Member, StoredBaseUnitStats } from '../../models'
 import { getUnitLabel, getWargearLabel } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
+import pathsData from '../../data/paths.json'
+
+// ─── Path helpers ─────────────────────────────────────────────────────────────
+
+interface PathDef {
+  id: string
+  label: string
+  heroicAction?: string
+}
+const ALL_PATHS = pathsData as unknown as PathDef[]
+
+function getPathLabel(pathId: string): string {
+  return (
+    ALL_PATHS.find((p) => p.id === pathId)?.label ?? pathId.replace(/_/g, ' ')
+  )
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -342,6 +357,45 @@ export default function MemberDetailsDrawer({
                   </Typography>
                 </Box>
               ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* ── Hero Path ───────────────────────────────────────────────────── */}
+        {isHero && member.pathId && (
+          <Box sx={{ mb: 2.5 }}>
+            <SectionLabel>Heroic Path</SectionLabel>
+            <Box
+              sx={{
+                mt: 1,
+                px: 2,
+                py: 1.25,
+                border: '1px solid',
+                borderColor: 'primary.dark',
+                borderRadius: 1,
+                background: 'rgba(201,168,76,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.85rem',
+                  color: 'primary.main',
+                }}
+              >
+                {getPathLabel(member.pathId)}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.55, fontStyle: 'normal' }}
+              >
+                {ALL_PATHS.find((p) => p.id === member.pathId)?.heroicAction
+                  ? '+ Heroic Action'
+                  : 'Universal Actions'}
+              </Typography>
             </Box>
           </Box>
         )}

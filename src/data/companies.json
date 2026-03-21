@@ -757,7 +757,9 @@
         "title": "Arise, Riders of Rohan!",
         "description": "All Rohan Hero models gain the Arise, Riders of Rohan! special rule. Riders of Rohan in this Battle Company do not count towards your Bow Limit.",
         "limitExemptions": {
-          "bow": ["rider_of_rohan"]
+          "bow": [
+            "rider_of_rohan"
+          ]
         }
       }
     ],
@@ -852,8 +854,12 @@
         "title": "Arise, Riders of Rohan!",
         "description": "All Rohan Hero models gain the Arise, Riders of Rohan! special rule. Riders of Rohan in this Battle Company do not count towards your Bow Limit nor Cavalry Limit.",
         "limitExemptions": {
-          "bow": ["rider_of_rohan"],
-          "cavalry": ["rider_of_rohan"]
+          "bow": [
+            "rider_of_rohan"
+          ],
+          "cavalry": [
+            "rider_of_rohan"
+          ]
         }
       }
     ],

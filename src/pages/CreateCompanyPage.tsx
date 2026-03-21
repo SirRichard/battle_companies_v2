@@ -1,6 +1,13 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Box, Button, Stepper, Step, StepLabel } from '@mui/material'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  Box,
+  Button,
+  Typography,
+  Stepper,
+  Step,
+  StepLabel,
+} from '@mui/material'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import PageHeader from '../components/common/PageHeader'
@@ -11,6 +18,8 @@ import StepCompany from '../components/wizard/StepCompany'
 import StepCompanyName from '../components/wizard/StepCompanyName'
 import StepMemberNames from '../components/wizard/StepMemberNames'
 import StepLeaderSelection from '../components/wizard/StepLeaderSelection'
+import StepPathSelection from '../components/wizard/StepPathSelection'
+import StepSpellSelection from '../components/wizard/StepSpellSelection'
 
 import { useAppContext } from '../context/AppContext'
 import type { Alignment, WizardState } from '../models'
@@ -19,12 +28,70 @@ import {
   createCompany,
   generateTempMemberIds,
 } from '../services/company/companyFactory'
+import { getUnitLabel, getWargearLabel } from '../utils/labels'
 
 import companiesData from '../data/companies.json'
+import baseUnitsData from '../data/baseUnits.json'
+import wargearData from '../data/wargear.json'
+
+const BASE_UNITS_RAW = baseUnitsData as Array<{
+  id: string
+  baseEquipment: string[]
+}>
+const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
+
+const WIZARD_DRAFT_KEY = 'bc_wizard_draft'
+
+/** Returns mount IDs embedded in a unit's baseEquipment list. */
+function getMountsForUnit(unitId: string): string[] {
+  const unit = BASE_UNITS_RAW.find((u) => u.id === unitId)
+  if (!unit) return []
+  return unit.baseEquipment.filter((eq) =>
+    WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount')
+  )
+}
+
+/** All unique base unit + mount IDs a company could ever use.
+ *  Includes starting roster, all advancement targets, and all
+ *  reinforcement table results so stats are ready before they're needed. */
+function getAllUnitIdsForRoster(companyDef: CompanyDefinition): string[] {
+  const unitIds = new Set<string>()
+
+  // Starting roster
+  for (const e of companyDef.startingRoster) {
+    unitIds.add(e.baseUnitId)
+  }
+
+  // Advancement targets (e.g. Knight of Arnor from Warrior of Arnor)
+  for (const a of companyDef.advancements) {
+    if (a.toBaseUnitId) unitIds.add(a.toBaseUnitId)
+  }
+
+  // Reinforcement table results
+  for (const r of companyDef.reinforcementTable) {
+    if (r.baseUnitId) unitIds.add(r.baseUnitId)
+  }
+
+  // Mounts for all of the above
+  const mountIds = new Set<string>()
+  for (const id of unitIds) {
+    for (const m of getMountsForUnit(id)) mountIds.add(m)
+  }
+
+  return [...unitIds, ...mountIds]
+}
 
 const COMPANIES = companiesData as CompanyDefinition[]
 
-const STEPS = ['Alignment', 'Faction', 'Company', 'Name', 'Members', 'Command']
+const STEPS = [
+  'Alignment',
+  'Faction',
+  'Company',
+  'Name',
+  'Members',
+  'Command',
+  'Paths',
+]
 
 const STEP_TITLES = [
   'Choose Your Alignment',
@@ -33,6 +100,7 @@ const STEP_TITLES = [
   'Name Your Company',
   'Name Your Members',
   'Appoint Your Heroes',
+  'Choose Hero Paths',
 ]
 
 const MotionBox = motion(Box)
@@ -56,14 +124,53 @@ const INITIAL_WIZARD: WizardState = {
   memberNames: {},
   leaderId: null,
   sergeantIds: [],
+  heroPaths: {},
+  heroSpellChoices: {},
 }
 
 export default function CreateCompanyPage() {
-  const { saveCompany } = useAppContext()
+  const { saveCompany, getStatsForUnit } = useAppContext()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  const [wizard, setWizard] = useState<WizardState>(INITIAL_WIZARD)
+  const [wizard, setWizard] = useState<WizardState>(() => {
+    try {
+      const draft = sessionStorage.getItem(WIZARD_DRAFT_KEY)
+      if (draft) return JSON.parse(draft) as WizardState
+    } catch {
+      /* ignore malformed draft */
+    }
+    return INITIAL_WIZARD
+  })
   const [direction, setDirection] = useState(1)
+
+  // Persist wizard state to sessionStorage on every change so we can restore
+  // it if the user is redirected to stats entry mid-wizard.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify(wizard))
+    } catch {
+      /* ignore */
+    }
+  }, [wizard])
+
+  // When EditStatsPage navigates back here with ?from=stats, the component
+  // may already be mounted (React Router doesn't unmount it), so the lazy
+  // useState initialiser won't re-run. Explicitly rehydrate from sessionStorage
+  // whenever we see that signal.
+  useEffect(() => {
+    if (searchParams.get('from') === 'stats') {
+      try {
+        const draft = sessionStorage.getItem(WIZARD_DRAFT_KEY)
+        if (draft) {
+          const parsed = JSON.parse(draft) as WizardState
+          setWizard(parsed)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [searchParams])
   const [showAbortConfirm, setShowAbortConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -102,6 +209,17 @@ export default function CreateCompanyPage() {
         )
       case 5:
         return wizard.leaderId !== null && wizard.sergeantIds.length === 2
+      case 6: {
+        // All three heroes must have a path; Channeling heroes also need a spell
+        const heroTempIds = [wizard.leaderId!, ...wizard.sergeantIds]
+        return heroTempIds.every((tid) => {
+          const pathId = wizard.heroPaths[tid]
+          if (!pathId) return false
+          if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+            return false
+          return true
+        })
+      }
       default:
         return false
     }
@@ -129,6 +247,8 @@ export default function CreateCompanyPage() {
       memberNames: {},
       leaderId: null,
       sergeantIds: [],
+      heroPaths: {},
+      heroSpellChoices: {},
     }))
   }
 
@@ -160,14 +280,24 @@ export default function CreateCompanyPage() {
     if (!selectedCompany || saving) return
     setSaving(true)
     try {
-      const company = createCompany(wizard, selectedCompany)
+      const company = createCompany(
+        wizard,
+        selectedCompany,
+        wizard.heroPaths,
+        wizard.heroSpellChoices
+      )
       await saveCompany(company)
-      // Navigate to stats entry for this company's units
-      navigate(`/companies/${company.id}?statsRequired=true`)
+      sessionStorage.removeItem(WIZARD_DRAFT_KEY)
+      navigate(`/companies/${company.id}`)
     } finally {
       setSaving(false)
     }
   }
+
+  const handleAbort = useCallback(() => {
+    sessionStorage.removeItem(WIZARD_DRAFT_KEY)
+    navigate('/')
+  }, [navigate])
 
   // ─── Render steps ────────────────────────────────────────────────────────
 
@@ -242,6 +372,174 @@ export default function CreateCompanyPage() {
             onToggleSergeant={toggleSergeant}
           />
         )
+
+      // ── Step 6: Hero Paths ──────────────────────────────────────────────
+      case 6: {
+        const heroTempIds = [wizard.leaderId!, ...wizard.sergeantIds]
+
+        // Find the first hero that doesn't have a path yet, or needs a spell chosen
+        const pendingHeroTempId = heroTempIds.find((tid) => {
+          const pathId = wizard.heroPaths[tid]
+          if (!pathId) return true
+          if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+            return true
+          return false
+        })
+
+        // All done — summary view
+        if (!pendingHeroTempId) {
+          return (
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{ fontStyle: 'italic', opacity: 0.7, mb: 2 }}
+              >
+                All heroes have chosen their paths. Review below, then form your
+                company.
+              </Typography>
+              {heroTempIds.map((tid) => {
+                const pathId = wizard.heroPaths[tid]
+                const pathLabel =
+                  pathId
+                    ?.replace(/_/g, ' ')
+                    .replace(/path of/i, '')
+                    .trim() ?? '—'
+                const isLeader = tid === wizard.leaderId
+                const name = wizard.memberNames[tid] ?? tid
+                const spell = wizard.heroSpellChoices[tid]
+                return (
+                  <Box
+                    key={tid}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 1,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h6">{name}</Typography>
+                      <Typography variant="caption">
+                        {isLeader ? 'Leader' : 'Sergeant'}
+                      </Typography>
+                      {(() => {
+                        const tidIdx = parseInt(tid.replace('member_', ''), 10)
+                        let run = 0
+                        for (const e of selectedCompany!.startingRoster) {
+                          if (tidIdx < run + e.count) {
+                            return (
+                              <Typography
+                                variant="caption"
+                                sx={{ display: 'block', opacity: 0.5 }}
+                              >
+                                {getUnitLabel(e.baseUnitId)}
+                              </Typography>
+                            )
+                          }
+                          run += e.count
+                        }
+                        return null
+                      })()}
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'primary.main',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {pathLabel.charAt(0).toUpperCase() + pathLabel.slice(1)}
+                      </Typography>
+                      {spell && (
+                        <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                          {spell
+                            .replace(/_/g, ' ')
+                            .replace(/\w/g, (l) => l.toUpperCase())}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          )
+        }
+
+        const currentPathId = wizard.heroPaths[pendingHeroTempId]
+        const needsSpell =
+          currentPathId === 'path_of_channeling' &&
+          !wizard.heroSpellChoices[pendingHeroTempId]
+        const heroName =
+          wizard.memberNames[pendingHeroTempId] ?? pendingHeroTempId
+        const heroRole =
+          pendingHeroTempId === wizard.leaderId ? 'leader' : 'sergeant'
+
+        // Derive the roster entry for this tempId so we can show unit type + gear
+        const heroTempIndex = parseInt(
+          pendingHeroTempId.replace('member_', ''),
+          10
+        )
+        let rosterRunning = 0
+        let heroRosterEntry: {
+          baseUnitId: string
+          equipment?: string[]
+        } | null = null
+        for (const entry of selectedCompany!.startingRoster) {
+          if (heroTempIndex < rosterRunning + entry.count) {
+            heroRosterEntry = entry
+            break
+          }
+          rosterRunning += entry.count
+        }
+        const heroBaseUnitId = heroRosterEntry?.baseUnitId ?? ''
+        const heroEquipment = heroRosterEntry?.equipment ?? []
+
+        if (needsSpell) {
+          return (
+            <StepSpellSelection
+              heroName={heroName}
+              baseUnitId={heroBaseUnitId}
+              equipment={heroEquipment}
+              selectedSpellId={
+                wizard.heroSpellChoices[pendingHeroTempId] ?? null
+              }
+              onSelect={(spellId) =>
+                setWizard((w) => ({
+                  ...w,
+                  heroSpellChoices: {
+                    ...w.heroSpellChoices,
+                    [pendingHeroTempId]: spellId,
+                  },
+                }))
+              }
+            />
+          )
+        }
+
+        const heroBaseStats = heroBaseUnitId
+          ? getStatsForUnit(heroBaseUnitId)?.stats
+          : undefined
+
+        return (
+          <StepPathSelection
+            heroName={heroName}
+            heroRole={heroRole}
+            baseUnitId={heroBaseUnitId}
+            equipment={heroEquipment}
+            baseStats={heroBaseStats}
+            selectedPathId={wizard.heroPaths[pendingHeroTempId] ?? null}
+            onSelect={(pathId) =>
+              setWizard((w) => ({
+                ...w,
+                heroPaths: { ...w.heroPaths, [pendingHeroTempId]: pathId },
+              }))
+            }
+          />
+        )
+      }
 
       default:
         return null
@@ -336,7 +634,20 @@ export default function CreateCompanyPage() {
           ) : (
             <Button
               variant="contained"
-              onClick={() => go(wizard.step + 1)}
+              onClick={() => {
+                // Between step 5 (heroes) and step 6 (paths), check for missing stats.
+                // If any are missing, redirect to stats entry; the wizard draft is
+                // preserved in sessionStorage so we can return seamlessly.
+                if (wizard.step === 5 && selectedCompany) {
+                  const allIds = getAllUnitIdsForRoster(selectedCompany)
+                  const missing = allIds.filter((id) => !getStatsForUnit(id))
+                  if (missing.length > 0) {
+                    navigate(`/stats?wizard=1&units=${missing.join(',')}`)
+                    return
+                  }
+                }
+                go(wizard.step + 1)
+              }}
               disabled={!canAdvance()}
               sx={{ minWidth: 100, minHeight: 44 }}
             >
@@ -361,7 +672,7 @@ export default function CreateCompanyPage() {
         title="Abandon Creation?"
         message="Your progress will be lost. Return to the home screen?"
         confirmLabel="Abandon"
-        onConfirm={() => navigate('/')}
+        onConfirm={handleAbort}
         onCancel={() => setShowAbortConfirm(false)}
         dangerous
       />
