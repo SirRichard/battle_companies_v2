@@ -28,7 +28,7 @@ import {
   createCompany,
   generateTempMemberIds,
 } from '../services/company/companyFactory'
-import { getUnitLabel, getWargearLabel } from '../utils/labels'
+import { getUnitLabel } from '../utils/labels'
 
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
@@ -62,14 +62,58 @@ function getAllUnitIdsForRoster(companyDef: CompanyDefinition): string[] {
     unitIds.add(e.baseUnitId)
   }
 
-  // Advancement targets (e.g. Knight of Arnor from Warrior of Arnor)
+  // Advancements — collect both source and target.
+  // fromBaseUnitId may not be in the starting roster when it is itself
+  // only reachable via a prior promotion (e.g. Citadel Guard → Guard of
+  // the Fountain Court in Minas Tirith).
   for (const a of companyDef.advancements) {
+    if (a.fromBaseUnitId) unitIds.add(a.fromBaseUnitId)
     if (a.toBaseUnitId) unitIds.add(a.toBaseUnitId)
   }
 
-  // Reinforcement table results
+  // Helper: extract baseUnitIds from a single table entry, covering:
+  //   { baseUnitId }               — "unit" | "choice"
+  //   { units: [{ baseUnitId }] }  — "pair" (e.g. Vault Warden team in Durin's Folk)
+  //   { pool:  [{ baseUnitId }] }  — "choiceFromPool" (e.g. Wanderers in the Wild)
+  type AnyEntry = {
+    baseUnitId?: string
+    units?: Array<{ baseUnitId?: string }>
+    pool?: Array<{ baseUnitId?: string }>
+  }
+  const addFromEntry = (entry: AnyEntry) => {
+    if (entry.baseUnitId) unitIds.add(entry.baseUnitId)
+    for (const arr of [entry.units, entry.pool]) {
+      if (Array.isArray(arr)) {
+        for (const u of arr) {
+          if (u.baseUnitId) unitIds.add(u.baseUnitId)
+        }
+      }
+    }
+  }
+
+  // Reinforcement table (standard rolls)
   for (const r of companyDef.reinforcementTable) {
-    if (r.baseUnitId) unitIds.add(r.baseUnitId)
+    addFromEntry(r as AnyEntry)
+  }
+
+  // Special / elite table (roll-of-6 sub-table)
+  for (const r of companyDef.specialTable ?? []) {
+    addFromEntry(r as AnyEntry)
+  }
+
+  // Special purchasable units (Cave Trolls, Gundabad Ogres, etc.)
+  for (const u of companyDef.specialUnits ?? []) {
+    unitIds.add(u.baseUnitId)
+  }
+
+  // Variants (e.g. The Last Alliance Númenórean-only variant)
+  for (const v of companyDef.variants ?? []) {
+    for (const e of v.startingRoster ?? []) {
+      unitIds.add(e.baseUnitId)
+    }
+    for (const r of v.reinforcementTable ?? []) {
+      addFromEntry(r as AnyEntry)
+    }
   }
 
   // Mounts for all of the above

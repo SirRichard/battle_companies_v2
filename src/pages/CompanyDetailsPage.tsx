@@ -252,7 +252,7 @@ export default function CompanyDetailsPage() {
                     <MemberRow
                       key={member.id}
                       member={member}
-                      isHero
+                      isHero={true}
                       delay={i * 0.05}
                       onClick={() => setSelectedMember(member)}
                     />
@@ -346,7 +346,7 @@ interface MemberRowProps {
   member: Member
   isHero: boolean
   delay: number
-  onClick: () => void
+  onClick: () => unknown
 }
 
 function MemberRow({ member, isHero, delay, onClick }: MemberRowProps) {

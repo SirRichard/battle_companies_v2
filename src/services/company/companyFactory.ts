@@ -149,7 +149,9 @@ export function createCompany(
     id: uuidv4(),
     name: wizardState.companyName.trim(),
     companyTypeId: companyDef.id,
-    factionId: companyDef.factionId,
+    factionId: Array.isArray(companyDef.factionId)
+      ? companyDef.factionId[0]
+      : companyDef.factionId,
     alignment: wizardState.alignment!,
     members,
     influence: 0,

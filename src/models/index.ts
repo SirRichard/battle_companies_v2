@@ -66,10 +66,24 @@ export interface StartingRosterEntry {
   mustBeLeader?: boolean
 }
 
+export interface SpecialTableEntry {
+  roll: number[]
+  result: string
+  baseUnitId?: string
+  rare?: number
+  count?: number
+}
+
+export interface SpecialUnitEntry {
+  baseUnitId: string
+  influenceCost: number
+  rare?: number
+}
+
 export interface CompanyDefinition {
   id: string
   label: string
-  factionId: string
+  factionId: string | string[]
   reinforcementCost: number
   maxCompanySize: number
   gold: number
@@ -78,7 +92,16 @@ export interface CompanyDefinition {
   startingRoster: StartingRosterEntry[]
   advancements: CompanyAdvancement[]
   reinforcementTable: ReinforcementEntry[]
+  specialTable?: SpecialTableEntry[]
+  specialUnits?: SpecialUnitEntry[]
   heroUpgrade: HeroUpgrade[]
+  variants?: Array<{
+    id: string
+    label: string
+    isDefault?: boolean
+    startingRoster?: StartingRosterEntry[]
+    reinforcementTable?: ReinforcementEntry[]
+  }>
 }
 
 export interface Faction {

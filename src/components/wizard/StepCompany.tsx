@@ -16,7 +16,11 @@ interface Props {
 }
 
 export default function StepCompany({ factionId, value, onChange }: Props) {
-  const companies = ALL_COMPANIES.filter((c) => c.factionId === factionId)
+  const companies = ALL_COMPANIES.filter((c) =>
+    Array.isArray(c.factionId)
+      ? c.factionId.includes(factionId)
+      : c.factionId === factionId
+  )
   const [expanded, setExpanded] = useState<string | null>(null)
 
   const toggleExpanded = (id: string, e: React.MouseEvent) => {
