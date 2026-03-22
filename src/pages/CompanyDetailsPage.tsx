@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { Box, Typography, Divider, Chip, Tab, Tabs, Fab } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Divider,
+  Chip,
+  Tab,
+  Tabs,
+  Fab,
+  Button,
+} from '@mui/material'
 import { motion } from 'framer-motion'
 import SportsMartialArtsIcon from '@mui/icons-material/SportsMartialArts'
 import HistoryIcon from '@mui/icons-material/History'
@@ -295,7 +304,14 @@ export default function CompanyDetailsPage() {
         {activeTab === 1 && <HistoryTab company={company} />}
 
         {/* ── STORE ── */}
-        {activeTab === 2 && <StoreTab />}
+        {activeTab === 2 && (
+          <StoreTab
+            company={company}
+            companyDef={companyDef}
+            saveCompany={saveCompany}
+            getStatsForUnit={getStatsForUnit}
+          />
+        )}
       </Box>
 
       {/* FAB */}
@@ -638,28 +654,942 @@ function HistoryTab({ company }: { company: Company }) {
 
 // ─── Store tab ────────────────────────────────────────────────────────────────
 
-function StoreTab() {
+interface StoreTabProps {
+  company: Company
+  companyDef: CompanyDefinition | undefined
+  saveCompany: (c: Company) => Promise<void>
+  getStatsForUnit: (
+    id: string
+  ) => import('../models').StoredBaseUnitStats | undefined
+}
+
+function StoreTab({
+  company,
+  companyDef,
+  saveCompany,
+  getStatsForUnit,
+}: StoreTabProps) {
+  const [section, setSection] = useState<'reinforcements' | 'wargear'>(
+    'reinforcements'
+  )
+  const [rollResult, setRollResult] = useState<ReinforcementResult | null>(null)
+  const [isRolling, setIsRolling] = useState(false)
+  const [adjustAmount, setAdjustAmount] = useState(0)
+  const [confirmReinf, setConfirmReinf] = useState<ReinforcementResult | null>(
+    null
+  )
+  const [msg, setMsg] = useState<string | null>(null)
+
+  // Wargear purchase state
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+
+  if (!companyDef) return null
+
+  const cost = companyDef.reinforcementCost
+  const canAffordRoll = company.influence >= cost
+  const maxCompanySize = companyDef.maxCompanySize ?? 15
+  const atMax = company.members.length >= maxCompanySize
+
+  // ── Roll on reinforcement table ─────────────────────────────────────────────
+
+  function rollOnTable(
+    table: import('../models').ReinforcementEntry[],
+    rawRoll: number
+  ): ReinforcementResult {
+    const row = table.find((r) => r.roll.includes(rawRoll))
+    if (!row || row.result === 'none') return { type: 'none', roll: rawRoll }
+    if (row.result === 'unit') {
+      return {
+        type: 'unit',
+        roll: rawRoll,
+        baseUnitId: row.baseUnitId!,
+        equipment: row.equipment ?? [],
+        rare: row.rare,
+      }
+    }
+    if (row.result === 'choice') {
+      return {
+        type: 'choice',
+        roll: rawRoll,
+        baseUnitId: row.baseUnitId!,
+        rare: row.rare,
+      }
+    }
+    if (row.result === 'special') {
+      return { type: 'special', roll: rawRoll }
+    }
+    if (row.result === 'choiceFromTable') {
+      const includeRolls: number[] = row.includeRolls ?? []
+      const options = includeRolls
+        .map((r) => rollOnTable(table, r))
+        .filter((r) => r.type !== 'none' && r.type !== 'special')
+      return { type: 'choiceFromMultiple', roll: rawRoll, options }
+    }
+    if (row.result === 'choiceFromPool') {
+      const pool: Array<{ baseUnitId: string; rare?: number }> = row.pool ?? []
+      const options = pool.map((p) => ({
+        type: 'unit' as const,
+        roll: rawRoll,
+        baseUnitId: p.baseUnitId,
+        equipment: [],
+        rare: p.rare,
+      }))
+      return { type: 'choiceFromMultiple', roll: rawRoll, options }
+    }
+    if (row.result === 'pair') {
+      const units: Array<{ baseUnitId: string }> = row.units ?? []
+      return {
+        type: 'pair',
+        roll: rawRoll,
+        units: units.map((u) => u.baseUnitId),
+        rare: row.rare,
+      }
+    }
+    return { type: 'none', roll: rawRoll }
+  }
+
+  const handleRoll = () => {
+    if (!canAffordRoll || atMax) return
+    setIsRolling(true)
+    const baseRoll = Math.floor(Math.random() * 6) + 1
+    const finalRoll = Math.max(1, Math.min(6, baseRoll + adjustAmount))
+    const result = rollOnTable(companyDef.reinforcementTable, finalRoll)
+
+    // If special, roll on special table
+    if (result.type === 'special' && companyDef.specialTable) {
+      const specialRoll = Math.floor(Math.random() * 6) + 1
+      const specialResult = rollOnTable(
+        companyDef.specialTable as import('../models').ReinforcementEntry[],
+        specialRoll
+      )
+      setRollResult({ ...specialResult, fromSpecial: true })
+    } else {
+      setRollResult(result)
+    }
+    setIsRolling(false)
+  }
+
+  const countOfUnit = (baseUnitId: string) =>
+    company.members.filter((m) => m.baseUnitId === baseUnitId).length
+
+  const isRareLimitReached = (result: ReinforcementResult) => {
+    if (result.type === 'unit' || result.type === 'choice') {
+      if (result.rare && countOfUnit(result.baseUnitId!) >= result.rare)
+        return true
+    }
+    if (result.type === 'pair') {
+      for (const uid of result.units ?? []) {
+        if (result.rare && countOfUnit(uid) >= result.rare) return true
+      }
+    }
+    return false
+  }
+
+  const confirmRecruitment = async (
+    finalResult: ReinforcementResult,
+    chosenEquipment?: string[]
+  ) => {
+    if (!finalResult || finalResult.type === 'none') return
+
+    const { v4: uuidv4 } = await import('uuid')
+
+    const newMembers: import('../models').Member[] = []
+
+    const makeWarrior = (
+      baseUnitId: string,
+      equipment: string[]
+    ): import('../models').Member => ({
+      id: uuidv4(),
+      name: getUnitLabel(baseUnitId),
+      baseUnitId,
+      role: 'warrior' as import('../models').MemberRole,
+      equipment,
+      experience: 0,
+      lifetimeExperience: 0,
+      injuries: [],
+      specialRules: [],
+      statIncreases: {},
+      statDecreases: {},
+    })
+
+    if (finalResult.type === 'unit') {
+      newMembers.push(
+        makeWarrior(finalResult.baseUnitId!, finalResult.equipment ?? [])
+      )
+    } else if (finalResult.type === 'choice') {
+      newMembers.push(
+        makeWarrior(finalResult.baseUnitId!, chosenEquipment ?? [])
+      )
+    } else if (finalResult.type === 'pair') {
+      for (const uid of finalResult.units ?? []) {
+        newMembers.push(makeWarrior(uid, []))
+      }
+    }
+
+    const updated: Company = {
+      ...company,
+      influence: company.influence - cost,
+      members: [...company.members, ...newMembers],
+    }
+    await saveCompany(updated)
+    setRollResult(null)
+    setAdjustAmount(0)
+    setMsg(`Recruited ${newMembers.map((m) => m.name).join(' & ')}!`)
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  // ── Wargear purchase ────────────────────────────────────────────────────────
+
+  const WARGEAR_LIST = wargearData as Array<{
+    id: string
+    label: string
+    category: string
+    influenceCost?: number
+    rating?: [number, number]
+    purchasable?: boolean
+  }>
+
+  const purchasableWargear = WARGEAR_LIST.filter(
+    (w) =>
+      w.purchasable !== false &&
+      w.influenceCost !== undefined &&
+      w.influenceCost > 0
+  )
+
+  const handleBuyWargear = async (
+    memberId: string,
+    wargearId: string,
+    influenceCost: number
+  ) => {
+    if (company.influence < influenceCost) return
+    const updated: Company = {
+      ...company,
+      influence: company.influence - influenceCost,
+      members: company.members.map((m) =>
+        m.id === memberId ? { ...m, equipment: [...m.equipment, wargearId] } : m
+      ),
+    }
+    await saveCompany(updated)
+    setMsg(`Purchased ${getWargearLabel(wargearId)}!`)
+    setTimeout(() => setMsg(null), 2500)
+  }
+
+  const selectedMember = company.members.find((m) => m.id === selectedMemberId)
+
+  return (
+    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
+      {/* Section toggle */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+        {(['reinforcements', 'wargear'] as const).map((s) => (
+          <Box
+            key={s}
+            onClick={() => setSection(s)}
+            sx={{
+              flex: 1,
+              py: 1.25,
+              textAlign: 'center',
+              cursor: 'pointer',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: section === s ? 'primary.main' : 'divider',
+              background:
+                section === s ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                fontSize: '0.62rem',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: section === s ? 'primary.main' : 'text.secondary',
+              }}
+            >
+              {s === 'reinforcements' ? 'Reinforcements' : 'Wargear'}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Snack message */}
+      {msg && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'success.main',
+            borderRadius: 1,
+            background: 'rgba(46,204,113,0.08)',
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'success.light' }}>
+            {msg}
+          </Typography>
+        </Box>
+      )}
+
+      {/* ── REINFORCEMENTS ───────────────────────────────────────────── */}
+      {section === 'reinforcements' && (
+        <Box>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              mb: 2,
+              p: 1.5,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              background: 'rgba(0,0,0,0.15)',
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.6, display: 'block' }}
+              >
+                Influence
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  color: 'primary.main',
+                  fontWeight: 700,
+                }}
+              >
+                {company.influence} IP
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.6, display: 'block' }}
+              >
+                Company Size
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  color: atMax ? 'error.light' : 'text.primary',
+                  fontWeight: 700,
+                }}
+              >
+                {company.members.length} / {maxCompanySize}
+              </Typography>
+            </Box>
+          </Box>
+
+          {atMax && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                border: '1px solid',
+                borderColor: 'error.dark',
+                borderRadius: 1,
+                background: 'rgba(192,58,43,0.08)',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'error.light' }}>
+                Company is at maximum size.
+              </Typography>
+            </Box>
+          )}
+
+          {/* Roll adjuster */}
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+            >
+              Adjust roll with Influence (max +3, costs 1 IP per pip):
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ minWidth: 32, p: 0.5 }}
+                disabled={adjustAmount <= 0}
+                onClick={() => setAdjustAmount((a) => Math.max(0, a - 1))}
+              >
+                −
+              </Button>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  minWidth: 32,
+                  textAlign: 'center',
+                  color: adjustAmount > 0 ? 'primary.main' : 'text.secondary',
+                }}
+              >
+                {adjustAmount > 0 ? `+${adjustAmount}` : '0'}
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ minWidth: 32, p: 0.5 }}
+                disabled={
+                  adjustAmount >= 3 ||
+                  company.influence < cost + adjustAmount + 1
+                }
+                onClick={() => setAdjustAmount((a) => Math.min(3, a + 1))}
+              >
+                +
+              </Button>
+              <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
+                Total cost: {cost + adjustAmount} IP
+              </Typography>
+            </Box>
+          </Box>
+
+          <Button
+            variant="contained"
+            fullWidth
+            size="large"
+            disabled={
+              !canAffordRoll || atMax || company.influence < cost + adjustAmount
+            }
+            onClick={handleRoll}
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '0.65rem',
+              mb: 2,
+            }}
+          >
+            Roll for Reinforcement ({cost + adjustAmount} IP)
+          </Button>
+
+          {/* Roll result */}
+          {rollResult && (
+            <ReinforcementResultCard
+              result={rollResult}
+              company={company}
+              companyDef={companyDef}
+              countOfUnit={countOfUnit}
+              isRareLimitReached={isRareLimitReached}
+              onConfirm={confirmRecruitment}
+              onDismiss={() => {
+                setRollResult(null)
+                setAdjustAmount(0)
+              }}
+            />
+          )}
+
+          {/* Reinforcement table reference */}
+          <Box sx={{ mt: 3 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                opacity: 0.5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontSize: '0.58rem',
+                display: 'block',
+                mb: 1,
+              }}
+            >
+              Table Reference
+            </Typography>
+            {companyDef.reinforcementTable.map((row, i) => (
+              <Box
+                key={i}
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  mb: 0.5,
+                  opacity: 0.6,
+                  fontSize: '0.7rem',
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontFamily: '"Cinzel Decorative", serif',
+                    minWidth: 32,
+                    color: 'primary.light',
+                  }}
+                >
+                  {row.roll.join('-')}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                  {row.result === 'none'
+                    ? 'No reinforcement'
+                    : row.result === 'special'
+                      ? 'Roll on Special Chart'
+                      : row.result === 'choiceFromTable'
+                        ? 'Choice from results'
+                        : row.result === 'choiceFromPool'
+                          ? 'Choice from pool'
+                          : row.result === 'pair'
+                            ? `${row.units?.map((u) => getUnitLabel(u.baseUnitId)).join(' & ')}`
+                            : row.baseUnitId
+                              ? `${getUnitLabel(row.baseUnitId)}${row.rare ? ` (Rare ${row.rare})` : ''}`
+                              : '—'}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      {/* ── WARGEAR ──────────────────────────────────────────────────── */}
+      {section === 'wargear' && (
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.6, display: 'block', mb: 1.5 }}
+          >
+            Select a company member to purchase wargear for:
+          </Typography>
+
+          {/* Member selector */}
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}
+          >
+            {company.members.map((m) => (
+              <Box
+                key={m.id}
+                onClick={() =>
+                  setSelectedMemberId(m.id === selectedMemberId ? null : m.id)
+                }
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  border: '1px solid',
+                  borderColor:
+                    selectedMemberId === m.id ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  background:
+                    selectedMemberId === m.id
+                      ? 'rgba(201,168,76,0.06)'
+                      : 'rgba(0,0,0,0.15)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color:
+                        selectedMemberId === m.id
+                          ? 'primary.main'
+                          : 'text.primary',
+                    }}
+                  >
+                    {m.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                    {getUnitLabel(m.baseUnitId)} · {m.role}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Wargear list for selected member */}
+          {selectedMember && (
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.6,
+                  display: 'block',
+                  mb: 1,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontSize: '0.58rem',
+                }}
+              >
+                Available Wargear — {selectedMember.name}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {purchasableWargear
+                  .filter((w) => {
+                    // Skip already equipped
+                    if (selectedMember.equipment.includes(w.id)) return false
+                    // Category rules: only one mount, one shield type, etc.
+                    if (
+                      w.category === 'mount' &&
+                      selectedMember.equipment.some((e) => {
+                        const found = (wargearData as any[]).find(
+                          (x: any) => x.id === e
+                        )
+                        return found?.category === 'mount'
+                      })
+                    )
+                      return false
+                    return true
+                  })
+                  .map((w) => {
+                    const cost = w.influenceCost!
+                    const canAfford = company.influence >= cost
+                    return (
+                      <Box
+                        key={w.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          px: 1.5,
+                          py: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          background: 'rgba(0,0,0,0.15)',
+                          opacity: canAfford ? 1 : 0.4,
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2">{w.label}</Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                            {w.category}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!canAfford}
+                          onClick={() =>
+                            handleBuyWargear(selectedMember.id, w.id, cost)
+                          }
+                          sx={{ minWidth: 70, fontSize: '0.62rem' }}
+                        >
+                          {cost} IP
+                        </Button>
+                      </Box>
+                    )
+                  })}
+                {purchasableWargear.filter(
+                  (w) => !selectedMember.equipment.includes(w.id)
+                ).length === 0 && (
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.5, textAlign: 'center', py: 2 }}
+                  >
+                    All available wargear already equipped.
+                  </Typography>
+                )}
+              </Box>
+              <Box
+                sx={{
+                  mt: 1.5,
+                  px: 1,
+                  py: 0.75,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  background: 'rgba(0,0,0,0.1)',
+                }}
+              >
+                <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                  Company Influence: {company.influence} IP
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+// ─── ReinforcementResult type ─────────────────────────────────────────────────
+
+interface ReinforcementResult {
+  type: 'none' | 'unit' | 'choice' | 'special' | 'choiceFromMultiple' | 'pair'
+  roll: number
+  baseUnitId?: string
+  equipment?: string[]
+  rare?: number
+  units?: string[]
+  options?: ReinforcementResult[]
+  fromSpecial?: boolean
+}
+
+// ─── ReinforcementResultCard ──────────────────────────────────────────────────
+
+interface RRCardProps {
+  result: ReinforcementResult
+  company: Company
+  companyDef: CompanyDefinition
+  countOfUnit: (id: string) => number
+  isRareLimitReached: (r: ReinforcementResult) => boolean
+  onConfirm: (result: ReinforcementResult, chosenEquipment?: string[]) => void
+  onDismiss: () => void
+}
+
+function ReinforcementResultCard({
+  result,
+  company,
+  companyDef,
+  countOfUnit,
+  isRareLimitReached,
+  onConfirm,
+  onDismiss,
+}: RRCardProps) {
+  const [chosenOption, setChosenOption] = useState<number | null>(null)
+  const [chosenEquipment, setChosenEquipment] = useState<string[]>([])
+
+  // For 'choice' results: get valid equipment options from unit profile
+  const BASE_UNITS_DATA = baseUnitsData as Array<{
+    id: string
+    label: string
+    baseEquipment?: string[]
+    equipmentOptions?: {
+      selectionRule: string
+      options: Array<{
+        id: string
+        label: string
+        equipment: string[]
+        pointsCost: number
+      }>
+    }
+  }>
+
+  const unitForChoice =
+    result.type === 'choice'
+      ? BASE_UNITS_DATA.find((u) => u.id === result.baseUnitId)
+      : null
+  const choiceOptions = unitForChoice?.equipmentOptions?.options ?? []
+  const isRareLimited = isRareLimitReached(result)
+
+  const activeResult: ReinforcementResult =
+    result.type === 'choiceFromMultiple' && chosenOption !== null
+      ? result.options![chosenOption]
+      : result
+
+  const isReady = () => {
+    if (result.type === 'none') return false
+    if (isRareLimited) return false
+    if (result.type === 'choice')
+      return chosenEquipment.length > 0 || choiceOptions.length === 0
+    if (result.type === 'choiceFromMultiple') {
+      if (chosenOption === null) return false
+      const chosen = result.options![chosenOption]
+      if (chosen.type === 'choice')
+        return chosenEquipment.length > 0 || choiceOptions.length === 0
+      return true
+    }
+    return true
+  }
+
+  const handleConfirm = () => {
+    const toConfirm =
+      result.type === 'choiceFromMultiple' && chosenOption !== null
+        ? result.options![chosenOption]
+        : result
+    onConfirm(
+      toConfirm,
+      chosenEquipment.length > 0 ? chosenEquipment : undefined
+    )
+  }
+
   return (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 300,
-        px: 4,
-        textAlign: 'center',
-        opacity: 0.55,
+        p: 2,
+        border: '1px solid',
+        borderColor: 'primary.dark',
+        borderRadius: 1,
+        background: 'rgba(201,168,76,0.04)',
+        mb: 2,
       }}
     >
-      <StorefrontIcon sx={{ fontSize: 48, mb: 2, color: 'primary.dark' }} />
-      <Typography variant="h4" sx={{ mb: 1 }}>
-        The Armoury
-      </Typography>
-      <Typography variant="body2" sx={{ fontStyle: 'italic', maxWidth: 300 }}>
-        Reinforcements, wanderers, and equipment purchases will be available
-        here once the campaign systems are ready.
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.65rem',
+            color: 'primary.main',
+          }}
+        >
+          {result.fromSpecial ? 'Special Chart' : 'Reinforcement'} Result
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.8rem',
+            color: 'primary.light',
+          }}
+        >
+          Roll: {result.roll}
+        </Typography>
+      </Box>
+
+      {result.type === 'none' && (
+        <Typography variant="body2" sx={{ opacity: 0.7 }}>
+          No reinforcement steps forward.
+        </Typography>
+      )}
+
+      {(result.type === 'unit' || result.type === 'choice') && (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            {getUnitLabel(result.baseUnitId!)}
+            {result.equipment && result.equipment.length > 0 && (
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ opacity: 0.6, ml: 1 }}
+              >
+                with{' '}
+                {result.equipment.map((e) => getWargearLabel(e)).join(', ')}
+              </Typography>
+            )}
+          </Typography>
+          {result.rare && (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', opacity: 0.6, mb: 0.5 }}
+            >
+              Rare {result.rare} — currently have{' '}
+              {countOfUnit(result.baseUnitId!)}
+            </Typography>
+          )}
+          {isRareLimited && (
+            <Typography
+              variant="caption"
+              sx={{ color: 'error.light', display: 'block', mb: 1 }}
+            >
+              Rare limit reached — cannot recruit another.
+            </Typography>
+          )}
+          {/* Equipment choice */}
+          {result.type === 'choice' && choiceOptions.length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+              >
+                Choose equipment option:
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {choiceOptions.map((opt) => (
+                  <Box
+                    key={opt.id}
+                    onClick={() => setChosenEquipment(opt.equipment)}
+                    sx={{
+                      px: 1.25,
+                      py: 0.75,
+                      border: '1px solid',
+                      borderRadius: 0.75,
+                      cursor: 'pointer',
+                      borderColor:
+                        JSON.stringify(chosenEquipment) ===
+                        JSON.stringify(opt.equipment)
+                          ? 'primary.main'
+                          : 'divider',
+                      background:
+                        JSON.stringify(chosenEquipment) ===
+                        JSON.stringify(opt.equipment)
+                          ? 'rgba(201,168,76,0.08)'
+                          : 'rgba(0,0,0,0.15)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                      {opt.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {result.type === 'pair' && (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            {result.units?.map((u) => getUnitLabel(u)).join(' & ')}
+          </Typography>
+          {isRareLimited && (
+            <Typography
+              variant="caption"
+              sx={{ color: 'error.light', display: 'block', mb: 1 }}
+            >
+              Rare limit reached for one or more members of this pair.
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {result.type === 'choiceFromMultiple' && (
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.6, display: 'block', mb: 1 }}
+          >
+            Choose one to recruit:
+          </Typography>
+          {result.options?.map((opt, i) => {
+            const limited = isRareLimitReached(opt)
+            return (
+              <Box
+                key={i}
+                onClick={() => !limited && setChosenOption(i)}
+                sx={{
+                  mb: 0.5,
+                  px: 1.25,
+                  py: 0.75,
+                  border: '1px solid',
+                  borderRadius: 0.75,
+                  cursor: limited ? 'not-allowed' : 'pointer',
+                  borderColor: chosenOption === i ? 'primary.main' : 'divider',
+                  background:
+                    chosenOption === i
+                      ? 'rgba(201,168,76,0.08)'
+                      : 'rgba(0,0,0,0.1)',
+                  opacity: limited ? 0.4 : 1,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                  {getUnitLabel(opt.baseUnitId ?? '')}
+                  {opt.equipment &&
+                    opt.equipment.length > 0 &&
+                    ` with ${opt.equipment.map((e) => getWargearLabel(e)).join(', ')}`}
+                  {opt.rare && ` (Rare ${opt.rare})`}
+                  {limited && ' — Rare limit reached'}
+                </Typography>
+              </Box>
+            )
+          })}
+        </Box>
+      )}
+
+      <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={onDismiss}
+          sx={{ flex: 1 }}
+        >
+          Dismiss
+        </Button>
+        <Button
+          variant="contained"
+          size="small"
+          disabled={!isReady()}
+          onClick={handleConfirm}
+          sx={{
+            flex: 2,
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.62rem',
+          }}
+        >
+          Recruit
+        </Button>
+      </Box>
     </Box>
   )
 }

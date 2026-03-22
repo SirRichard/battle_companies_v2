@@ -37,11 +37,10 @@ import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel } from '../utils/labels'
-import { calcCompanyRating } from '../utils/rating'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
+import type { Company } from '../models'
 import type { ActiveMatchState, MemberMatchState } from '../models/match'
-import type { Company, MatchRecord } from '../models'
-import { v4 as uuidv4 } from 'uuid'
+import type { PostMatchData } from '../models/postmatch'
 
 const MotionBox = motion(Box)
 
@@ -82,10 +81,10 @@ export default function MatchTrackingPage() {
   const {
     companies,
     getStatsForUnit,
+    saveCompany,
     saveActiveMatch,
     loadActiveMatch,
     clearActiveMatch,
-    saveCompany,
   } = useAppContext()
 
   const company = companies.find((c) => c.id === companyId)
@@ -146,77 +145,70 @@ export default function MatchTrackingPage() {
   const handleEndMatch = async () => {
     if (!company || !match || !result) return
 
-    const companyRating = calcCompanyRating(company.members, getStatsForUnit)
-
     // Calculate influence gained
-    let influenceGained = 2 // base participation
-    if (result === 'win') influenceGained += 2
-    else if (result === 'draw') influenceGained += 1
+    let influenceBase = 2 // participation
+    if (result === 'win') influenceBase += 2
+    else if (result === 'draw') influenceBase += 1
+    if (match.atoBonus === 'influence')
+      influenceBase += result === 'win' ? 2 : 1
 
-    // ATO influence bonus
-    if (match.atoBonus === 'influence') {
-      influenceGained += result === 'win' ? 2 : 1
-    }
-
-    // Build XP gained array — participation (+1) + counter gains
+    // Build XP per member (participation + counter + ATO bonus)
+    const xpBonus =
+      match.atoBonus === 'experience' ? (result === 'win' ? 2 : 1) : 0
     const xpGained = match.members.map((mm) => ({
       memberId: mm.memberId,
       memberName: mm.memberName,
-      xp: 1 + mm.xpCounterGains,
+      xp: 1 + mm.xpCounterGains + xpBonus,
     }))
 
-    // ATO experience bonus
-    const xpBonus =
-      match.atoBonus === 'experience' ? (result === 'win' ? 2 : 1) : 0
-    const xpGainedWithBonus = xpGained.map((x) => ({
-      ...x,
-      xp: x.xp + xpBonus,
-    }))
-
-    const record: MatchRecord = {
-      id: uuidv4(),
-      date: new Date().toISOString(),
-      result,
-      opponentRating: match.opponentRating,
-      scenarioId: match.scenarioId,
-      scenarioLabel: match.scenarioLabel,
-      influenceGained,
-      casualties: match.members
-        .filter((m) => m.isCasualty)
-        .map((m) => ({
-          memberId: m.memberId,
-          memberName: m.memberName,
-          injuryResult: 'pending',
-        })),
-      xpGained: xpGainedWithBonus,
-    }
-
-    // Update company: apply XP, influence, win/draw/loss record
+    // Apply XP to company members now (injuries applied in post-match)
     const updatedMembers = company.members.map((m) => {
-      const gain = xpGainedWithBonus.find((x) => x.memberId === m.id)
+      const gain = xpGained.find((x) => x.memberId === m.id)
       if (!gain) return m
-      const xpAdd = gain.xp
       return {
         ...m,
-        experience: m.experience + xpAdd,
-        lifetimeExperience: m.lifetimeExperience + xpAdd,
+        experience: m.experience + gain.xp,
+        lifetimeExperience: m.lifetimeExperience + gain.xp,
       }
     })
 
+    // Update W/D/L and influence
     const updatedCompany: Company = {
       ...company,
       members: updatedMembers,
-      influence: company.influence + influenceGained,
+      influence: company.influence + influenceBase,
       wins: company.wins + (result === 'win' ? 1 : 0),
       draws: company.draws + (result === 'draw' ? 1 : 0),
       losses: company.losses + (result === 'loss' ? 1 : 0),
-      matchHistory: [...company.matchHistory, record],
       lastPlayedAt: new Date().toISOString(),
     }
 
     await saveCompany(updatedCompany)
     await clearActiveMatch(company.id)
-    navigate(`/companies/${company.id}`)
+
+    const postMatchData: PostMatchData = {
+      companyId: company.id,
+      result,
+      opponentRating: match.opponentRating,
+      scenarioId: match.scenarioId,
+      scenarioLabel: match.scenarioLabel,
+      atoBonus: match.atoBonus,
+      influenceBase,
+      casualties: match.members
+        .filter((m) => m.isCasualty)
+        .map((m) => ({
+          memberId: m.memberId,
+          memberName: m.memberName,
+          role: m.role,
+          baseUnitId: m.baseUnitId,
+          isHero: m.role !== 'warrior',
+        })),
+      xpGained,
+    }
+
+    navigate(`/companies/${company.id}/post-match`, {
+      state: { postMatchData },
+    })
   }
 
   const handleAbort = async () => {

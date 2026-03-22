@@ -22,17 +22,31 @@ export interface BaseUnit {
 export interface CompanyAdvancement {
   fromBaseUnitId: string
   toBaseUnitId: string
+  requiredEquipment?: string[]
   heroPromotion?: boolean
   heroPromotionOnly?: boolean
   equipment?: string[]
   equipmentCarryOver?: string[]
+  retainWargear?: boolean
 }
 
 export interface ReinforcementEntry {
   roll: number[]
-  result: 'none' | 'unit' | 'special'
+  result:
+    | 'none'
+    | 'unit'
+    | 'choice'
+    | 'special'
+    | 'choiceFromTable'
+    | 'choiceFromPool'
+    | 'pair'
   baseUnitId?: string
   equipment?: string[]
+  rare?: number
+  count?: number
+  units?: Array<{ baseUnitId: string }>
+  includeRolls?: number[]
+  pool?: Array<{ baseUnitId: string; rare?: number }>
 }
 
 export interface HeroUpgrade {
@@ -119,6 +133,7 @@ export type InjuryType =
   | 'leg_wound'
   | 'broken_honour'
   | 'missing_next_game'
+  | 'dead'
 
 export interface Injury {
   type: InjuryType
@@ -151,6 +166,7 @@ export interface Member {
     might: number
     will: number
     fate: number
+    fateMax?: number // ceiling enforced by path max (Protection by Valar)
   }
   pathId?: string
   statIncreases: Partial<MemberStats> // advances above base
