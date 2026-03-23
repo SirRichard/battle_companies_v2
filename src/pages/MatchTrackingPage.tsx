@@ -302,33 +302,40 @@ export default function MatchTrackingPage() {
         sx={{ flex: 1, overflow: 'auto', px: { xs: 2, sm: 3 }, py: 2, pb: 12 }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {sorted.map((mm, i) => (
-            <MemberMatchCard
-              key={mm.memberId}
-              mm={mm}
-              delay={i * 0.04}
-              baseStats={getStatsForUnit(mm.baseUnitId)?.stats}
-              onXpChange={(delta) =>
-                updateMember(mm.memberId, {
-                  xpCounterGains: Math.max(0, mm.xpCounterGains + delta),
-                })
-              }
-              onCasualtyToggle={() =>
-                updateMember(mm.memberId, { isCasualty: !mm.isCasualty })
-              }
-              onMwfChange={(stat, delta) => {
-                const maxKey = `${stat}Max` as keyof MemberMatchState
-                const curKey = `${stat}Current` as keyof MemberMatchState
-                const max = mm[maxKey] as number | null
-                const cur = mm[curKey] as number | null
-                if (max === null || cur === null) return
-                const next = Math.max(0, Math.min(max, cur + delta))
-                updateMember(mm.memberId, {
-                  [curKey]: next,
-                } as Partial<MemberMatchState>)
-              }}
-            />
-          ))}
+          {sorted.map((mm, i) => {
+            const companyMember = company?.members.find(
+              (m) => m.id === mm.memberId
+            )
+            return (
+              <MemberMatchCard
+                key={mm.memberId}
+                mm={mm}
+                delay={i * 0.04}
+                baseStats={getStatsForUnit(mm.baseUnitId)?.stats}
+                statIncreases={companyMember?.statIncreases ?? {}}
+                statDecreases={companyMember?.statDecreases ?? {}}
+                onXpChange={(delta) =>
+                  updateMember(mm.memberId, {
+                    xpCounterGains: Math.max(0, mm.xpCounterGains + delta),
+                  })
+                }
+                onCasualtyToggle={() =>
+                  updateMember(mm.memberId, { isCasualty: !mm.isCasualty })
+                }
+                onMwfChange={(stat, delta) => {
+                  const maxKey = `${stat}Max` as keyof MemberMatchState
+                  const curKey = `${stat}Current` as keyof MemberMatchState
+                  const max = mm[maxKey] as number | null
+                  const cur = mm[curKey] as number | null
+                  if (max === null || cur === null) return
+                  const next = Math.max(0, Math.min(max, cur + delta))
+                  updateMember(mm.memberId, {
+                    [curKey]: next,
+                  } as Partial<MemberMatchState>)
+                }}
+              />
+            )
+          })}
         </Box>
       </Box>
 
@@ -535,6 +542,8 @@ interface CardProps {
   mm: MemberMatchState
   delay: number
   baseStats: Record<string, number> | undefined
+  statIncreases: Record<string, number>
+  statDecreases: Record<string, number>
   onXpChange: (delta: number) => void
   onCasualtyToggle: () => void
   onMwfChange: (stat: 'might' | 'will' | 'fate', delta: number) => void
@@ -557,6 +566,8 @@ function MemberMatchCard({
   mm,
   delay,
   baseStats,
+  statIncreases,
+  statDecreases,
   onXpChange,
   onCasualtyToggle,
   onMwfChange,
@@ -575,16 +586,31 @@ function MemberMatchCard({
 
   const hasHeroStats = isHero && mm.mightMax !== null
 
-  // Format a stat value for display
+  // Format a stat value for display — applies statIncreases, statDecreases, and equipment bonuses
+  const isTargetNumber = (key: string) =>
+    key === 'shoot' || key === 'courage' || key === 'intelligence'
+
+  const effectiveVal = (key: string, raw: number): number => {
+    const inc = statIncreases[key] ?? 0
+    const dec = statDecreases[key] ?? 0
+    const eq = key === 'defence' ? equipBonus.defence : 0
+    return raw + inc - dec + eq
+  }
+
   const formatStat = (key: string, raw: number): string => {
-    if (key === 'shoot' || key === 'courage' || key === 'intelligence') {
-      return `${raw}+`
-    }
-    if (key === 'defence' && equipBonus.defence) {
-      return String(raw + equipBonus.defence)
-    }
-    if (key === 'move') return `${raw}"`
-    return String(raw)
+    const val = effectiveVal(key, raw)
+    if (key === 'move') return `${val}"`
+    if (isTargetNumber(key)) return `${val}+`
+    return String(val)
+  }
+
+  const statColour = (key: string, raw: number): string | undefined => {
+    const base = raw + (key === 'defence' ? equipBonus.defence : 0)
+    const eff = effectiveVal(key, raw)
+    if (eff === base) return undefined
+    // For target-numbers: lower is better → green when eff < base
+    if (isTargetNumber(key)) return eff < base ? '#2ecc71' : '#e74c3c'
+    return eff > base ? '#2ecc71' : '#e74c3c'
   }
 
   return (
@@ -704,7 +730,9 @@ function MemberMatchCard({
             const raw = baseStats[key]
             if (raw === undefined || raw === null) return null
             const display = formatStat(key, raw)
-            const highlighted = key === 'defence' && equipBonus.defence > 0
+            const colour = statColour(key, raw)
+            const highlighted =
+              !!colour || (key === 'defence' && equipBonus.defence > 0)
             return (
               <Box
                 key={key}
@@ -714,11 +742,21 @@ function MemberMatchCard({
                   px: 0.5,
                   py: 0.25,
                   border: '1px solid',
-                  borderColor: highlighted ? 'primary.dark' : 'divider',
+                  borderColor: colour
+                    ? colour === '#2ecc71'
+                      ? 'success.dark'
+                      : 'error.dark'
+                    : highlighted
+                      ? 'primary.dark'
+                      : 'divider',
                   borderRadius: 0.5,
-                  background: highlighted
-                    ? 'rgba(201,168,76,0.08)'
-                    : 'rgba(0,0,0,0.2)',
+                  background: colour
+                    ? colour === '#2ecc71'
+                      ? 'rgba(46,204,113,0.08)'
+                      : 'rgba(231,76,60,0.08)'
+                    : highlighted
+                      ? 'rgba(201,168,76,0.08)'
+                      : 'rgba(0,0,0,0.2)',
                 }}
               >
                 <Typography
@@ -737,6 +775,7 @@ function MemberMatchCard({
                     fontSize: '0.7rem',
                     fontWeight: 700,
                     lineHeight: 1.3,
+                    color: colour ?? 'inherit',
                   }}
                 >
                   {display}

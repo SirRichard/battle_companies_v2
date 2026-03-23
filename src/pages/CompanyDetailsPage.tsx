@@ -9,6 +9,12 @@ import {
   Tabs,
   Fab,
   Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Collapse,
 } from '@mui/material'
 import { motion } from 'framer-motion'
 import SportsMartialArtsIcon from '@mui/icons-material/SportsMartialArts'
@@ -18,12 +24,18 @@ import AddIcon from '@mui/icons-material/Add'
 import PageHeader from '../components/common/PageHeader'
 import MemberDetailsDrawer from '../components/common/MemberDetailsDrawer'
 import { useAppContext } from '../context/AppContext'
-import type { Company, CompanyDefinition, Member } from '../models'
+import type {
+  Company,
+  CompanyDefinition,
+  Member,
+  StoredBaseUnitStats,
+} from '../models'
 import { getCompanyLabel, getUnitLabel, getWargearLabel } from '../utils/labels'
-import { calcCompanyRating } from '../utils/rating'
+import { calcCompanyRating, calcMemberRating } from '../utils/rating'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
+import wanderersData from '../data/wanderers.json'
 
 const COMPANIES_DEF = companiesData as CompanyDefinition[]
 const BASE_UNITS_RAW = baseUnitsData as Array<{
@@ -114,6 +126,11 @@ export default function CompanyDetailsPage() {
   const companyRating = useMemo(
     () => (company ? calcCompanyRating(company.members, getStatsForUnit) : 0),
     [company, getStatsForUnit]
+  )
+
+  const companyDef = useMemo(
+    () => COMPANIES_DEF.find((c) => c.id === company?.companyTypeId),
+    [company]
   )
 
   const handleRename = useCallback(
@@ -264,6 +281,7 @@ export default function CompanyDetailsPage() {
                       isHero={true}
                       delay={i * 0.05}
                       onClick={() => setSelectedMember(member)}
+                      baseStats={getStatsForUnit(member.baseUnitId)}
                     />
                   ))}
                 </Box>
@@ -292,6 +310,7 @@ export default function CompanyDetailsPage() {
                       isHero={false}
                       delay={i * 0.04}
                       onClick={() => setSelectedMember(member)}
+                      baseStats={getStatsForUnit(member.baseUnitId)}
                     />
                   ))}
                 </Box>
@@ -352,6 +371,8 @@ export default function CompanyDetailsPage() {
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
         onRename={handleRename}
+        company={company}
+        onSaveCompany={saveCompany}
       />
     </Box>
   )
@@ -364,9 +385,16 @@ interface MemberRowProps {
   isHero: boolean
   delay: number
   onClick: () => unknown
+  baseStats?: StoredBaseUnitStats
 }
 
-function MemberRow({ member, isHero, delay, onClick }: MemberRowProps) {
+function MemberRow({
+  member,
+  isHero,
+  delay,
+  onClick,
+  baseStats,
+}: MemberRowProps) {
   const hasMissingNextGame = member.injuries.some(
     (i) => i.type === 'missing_next_game'
   )
@@ -539,24 +567,345 @@ function MemberRow({ member, isHero, delay, onClick }: MemberRowProps) {
         ) : null
       })()}
 
-      <Typography
-        variant="caption"
-        sx={{
-          flexShrink: 0,
-          fontStyle: 'normal',
-          opacity: 0.45,
-          fontSize: '0.65rem',
-          minWidth: 28,
-          textAlign: 'right',
-        }}
-      >
-        {member.experience}xp
-      </Typography>
+      {/* Rating badge */}
+      {(() => {
+        const rating = calcMemberRating(member, baseStats)
+        return (
+          <Box sx={{ flexShrink: 0, textAlign: 'right', minWidth: 28 }}>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.45, fontSize: '0.62rem', display: 'block' }}
+            >
+              {member.experience}xp
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                color: 'primary.dark',
+                fontSize: '0.62rem',
+                display: 'block',
+              }}
+            >
+              {rating}pts
+            </Typography>
+          </Box>
+        )
+      })()}
+
+      {/* Inline stat changes — only shown if any increases or decreases exist */}
+      {(() => {
+        const inc = member.statIncreases ?? {}
+        const dec = member.statDecreases ?? {}
+        const changed = Object.keys({ ...inc, ...dec }).filter(
+          (k) => ((inc as any)[k] ?? 0) !== 0 || ((dec as any)[k] ?? 0) !== 0
+        )
+        const ABBR: Record<string, string> = {
+          move: 'Mv',
+          fight: 'Fv',
+          shoot: 'Sv',
+          strength: 'S',
+          defence: 'D',
+          attacks: 'A',
+          wounds: 'W',
+          courage: 'C',
+          intelligence: 'I',
+        }
+        if (changed.length === 0) return null
+        const reverseStats = new Set(['shoot', 'courage', 'intelligence'])
+        return (
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 0.4,
+              justifyContent: 'flex-end',
+              flexShrink: 0,
+              maxWidth: 120,
+            }}
+          >
+            {changed.map((k) => {
+              const netInc = ((inc as any)[k] ?? 0) - ((dec as any)[k] ?? 0)
+              const isPositive = reverseStats.has(k) ? netInc < 0 : netInc > 0
+              const colour = isPositive ? 'success.main' : 'error.light'
+              const sign = netInc > 0 ? '+' : ''
+              return (
+                <Typography
+                  key={k}
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.58rem',
+                    color: colour,
+                    fontWeight: 700,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {ABBR[k] ?? k}
+                  {sign}
+                  {netInc}
+                </Typography>
+              )
+            })}
+          </Box>
+        )
+      })()}
     </MotionBox>
   )
 }
 
 // ─── History tab ──────────────────────────────────────────────────────────────
+
+function HistoryMatchCard({
+  match,
+  index,
+}: {
+  match: import('../models').MatchRecord
+  index: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  const resultColour =
+    match.result === 'win'
+      ? 'success.main'
+      : match.result === 'loss'
+        ? 'error.main'
+        : 'divider'
+  const resultTextColour =
+    match.result === 'win'
+      ? 'success.main'
+      : match.result === 'loss'
+        ? 'error.light'
+        : 'text.secondary'
+
+  const injuryLabel = (raw: string) =>
+    raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+
+  return (
+    <MotionBox
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+      sx={{
+        mb: 1.5,
+        border: '1px solid',
+        borderRadius: 1,
+        borderColor: resultColour,
+        background: 'rgba(0,0,0,0.2)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Summary row — always visible, tappable */}
+      <Box
+        onClick={() => setExpanded((e) => !e)}
+        sx={{
+          p: 2,
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          '&:hover': { background: 'rgba(255,255,255,0.03)' },
+          userSelect: 'none',
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            {match.scenarioLabel ?? match.scenarioId.replace(/_/g, ' ')}
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.6 }}>
+            {new Date(match.date).toLocaleDateString()} · vs{' '}
+            {match.opponentRating} pts · +{match.influenceGained} IP
+          </Typography>
+        </Box>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}
+        >
+          <Chip
+            label={match.result.toUpperCase()}
+            size="small"
+            sx={{
+              fontSize: '0.62rem',
+              border: '1px solid',
+              background: 'transparent',
+              color: resultTextColour,
+              borderColor: resultColour,
+            }}
+          />
+          <Typography
+            sx={{
+              opacity: 0.4,
+              fontSize: '0.75rem',
+              transition: 'transform 0.2s',
+              transform: expanded ? 'rotate(180deg)' : 'none',
+            }}
+          >
+            ▼
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Expanded detail */}
+      <Collapse in={expanded}>
+        <Box
+          sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}
+        >
+          {/* Meta row */}
+          <Box
+            sx={{ display: 'flex', gap: 2, mt: 1.5, mb: 1.5, flexWrap: 'wrap' }}
+          >
+            {[
+              {
+                label: 'Date',
+                value: new Date(match.date).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              },
+              {
+                label: 'Opponent Rating',
+                value: `${match.opponentRating} pts`,
+              },
+              {
+                label: 'Result',
+                value:
+                  match.result.charAt(0).toUpperCase() + match.result.slice(1),
+              },
+              {
+                label: 'Scenario',
+                value:
+                  match.scenarioLabel ?? match.scenarioId.replace(/_/g, ' '),
+              },
+              {
+                label: 'Influence Gained',
+                value: `+${match.influenceGained} IP`,
+              },
+            ].map(({ label, value }) => (
+              <Box key={label} sx={{ minWidth: 100 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    opacity: 0.5,
+                    display: 'block',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    fontSize: '0.58rem',
+                  }}
+                >
+                  {label}
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Casualties */}
+          {match.casualties.length > 0 && (
+            <Box sx={{ mb: 1.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.5,
+                  display: 'block',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  fontSize: '0.58rem',
+                  mb: 0.75,
+                }}
+              >
+                Casualties
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                {match.casualties.map((c) => (
+                  <Box
+                    key={c.memberId}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      px: 1,
+                      py: 0.4,
+                      borderRadius: 0.5,
+                      background: 'rgba(192,58,43,0.08)',
+                      border: '1px solid rgba(192,58,43,0.2)',
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      {c.memberName}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                      {injuryLabel(c.injuryResult)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* XP gained */}
+          {match.xpGained.length > 0 && (
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.5,
+                  display: 'block',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  fontSize: '0.58rem',
+                  mb: 0.75,
+                }}
+              >
+                XP Gained
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                {match.xpGained
+                  .filter((x) => x.xp > 0)
+                  .map((x) => (
+                    <Box
+                      key={x.memberId}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        px: 1,
+                        py: 0.4,
+                        borderRadius: 0.5,
+                        background: 'rgba(0,0,0,0.2)',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="caption">{x.memberName}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          color: 'primary.main',
+                          fontWeight: 700,
+                        }}
+                      >
+                        +{x.xp}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+            </Box>
+          )}
+
+          {match.casualties.length === 0 &&
+            match.xpGained.filter((x) => x.xp > 0).length === 0 && (
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.5, fontStyle: 'italic' }}
+              >
+                No detailed records.
+              </Typography>
+            )}
+        </Box>
+      </Collapse>
+    </MotionBox>
+  )
+}
 
 function HistoryTab({ company }: { company: Company }) {
   if (company.matchHistory.length === 0) {
@@ -585,69 +934,15 @@ function HistoryTab({ company }: { company: Company }) {
     )
   }
 
+  const sorted = company.matchHistory
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
   return (
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 700, mx: 'auto' }}>
-      {company.matchHistory
-        .slice()
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .map((match, i) => (
-          <MotionBox
-            key={match.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            sx={{
-              p: 2,
-              mb: 1.5,
-              border: '1px solid',
-              borderRadius: 1,
-              borderColor:
-                match.result === 'win'
-                  ? 'success.main'
-                  : match.result === 'loss'
-                    ? 'error.main'
-                    : 'divider',
-              background: 'rgba(0,0,0,0.2)',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Typography variant="h6">
-                {match.scenarioLabel ?? match.scenarioId.replace(/_/g, ' ')}
-              </Typography>
-              <Chip
-                label={match.result.toUpperCase()}
-                size="small"
-                sx={{
-                  fontSize: '0.65rem',
-                  border: '1px solid',
-                  background: 'transparent',
-                  color:
-                    match.result === 'win'
-                      ? 'success.main'
-                      : match.result === 'loss'
-                        ? 'error.light'
-                        : 'text.secondary',
-                  borderColor:
-                    match.result === 'win'
-                      ? 'success.main'
-                      : match.result === 'loss'
-                        ? 'error.main'
-                        : 'divider',
-                }}
-              />
-            </Box>
-            <Typography variant="caption" sx={{ opacity: 0.6 }}>
-              {new Date(match.date).toLocaleDateString()} · Opponent:{' '}
-              {match.opponentRating} pts · +{match.influenceGained} IP
-            </Typography>
-          </MotionBox>
-        ))}
+      {sorted.map((match, i) => (
+        <HistoryMatchCard key={match.id} match={match} index={i} />
+      ))}
     </Box>
   )
 }
@@ -669,19 +964,29 @@ function StoreTab({
   saveCompany,
   getStatsForUnit,
 }: StoreTabProps) {
-  const [section, setSection] = useState<'reinforcements' | 'wargear'>(
-    'reinforcements'
-  )
+  const [section, setSection] = useState<
+    'reinforcements' | 'wargear' | 'wanderers'
+  >('reinforcements')
   const [rollResult, setRollResult] = useState<ReinforcementResult | null>(null)
-  const [isRolling, setIsRolling] = useState(false)
-  const [adjustAmount, setAdjustAmount] = useState(0)
-  const [confirmReinf, setConfirmReinf] = useState<ReinforcementResult | null>(
-    null
-  )
+  const [_isRolling, setIsRolling] = useState(false)
+  const [adjustAmount, setAdjustAmount] = useState(0) // standard table adjust
+  const [baseRollValue, setBaseRollValue] = useState<number | null>(null)
+  const [specialPending, setSpecialPending] = useState(false) // awaiting confirmation to proceed
+  const [onSpecialTable, setOnSpecialTable] = useState(false) // currently on special table
+  const [specialBaseRoll, setSpecialBaseRoll] = useState<number | null>(null)
+  const [specialAdjust, setSpecialAdjust] = useState(0) // adjust spent on special table
   const [msg, setMsg] = useState<string | null>(null)
 
   // Wargear purchase state
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  // Name dialog for new recruits
+  const [nameDialog, setNameDialog] = useState<{
+    members: Array<{ baseUnitId: string; equipment: string[] }>
+    pendingResult: ReinforcementResult
+    chosenEquipment?: string[]
+  } | null>(null)
+  const [pendingNames, setPendingNames] = useState<string[]>([])
+  const [limitWarning, setLimitWarning] = useState<string | null>(null)
 
   if (!companyDef) return null
 
@@ -748,29 +1053,226 @@ function StoreTab({
     return { type: 'none', roll: rawRoll }
   }
 
-  const handleRoll = () => {
-    if (!canAffordRoll || atMax) return
-    setIsRolling(true)
-    const baseRoll = Math.floor(Math.random() * 6) + 1
-    const finalRoll = Math.max(1, Math.min(6, baseRoll + adjustAmount))
-    const result = rollOnTable(companyDef.reinforcementTable, finalRoll)
+  const hasSpecialTable = !!(
+    companyDef.specialTable && companyDef.specialTable.length > 0
+  )
+  const totalAdjustSpent = adjustAmount + specialAdjust
 
-    // If special, roll on special table
-    if (result.type === 'special' && companyDef.specialTable) {
-      const specialRoll = Math.floor(Math.random() * 6) + 1
-      const specialResult = rollOnTable(
-        companyDef.specialTable as import('../models').ReinforcementEntry[],
-        specialRoll
-      )
-      setRollResult({ ...specialResult, fromSpecial: true })
+  // Standard table: show result, but intercept 'special' → show confirmation instead
+  const applyRoll = (base: number, adjust: number) => {
+    if (!companyDef) return
+    const finalRoll = Math.max(1, Math.min(6, base + adjust))
+    const result = rollOnTable(companyDef.reinforcementTable, finalRoll)
+    if (result.type === 'special' && hasSpecialTable) {
+      // Don't auto-roll special table — flag as pending confirmation
+      setSpecialPending(true)
+      setRollResult({ type: 'special', roll: finalRoll })
     } else {
+      setSpecialPending(false)
       setRollResult(result)
     }
+  }
+
+  // Called when user confirms they want to proceed to the special table
+  const handleConfirmSpecial = () => {
+    if (!companyDef?.specialTable) return
+    const specialRoll = Math.floor(Math.random() * 6) + 1
+    const specialResult = rollOnTable(
+      companyDef.specialTable as import('../models').ReinforcementEntry[],
+      specialRoll
+    )
+    setSpecialPending(false)
+    setOnSpecialTable(true)
+    setSpecialBaseRoll(specialRoll)
+    setSpecialAdjust(0)
+    setRollResult({ ...specialResult, fromSpecial: true })
+  }
+
+  // Adjust the special table roll (uses remaining influence after standard cost)
+  const applySpecialRoll = (base: number, adjust: number) => {
+    if (!companyDef?.specialTable) return
+    const finalRoll = Math.max(1, Math.min(6, base + adjust))
+    const specialResult = rollOnTable(
+      companyDef.specialTable as import('../models').ReinforcementEntry[],
+      finalRoll
+    )
+    setRollResult({ ...specialResult, fromSpecial: true })
+  }
+
+  const handleRoll = () => {
+    if (!companyDef || !canAffordRoll || atMax) return
+    setIsRolling(true)
+    setAdjustAmount(0)
+    setSpecialPending(false)
+    setOnSpecialTable(false)
+    setSpecialBaseRoll(null)
+    setSpecialAdjust(0)
+    const base = Math.floor(Math.random() * 6) + 1
+    setBaseRollValue(base)
+    applyRoll(base, 0)
     setIsRolling(false)
+  }
+
+  const handleDismissRoll = () => {
+    setRollResult(null)
+    setAdjustAmount(0)
+    setBaseRollValue(null)
+    setSpecialPending(false)
+    setOnSpecialTable(false)
+    setSpecialBaseRoll(null)
+    setSpecialAdjust(0)
   }
 
   const countOfUnit = (baseUnitId: string) =>
     company.members.filter((m) => m.baseUnitId === baseUnitId).length
+
+  // ── Limit helpers ────────────────────────────────────────────────────────────
+  const WARGEAR_RAW_MAP = (
+    wargearData as Array<{ id: string; category: string }>
+  ).reduce<Record<string, string>>((acc, w) => {
+    acc[w.id] = w.category
+    return acc
+  }, {})
+  const BASE_UNITS_MAP = (
+    baseUnitsData as Array<{
+      id: string
+      baseEquipment?: string[]
+      keywords?: string[]
+    }>
+  ).reduce<Record<string, { baseEquipment: string[]; keywords: string[] }>>(
+    (acc, u) => {
+      acc[u.id] = {
+        baseEquipment: u.baseEquipment ?? [],
+        keywords: u.keywords ?? [],
+      }
+      return acc
+    },
+    {}
+  )
+
+  const getBowLimit = (): number => {
+    for (const rule of companyDef?.companySpecialRules ?? []) {
+      for (const o of (rule as any).limitOverrides ?? []) {
+        if (o.bowLimit != null) return o.bowLimit
+      }
+    }
+    return 1 / 3
+  }
+
+  const getCavalryLimit = (): number => {
+    for (const rule of companyDef?.companySpecialRules ?? []) {
+      for (const o of (rule as any).limitOverrides ?? []) {
+        if (o.cavalryLimit != null) return o.cavalryLimit
+      }
+    }
+    return 1 / 3
+  }
+
+  const getBowExemptions = (): string[] => {
+    for (const rule of companyDef?.companySpecialRules ?? []) {
+      const ex = (rule as any).limitExemptions?.bow
+      if (ex) return ex
+    }
+    return []
+  }
+
+  const getCavalryExemptions = (): string[] => {
+    for (const rule of companyDef?.companySpecialRules ?? []) {
+      const ex = (rule as any).limitExemptions?.cavalry
+      if (ex) return ex
+    }
+    return []
+  }
+
+  const hasBowEquipment = (
+    baseUnitId: string,
+    equipment: string[]
+  ): boolean => {
+    const baseEquip = BASE_UNITS_MAP[baseUnitId]?.baseEquipment ?? []
+    return [...baseEquip, ...equipment].some(
+      (e) => WARGEAR_RAW_MAP[e] === 'bow'
+    )
+  }
+
+  const hasCavalryKeyword = (
+    baseUnitId: string,
+    equipment: string[]
+  ): boolean => {
+    const isMount = equipment.some((e) => WARGEAR_RAW_MAP[e] === 'mount')
+    const keywords = BASE_UNITS_MAP[baseUnitId]?.keywords ?? []
+    return isMount || keywords.includes('cavalry')
+  }
+
+  const countBowMembers = (
+    extraMembers: Array<{ baseUnitId: string; equipment: string[] }> = []
+  ): number => {
+    const exemptions = getBowExemptions()
+    const all = [
+      ...company.members.map((m) => ({
+        baseUnitId: m.baseUnitId,
+        equipment: m.equipment,
+      })),
+      ...extraMembers,
+    ]
+    return all.filter(
+      (m) =>
+        !exemptions.includes(m.baseUnitId) &&
+        hasBowEquipment(m.baseUnitId, m.equipment)
+    ).length
+  }
+
+  const countCavalryMembers = (
+    extraMembers: Array<{ baseUnitId: string; equipment: string[] }> = []
+  ): number => {
+    const exemptions = getCavalryExemptions()
+    const all = [
+      ...company.members.map((m) => ({
+        baseUnitId: m.baseUnitId,
+        equipment: m.equipment,
+      })),
+      ...extraMembers,
+    ]
+    return all.filter(
+      (m) =>
+        !exemptions.includes(m.baseUnitId) &&
+        hasCavalryKeyword(m.baseUnitId, m.equipment)
+    ).length
+  }
+
+  const wouldExceedBowLimit = (
+    newMembers: Array<{ baseUnitId: string; equipment: string[] }>
+  ): boolean => {
+    const total = company.members.length + newMembers.length
+    const bows = countBowMembers(newMembers)
+    return bows / total > getBowLimit() + 0.001
+  }
+
+  const wouldExceedCavalryLimit = (
+    newMembers: Array<{ baseUnitId: string; equipment: string[] }>
+  ): boolean => {
+    const total = company.members.length + newMembers.length
+    const cav = countCavalryMembers(newMembers)
+    return cav / total > getCavalryLimit() + 0.001
+  }
+
+  const wouldExceedThrowingLimit = (
+    newMembers: Array<{ baseUnitId: string; equipment: string[] }>
+  ): boolean => {
+    const total = company.members.length + newMembers.length
+    const throwing = [
+      ...company.members.map((m) => ({
+        baseUnitId: m.baseUnitId,
+        equipment: m.equipment,
+      })),
+      ...newMembers,
+    ].filter((m) => {
+      const baseEquip = BASE_UNITS_MAP[m.baseUnitId]?.baseEquipment ?? []
+      return [...baseEquip, ...m.equipment].some(
+        (e) => WARGEAR_RAW_MAP[e] === 'throwing'
+      )
+    }).length
+    return throwing / total > 1 / 3 + 0.001
+  }
 
   const isRareLimitReached = (result: ReinforcementResult) => {
     if (result.type === 'unit' || result.type === 'choice') {
@@ -785,55 +1287,89 @@ function StoreTab({
     return false
   }
 
-  const confirmRecruitment = async (
+  const confirmRecruitment = (
     finalResult: ReinforcementResult,
     chosenEquipment?: string[]
   ) => {
     if (!finalResult || finalResult.type === 'none') return
 
+    // Build the candidate new members (equipment only, no id/name yet)
+    const candidates: Array<{ baseUnitId: string; equipment: string[] }> = []
+    if (finalResult.type === 'unit') {
+      candidates.push({
+        baseUnitId: finalResult.baseUnitId!,
+        equipment: finalResult.equipment ?? [],
+      })
+    } else if (finalResult.type === 'choice') {
+      candidates.push({
+        baseUnitId: finalResult.baseUnitId!,
+        equipment: chosenEquipment ?? [],
+      })
+    } else if (finalResult.type === 'pair') {
+      for (const uid of finalResult.units ?? [])
+        candidates.push({ baseUnitId: uid, equipment: [] })
+    }
+
+    // Check limits
+    if (wouldExceedBowLimit(candidates)) {
+      setLimitWarning(
+        'Adding this unit would exceed the bow limit (max 1/3 of company).'
+      )
+      return
+    }
+    if (wouldExceedThrowingLimit(candidates)) {
+      setLimitWarning(
+        'Adding this unit would exceed the throwing weapon limit (max 1/3 of company).'
+      )
+      return
+    }
+    if (wouldExceedCavalryLimit(candidates)) {
+      setLimitWarning(
+        'Adding this unit would exceed the cavalry limit (max 1/3 of company).'
+      )
+      return
+    }
+
+    // Open name dialog
+    setLimitWarning(null)
+    setPendingNames(candidates.map((c) => getUnitLabel(c.baseUnitId)))
+    setNameDialog({
+      members: candidates,
+      pendingResult: finalResult,
+      chosenEquipment,
+    })
+  }
+
+  const finaliseRecruitment = async () => {
+    if (!nameDialog) return
     const { v4: uuidv4 } = await import('uuid')
 
-    const newMembers: import('../models').Member[] = []
+    const newMembers: import('../models').Member[] = nameDialog.members.map(
+      (c, i) => ({
+        id: uuidv4(),
+        name: pendingNames[i]?.trim() || getUnitLabel(c.baseUnitId),
+        baseUnitId: c.baseUnitId,
+        role: 'warrior' as import('../models').MemberRole,
+        equipment: c.equipment,
+        experience: 0,
+        lifetimeExperience: 0,
+        injuries: [],
+        specialRules: [],
+        statIncreases: {},
+        statDecreases: {},
+      })
+    )
 
-    const makeWarrior = (
-      baseUnitId: string,
-      equipment: string[]
-    ): import('../models').Member => ({
-      id: uuidv4(),
-      name: getUnitLabel(baseUnitId),
-      baseUnitId,
-      role: 'warrior' as import('../models').MemberRole,
-      equipment,
-      experience: 0,
-      lifetimeExperience: 0,
-      injuries: [],
-      specialRules: [],
-      statIncreases: {},
-      statDecreases: {},
-    })
-
-    if (finalResult.type === 'unit') {
-      newMembers.push(
-        makeWarrior(finalResult.baseUnitId!, finalResult.equipment ?? [])
-      )
-    } else if (finalResult.type === 'choice') {
-      newMembers.push(
-        makeWarrior(finalResult.baseUnitId!, chosenEquipment ?? [])
-      )
-    } else if (finalResult.type === 'pair') {
-      for (const uid of finalResult.units ?? []) {
-        newMembers.push(makeWarrior(uid, []))
-      }
-    }
-
-    const updated: Company = {
+    await saveCompany({
       ...company,
-      influence: company.influence - cost,
+      influence: company.influence - cost - totalAdjustSpent,
       members: [...company.members, ...newMembers],
-    }
-    await saveCompany(updated)
+    })
+    setNameDialog(null)
+    setPendingNames([])
     setRollResult(null)
     setAdjustAmount(0)
+    setBaseRollValue(null)
     setMsg(`Recruited ${newMembers.map((m) => m.name).join(' & ')}!`)
     setTimeout(() => setMsg(null), 3000)
   }
@@ -862,11 +1398,47 @@ function StoreTab({
     influenceCost: number
   ) => {
     if (company.influence < influenceCost) return
+    const member = company.members.find((m) => m.id === memberId)
+    if (!member) return
+    const newEquipment = [...member.equipment, wargearId]
+    const candidate = { baseUnitId: member.baseUnitId, equipment: newEquipment }
+    // Enforce bow/throwing/cavalry limits
+    if (
+      WARGEAR_RAW_MAP[wargearId] === 'bow' &&
+      wouldExceedBowLimit([
+        { baseUnitId: member.baseUnitId, equipment: [wargearId] },
+      ])
+    ) {
+      setMsg('Cannot purchase — would exceed bow limit (1/3 of company).')
+      setTimeout(() => setMsg(null), 3500)
+      return
+    }
+    if (
+      WARGEAR_RAW_MAP[wargearId] === 'throwing' &&
+      wouldExceedThrowingLimit([
+        { baseUnitId: member.baseUnitId, equipment: [wargearId] },
+      ])
+    ) {
+      setMsg(
+        'Cannot purchase — would exceed throwing weapon limit (1/3 of company).'
+      )
+      setTimeout(() => setMsg(null), 3500)
+      return
+    }
+    if (
+      WARGEAR_RAW_MAP[wargearId] === 'mount' &&
+      wouldExceedCavalryLimit([candidate])
+    ) {
+      setMsg('Cannot purchase — would exceed cavalry limit (1/3 of company).')
+      setTimeout(() => setMsg(null), 3500)
+      return
+    }
+    void candidate // used above
     const updated: Company = {
       ...company,
       influence: company.influence - influenceCost,
       members: company.members.map((m) =>
-        m.id === memberId ? { ...m, equipment: [...m.equipment, wargearId] } : m
+        m.id === memberId ? { ...m, equipment: newEquipment } : m
       ),
     }
     await saveCompany(updated)
@@ -880,7 +1452,7 @@ function StoreTab({
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
       {/* Section toggle */}
       <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-        {(['reinforcements', 'wargear'] as const).map((s) => (
+        {(['reinforcements', 'wargear', 'wanderers'] as const).map((s) => (
           <Box
             key={s}
             onClick={() => setSection(s)}
@@ -906,7 +1478,11 @@ function StoreTab({
                 color: section === s ? 'primary.main' : 'text.secondary',
               }}
             >
-              {s === 'reinforcements' ? 'Reinforcements' : 'Wargear'}
+              {s === 'reinforcements'
+                ? 'Reinforce'
+                : s === 'wargear'
+                  ? 'Wargear'
+                  : 'Wanderers'}
             </Typography>
           </Box>
         ))}
@@ -997,60 +1573,46 @@ function StoreTab({
               </Typography>
             </Box>
           )}
-
-          {/* Roll adjuster */}
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="caption"
-              sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+          {limitWarning && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                border: '1px solid',
+                borderColor: 'warning.dark',
+                borderRadius: 1,
+                background: 'rgba(201,168,76,0.08)',
+              }}
             >
-              Adjust roll with Influence (max +3, costs 1 IP per pip):
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ minWidth: 32, p: 0.5 }}
-                disabled={adjustAmount <= 0}
-                onClick={() => setAdjustAmount((a) => Math.max(0, a - 1))}
-              >
-                −
-              </Button>
-              <Typography
+              <Box
                 sx={{
-                  fontFamily: '"Cinzel Decorative", serif',
-                  minWidth: 32,
-                  textAlign: 'center',
-                  color: adjustAmount > 0 ? 'primary.main' : 'text.secondary',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
                 }}
               >
-                {adjustAmount > 0 ? `+${adjustAmount}` : '0'}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ minWidth: 32, p: 0.5 }}
-                disabled={
-                  adjustAmount >= 3 ||
-                  company.influence < cost + adjustAmount + 1
-                }
-                onClick={() => setAdjustAmount((a) => Math.min(3, a + 1))}
-              >
-                +
-              </Button>
-              <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
-                Total cost: {cost + adjustAmount} IP
-              </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'warning.light', flex: 1 }}
+                >
+                  {limitWarning}
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => setLimitWarning(null)}
+                  sx={{ minWidth: 0, ml: 1, p: 0.25, opacity: 0.6 }}
+                >
+                  ✕
+                </Button>
+              </Box>
             </Box>
-          </Box>
+          )}
 
           <Button
             variant="contained"
             fullWidth
             size="large"
-            disabled={
-              !canAffordRoll || atMax || company.influence < cost + adjustAmount
-            }
+            disabled={!canAffordRoll || atMax}
             onClick={handleRoll}
             sx={{
               fontFamily: '"Cinzel Decorative", serif',
@@ -1058,23 +1620,365 @@ function StoreTab({
               mb: 2,
             }}
           >
-            Roll for Reinforcement ({cost + adjustAmount} IP)
+            Roll for Reinforcement ({cost} IP)
           </Button>
 
-          {/* Roll result */}
+          {/* Roll result + adjuster (shown after rolling) */}
           {rollResult && (
-            <ReinforcementResultCard
-              result={rollResult}
-              company={company}
-              companyDef={companyDef}
-              countOfUnit={countOfUnit}
-              isRareLimitReached={isRareLimitReached}
-              onConfirm={confirmRecruitment}
-              onDismiss={() => {
-                setRollResult(null)
-                setAdjustAmount(0)
+            <Box>
+              {/* ── Special table confirmation prompt ── */}
+              {specialPending && (
+                <Box
+                  sx={{
+                    mb: 1.5,
+                    p: 1.5,
+                    border: '1px solid',
+                    borderColor: 'primary.dark',
+                    borderRadius: 1,
+                    background: 'rgba(201,168,76,0.06)',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 0.5, fontWeight: 600, color: 'primary.main' }}
+                  >
+                    Roll on Special Chart?
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ opacity: 0.7, display: 'block', mb: 1.5 }}
+                  >
+                    Your adjusted roll reached 6. Proceed to the Special Chart?
+                    You cannot return to the standard table after confirming.
+                    {adjustAmount > 0 &&
+                      ` (${adjustAmount} IP spent on this roll)`}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleConfirmSpecial}
+                      sx={{
+                        fontFamily: '"Cinzel Decorative", serif',
+                        fontSize: '0.6rem',
+                      }}
+                    >
+                      Proceed
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleDismissRoll}
+                      sx={{ fontSize: '0.6rem', opacity: 0.7 }}
+                    >
+                      Cancel
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+
+              {/* ── Normal result card (hidden while awaiting special confirmation) ── */}
+              {!specialPending && (
+                <ReinforcementResultCard
+                  result={rollResult}
+                  company={company}
+                  companyDef={companyDef}
+                  countOfUnit={countOfUnit}
+                  isRareLimitReached={isRareLimitReached}
+                  onConfirm={confirmRecruitment}
+                  onDismiss={handleDismissRoll}
+                />
+              )}
+
+              {/* ── Standard table adjuster (only when NOT yet on special table) ── */}
+              {!onSpecialTable &&
+                !specialPending &&
+                baseRollValue !== null &&
+                (() => {
+                  // Max adjust on standard table: cap at 3 but also block reaching 6 if no special table
+                  const maxAdjust = hasSpecialTable
+                    ? Math.min(3, 6 - baseRollValue) // allow reaching 6 (special)
+                    : Math.min(3, 5 - baseRollValue) // block reaching 6 (no special table)
+                  const canIncrease =
+                    adjustAmount < maxAdjust &&
+                    company.influence >= cost + adjustAmount + 1
+                  const showAdjuster =
+                    adjustAmount > 0 || company.influence >= cost + 1
+                  if (!showAdjuster) return null
+                  return (
+                    <Box
+                      sx={{
+                        mt: 1.5,
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        background: 'rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+                      >
+                        Rolled {baseRollValue}
+                        {adjustAmount > 0
+                          ? ` → ${Math.min(6, baseRollValue + adjustAmount)}`
+                          : ''}{' '}
+                        · Adjust with Influence (1 IP per pip):
+                      </Typography>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, p: 0.5 }}
+                          disabled={adjustAmount <= 0}
+                          onClick={() => {
+                            const next = Math.max(0, adjustAmount - 1)
+                            setAdjustAmount(next)
+                            applyRoll(baseRollValue, next)
+                          }}
+                        >
+                          −
+                        </Button>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Cinzel Decorative", serif',
+                            minWidth: 32,
+                            textAlign: 'center',
+                            color:
+                              adjustAmount > 0
+                                ? 'primary.main'
+                                : 'text.secondary',
+                          }}
+                        >
+                          {adjustAmount > 0 ? `+${adjustAmount}` : '0'}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, p: 0.5 }}
+                          disabled={!canIncrease}
+                          onClick={() => {
+                            const next = Math.min(maxAdjust, adjustAmount + 1)
+                            setAdjustAmount(next)
+                            applyRoll(baseRollValue, next)
+                          }}
+                        >
+                          +
+                        </Button>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.5, ml: 1 }}
+                        >
+                          Extra cost: {adjustAmount} IP
+                          {!hasSpecialTable &&
+                          baseRollValue + adjustAmount >= 5 &&
+                          adjustAmount < maxAdjust
+                            ? ' (capped — no special table)'
+                            : ''}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )
+                })()}
+
+              {/* ── Special table adjuster (only when ON special table) ── */}
+              {onSpecialTable &&
+                specialBaseRoll !== null &&
+                !specialPending &&
+                (() => {
+                  const remainingInfluence =
+                    company.influence - cost - adjustAmount // IP left after standard roll
+                  const maxSpecialAdjust = Math.min(
+                    3 - adjustAmount,
+                    remainingInfluence
+                  )
+                  const canIncrease =
+                    specialAdjust < maxSpecialAdjust &&
+                    remainingInfluence > specialAdjust
+                  const showAdjuster =
+                    specialAdjust > 0 || remainingInfluence >= 1
+                  if (!showAdjuster) return null
+                  return (
+                    <Box
+                      sx={{
+                        mt: 1.5,
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor: 'primary.dark',
+                        borderRadius: 1,
+                        background: 'rgba(201,168,76,0.04)',
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          opacity: 0.6,
+                          display: 'block',
+                          mb: 0.75,
+                          color: 'primary.light',
+                        }}
+                      >
+                        Special Chart · Rolled {specialBaseRoll}
+                        {specialAdjust > 0
+                          ? ` → ${Math.min(6, specialBaseRoll + specialAdjust)}`
+                          : ''}{' '}
+                        · Adjust with remaining Influence (1 IP per pip):
+                      </Typography>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, p: 0.5 }}
+                          disabled={specialAdjust <= 0}
+                          onClick={() => {
+                            const next = Math.max(0, specialAdjust - 1)
+                            setSpecialAdjust(next)
+                            applySpecialRoll(specialBaseRoll, next)
+                          }}
+                        >
+                          −
+                        </Button>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Cinzel Decorative", serif',
+                            minWidth: 32,
+                            textAlign: 'center',
+                            color:
+                              specialAdjust > 0
+                                ? 'primary.main'
+                                : 'text.secondary',
+                          }}
+                        >
+                          {specialAdjust > 0 ? `+${specialAdjust}` : '0'}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, p: 0.5 }}
+                          disabled={!canIncrease}
+                          onClick={() => {
+                            const next = Math.min(
+                              maxSpecialAdjust,
+                              specialAdjust + 1
+                            )
+                            setSpecialAdjust(next)
+                            applySpecialRoll(specialBaseRoll, next)
+                          }}
+                        >
+                          +
+                        </Button>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.5, ml: 1 }}
+                        >
+                          Extra cost: {specialAdjust} IP ·{' '}
+                          {remainingInfluence - specialAdjust} remaining
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )
+                })()}
+            </Box>
+          )}
+
+          {/* Name dialog */}
+          {nameDialog && (
+            <Dialog
+              open
+              maxWidth="xs"
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background:
+                    'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+                  border: '1px solid rgba(200,164,90,0.25)',
+                  borderRadius: 2,
+                },
               }}
-            />
+            >
+              <DialogTitle
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.85rem',
+                  color: 'primary.main',
+                }}
+              >
+                Name Your Recruit{nameDialog.members.length > 1 ? 's' : ''}
+              </DialogTitle>
+              <DialogContent>
+                <Typography
+                  variant="caption"
+                  sx={{ display: 'block', opacity: 0.6, mb: 1.5 }}
+                >
+                  Give{' '}
+                  {nameDialog.members.length > 1
+                    ? 'your new recruits'
+                    : 'your new recruit'}{' '}
+                  a name. You can always rename them later.
+                </Typography>
+                {nameDialog.members.map((c, i) => (
+                  <Box key={i} sx={{ mb: 1.5 }}>
+                    {nameDialog.members.length > 1 && (
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', opacity: 0.5, mb: 0.5 }}
+                      >
+                        {getUnitLabel(c.baseUnitId)}
+                      </Typography>
+                    )}
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label={
+                        nameDialog.members.length === 1
+                          ? getUnitLabel(c.baseUnitId)
+                          : `Recruit ${i + 1}`
+                      }
+                      value={pendingNames[i] ?? ''}
+                      onChange={(e) =>
+                        setPendingNames((prev) => {
+                          const n = [...prev]
+                          n[i] = e.target.value
+                          return n
+                        })
+                      }
+                      inputProps={{ maxLength: 40 }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': { fontFamily: 'inherit' },
+                      }}
+                    />
+                  </Box>
+                ))}
+              </DialogContent>
+              <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setNameDialog(null)
+                    setPendingNames([])
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={finaliseRecruitment}
+                  sx={{
+                    fontFamily: '"Cinzel Decorative", serif',
+                    fontSize: '0.62rem',
+                  }}
+                >
+                  Recruit
+                </Button>
+              </DialogActions>
+            </Dialog>
           )}
 
           {/* Reinforcement table reference */}
@@ -1123,9 +2027,26 @@ function StoreTab({
                         : row.result === 'choiceFromPool'
                           ? 'Choice from pool'
                           : row.result === 'pair'
-                            ? `${row.units?.map((u) => getUnitLabel(u.baseUnitId)).join(' & ')}`
+                            ? (row.units
+                                ?.map(
+                                  (u: any) =>
+                                    `${getUnitLabel(u.baseUnitId)}${(u as any).equipment?.length ? ' with ' + (u as any).equipment.map(getWargearLabel).join(' & ') : ''}`
+                                )
+                                .join(' & ') ?? '—')
                             : row.baseUnitId
-                              ? `${getUnitLabel(row.baseUnitId)}${row.rare ? ` (Rare ${row.rare})` : ''}`
+                              ? `${getUnitLabel(row.baseUnitId)}` +
+                                (row.result === 'choice' && row.baseUnitId
+                                  ? ' with choice of option'
+                                  : row.equipment?.length
+                                    ? ' with ' +
+                                      row.equipment
+                                        .map(getWargearLabel)
+                                        .join(' & ')
+                                    : '') +
+                                (row.rare ? ` (Rare ${row.rare})` : '') +
+                                (row.count && row.count > 1
+                                  ? ` ×${row.count}`
+                                  : '')
                               : '—'}
                 </Typography>
               </Box>
@@ -1214,17 +2135,13 @@ function StoreTab({
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {purchasableWargear
                   .filter((w) => {
-                    // Skip already equipped
                     if (selectedMember.equipment.includes(w.id)) return false
-                    // Category rules: only one mount, one shield type, etc.
+                    // Only one mount
                     if (
                       w.category === 'mount' &&
-                      selectedMember.equipment.some((e) => {
-                        const found = (wargearData as any[]).find(
-                          (x: any) => x.id === e
-                        )
-                        return found?.category === 'mount'
-                      })
+                      selectedMember.equipment.some(
+                        (e) => WARGEAR_RAW_MAP[e] === 'mount'
+                      )
                     )
                       return false
                     return true
@@ -1232,6 +2149,39 @@ function StoreTab({
                   .map((w) => {
                     const cost = w.influenceCost!
                     const canAfford = company.influence >= cost
+                    // Bow limit check
+                    const wouldViolateBow =
+                      w.category === 'bow' &&
+                      wouldExceedBowLimit([
+                        {
+                          baseUnitId: selectedMember.baseUnitId,
+                          equipment: [w.id],
+                        },
+                      ])
+                    const wouldViolateThrowing =
+                      w.category === 'throwing' &&
+                      wouldExceedThrowingLimit([
+                        {
+                          baseUnitId: selectedMember.baseUnitId,
+                          equipment: [w.id],
+                        },
+                      ])
+                    const wouldViolateCavalry =
+                      w.category === 'mount' &&
+                      wouldExceedCavalryLimit([
+                        {
+                          baseUnitId: selectedMember.baseUnitId,
+                          equipment: [...selectedMember.equipment, w.id],
+                        },
+                      ])
+                    const limitViolation = wouldViolateBow
+                      ? 'Bow limit'
+                      : wouldViolateThrowing
+                        ? 'Throwing limit'
+                        : wouldViolateCavalry
+                          ? 'Cavalry limit'
+                          : null
+                    const blocked = !canAfford || !!limitViolation
                     return (
                       <Box
                         key={w.id}
@@ -1242,22 +2192,26 @@ function StoreTab({
                           px: 1.5,
                           py: 1,
                           border: '1px solid',
-                          borderColor: 'divider',
+                          borderColor: limitViolation
+                            ? 'warning.dark'
+                            : 'divider',
                           borderRadius: 1,
                           background: 'rgba(0,0,0,0.15)',
-                          opacity: canAfford ? 1 : 0.4,
+                          opacity: blocked ? 0.45 : 1,
                         }}
                       >
                         <Box>
                           <Typography variant="body2">{w.label}</Typography>
                           <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                            {w.category}
+                            {limitViolation
+                              ? `${w.category} · ${limitViolation} reached`
+                              : w.category}
                           </Typography>
                         </Box>
                         <Button
                           size="small"
                           variant="outlined"
-                          disabled={!canAfford}
+                          disabled={blocked}
                           onClick={() =>
                             handleBuyWargear(selectedMember.id, w.id, cost)
                           }
@@ -1298,6 +2252,416 @@ function StoreTab({
           )}
         </Box>
       )}
+
+      {/* ── WANDERERS ────────────────────────────────────────────────── */}
+      {section === 'wanderers' && (
+        <WanderersSection company={company} saveCompany={saveCompany} />
+      )}
+    </Box>
+  )
+}
+
+// ─── WanderersSection ─────────────────────────────────────────────────────────
+
+interface WandererDef {
+  id: string
+  label: string
+  pointsCost: number
+  influenceCost: number
+  keywords: string[]
+  stats: Record<string, number | null>
+  equipment: string[]
+  heroicActions: string[]
+  specialRules: Array<string | { id: string; parameter?: number }>
+  keywordNote?: string
+}
+
+const ALL_WANDERERS = wanderersData as unknown as WandererDef[]
+
+function WanderersSection({
+  company,
+  saveCompany,
+}: {
+  company: Company
+  saveCompany: (c: Company) => Promise<void>
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const hasWanderer = !!company.wandererId
+
+  const handleHire = async (w: WandererDef) => {
+    if (hasWanderer || company.influence < w.influenceCost) return
+    await saveCompany({
+      ...company,
+      influence: company.influence - w.influenceCost,
+      wandererId: w.id,
+    })
+    setMsg(`${w.label} joins your company!`)
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  const handleDismiss = async () => {
+    await saveCompany({ ...company, wandererId: undefined })
+    setMsg('Wanderer dismissed.')
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  const currentWanderer = ALL_WANDERERS.find((w) => w.id === company.wandererId)
+
+  const STAT_KEYS = [
+    'move',
+    'fight',
+    'shoot',
+    'strength',
+    'defence',
+    'attacks',
+    'wounds',
+    'courage',
+    'intelligence',
+  ]
+  const STAT_LABELS: Record<string, string> = {
+    move: 'Mv',
+    fight: 'Fv',
+    shoot: 'Sv',
+    strength: 'S',
+    defence: 'D',
+    attacks: 'A',
+    wounds: 'W',
+    courage: 'C',
+    intelligence: 'I',
+  }
+  const TARGET_NUMBER_STATS = new Set(['shoot', 'courage', 'intelligence'])
+
+  function fmtStat(key: string, val: number | null): string {
+    if (val === null || val === 0) return '—'
+    if (key === 'move') return `${val}"`
+    if (TARGET_NUMBER_STATS.has(key)) return `${val}+`
+    return `${val}`
+  }
+
+  return (
+    <Box>
+      {msg && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'success.main',
+            borderRadius: 1,
+            background: 'rgba(46,204,113,0.08)',
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'success.light' }}>
+            {msg}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Current wanderer banner */}
+      {currentWanderer && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'primary.dark',
+            borderRadius: 1,
+            background: 'rgba(201,168,76,0.06)',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: 'primary.main' }}
+              >
+                {currentWanderer.label}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                Currently travelling with your company
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleDismiss}
+              sx={{
+                fontSize: '0.6rem',
+                color: 'error.light',
+                borderColor: 'error.dark',
+              }}
+            >
+              Dismiss
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      {hasWanderer && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1,
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 1,
+            textAlign: 'center',
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.5, fontStyle: 'italic' }}
+          >
+            You may only have one wanderer at a time. Dismiss them to hire
+            another.
+          </Typography>
+        </Box>
+      )}
+
+      <Typography
+        variant="caption"
+        sx={{
+          opacity: 0.5,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontSize: '0.58rem',
+          display: 'block',
+          mb: 1,
+        }}
+      >
+        Available Wanderers
+      </Typography>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {ALL_WANDERERS.map((w) => {
+          const canAfford = company.influence >= w.influenceCost
+          const isExpanded = expandedId === w.id
+          const isHired = company.wandererId === w.id
+
+          return (
+            <Box
+              key={w.id}
+              sx={{
+                border: '1px solid',
+                borderColor: isExpanded ? 'primary.dark' : 'divider',
+                borderRadius: 1,
+                background: 'rgba(0,0,0,0.15)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Header row */}
+              <Box
+                onClick={() => setExpandedId(isExpanded ? null : w.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 1.5,
+                  py: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      color: isHired ? 'primary.main' : 'text.primary',
+                    }}
+                  >
+                    {w.label} {isHired && '✓'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.55 }}>
+                    {w.keywords.join(', ')} · {w.influenceCost} IP
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant={isHired ? 'outlined' : 'contained'}
+                  disabled={
+                    (hasWanderer && !isHired) || (!canAfford && !isHired)
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleHire(w)
+                  }}
+                  sx={{
+                    fontSize: '0.6rem',
+                    minWidth: 60,
+                    opacity:
+                      (hasWanderer && !isHired) || (!canAfford && !isHired)
+                        ? 0.4
+                        : 1,
+                  }}
+                >
+                  {isHired ? 'Hired' : `${w.influenceCost} IP`}
+                </Button>
+              </Box>
+
+              {/* Expanded details */}
+              {isExpanded && (
+                <Box
+                  sx={{
+                    px: 1.5,
+                    pb: 1.5,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  {/* Stats grid */}
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(9, 1fr)',
+                      gap: 0.25,
+                      mt: 1,
+                      mb: 1,
+                    }}
+                  >
+                    {STAT_KEYS.map((k) => (
+                      <Box key={k} sx={{ textAlign: 'center' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: 'block',
+                            opacity: 0.45,
+                            fontSize: '0.55rem',
+                            fontFamily: '"Cinzel Decorative", serif',
+                          }}
+                        >
+                          {STAT_LABELS[k]}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: '0.72rem', fontWeight: 600 }}
+                        >
+                          {fmtStat(k, w.stats[k] as number | null)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  {/* M/W/F */}
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    {(['might', 'will', 'fate'] as const).map((k) => (
+                      <Box
+                        key={k}
+                        sx={{
+                          textAlign: 'center',
+                          flex: 1,
+                          p: 0.5,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 0.5,
+                          background: 'rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: 'block',
+                            opacity: 0.45,
+                            fontSize: '0.55rem',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {k[0]}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, color: 'primary.light' }}
+                        >
+                          {w.stats[k] ?? 1}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  {/* Equipment */}
+                  {w.equipment.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', opacity: 0.65, mb: 0.5 }}
+                    >
+                      <strong>Gear:</strong>{' '}
+                      {w.equipment.map((e) => getWargearLabel(e)).join(', ')}
+                    </Typography>
+                  )}
+                  {/* Heroic actions */}
+                  {w.heroicActions.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', opacity: 0.65, mb: 0.5 }}
+                    >
+                      <strong>Heroic:</strong>{' '}
+                      {w.heroicActions
+                        .map((h) =>
+                          h
+                            .replace(/_/g, ' ')
+                            .replace(/\b\w/g, (l) => l.toUpperCase())
+                        )
+                        .join(', ')}
+                    </Typography>
+                  )}
+                  {/* Special rules */}
+                  {w.specialRules.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', opacity: 0.65, mb: 0.5 }}
+                    >
+                      <strong>Special:</strong>{' '}
+                      {w.specialRules
+                        .map((r) =>
+                          typeof r === 'string'
+                            ? r.replace(/_/g, ' ')
+                            : r.id.replace(/_/g, ' ')
+                        )
+                        .join(', ')}
+                    </Typography>
+                  )}
+                  {/* Keyword note */}
+                  {w.keywordNote && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        opacity: 0.45,
+                        fontStyle: 'italic',
+                        mt: 0.5,
+                      }}
+                    >
+                      {w.keywordNote}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Box>
+          )
+        })}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 1.5,
+          px: 1,
+          py: 0.75,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          background: 'rgba(0,0,0,0.1)',
+        }}
+      >
+        <Typography variant="caption" sx={{ opacity: 0.5 }}>
+          Company Influence: {company.influence} IP · Wanderers cannot purchase
+          additional wargear from the armoury.
+        </Typography>
+      </Box>
     </Box>
   )
 }

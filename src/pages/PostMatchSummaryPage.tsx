@@ -8,7 +8,7 @@
  *   3. Done         — Return to Company Details
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
   Box,
@@ -27,7 +27,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
-import AnimatedDice from '../components/common/AnimatedDice'
+import AnimatedDice, { DieFace } from '../components/common/AnimatedDice'
 import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel } from '../utils/labels'
 import {
@@ -87,6 +87,12 @@ function rollD6Single(): number {
 
 function roll2d6Single(): number {
   return Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1
+}
+
+function roll2d6WithDice(): { die1: number; die2: number; total: number } {
+  const die1 = Math.floor(Math.random() * 6) + 1
+  const die2 = Math.floor(Math.random() * 6) + 1
+  return { die1, die2, total: die1 + die2 }
 }
 
 function outcomeLabel(outcome: InjuryOutcome, memberName: string): string {
@@ -198,11 +204,15 @@ interface InjuryRecord {
   memberName: string
   isHero: boolean
   roll: number | null
+  die1?: number
+  die2?: number
   outcome: InjuryOutcome | null
   healed?: 'arm_wound' | 'leg_wound' | 'broken_honour'
   // For scratch re-roll
   rerolled?: boolean
   rerollRoll?: number
+  rerollDie1?: number
+  rerollDie2?: number
   rerollOutcome?: InjuryOutcome
 }
 
@@ -288,6 +298,10 @@ export default function PostMatchSummaryPage() {
   const [injuryIndex, setInjuryIndex] = useState(0) // which casualty we're rolling for
   const [rollingFor, setRollingFor] = useState<string | null>(null) // memberId being rolled
   const [diceValue, setDiceValue] = useState<number | null>(null)
+  const [diceIndividual, setDiceIndividual] = useState<[number, number] | null>(
+    null
+  )
+  const pendingDiceRef = useRef<[number, number] | null>(null)
   const [injuriesReady, setInjuriesReady] = useState(false)
 
   // Scratch/heal dialogs
@@ -402,6 +416,8 @@ export default function PostMatchSummaryPage() {
 
   const startNextInjuryRoll = useCallback(
     (idx: number) => {
+      setDiceIndividual(null)
+      pendingDiceRef.current = null
       const casualty = casualties[idx]
       if (!casualty) {
         setInjuriesReady(true)
@@ -409,8 +425,12 @@ export default function PostMatchSummaryPage() {
       }
       setRollingFor(casualty.memberId)
       setDiceValue(null)
-      // Animate then settle
-      const roll = roll2d6Single()
+      // Animate then settle — generate individual dice now and store in ref so
+      // handleDiceSettled can read them synchronously without stale closure issues
+      const die1 = Math.floor(Math.random() * 6) + 1
+      const die2 = Math.floor(Math.random() * 6) + 1
+      const roll = die1 + die2
+      pendingDiceRef.current = [die1, die2]
       setTimeout(() => {
         setDiceValue(roll)
       }, 1400)
@@ -452,11 +472,14 @@ export default function PostMatchSummaryPage() {
       ? resolveHeroInjury(diceValue, member)
       : resolveWarriorInjury(diceValue)
 
+    const [pd1, pd2] = pendingDiceRef.current ?? [undefined, undefined]
     const newRecord: InjuryRecord = {
       memberId: casualty.memberId,
       memberName: casualty.memberName,
       isHero: casualty.isHero,
       roll: diceValue,
+      die1: pd1,
+      die2: pd2,
       outcome,
     }
 
@@ -598,7 +621,7 @@ export default function PostMatchSummaryPage() {
   // Scratch: reroll
   const handleScratchReroll = () => {
     setScratchDialog(null)
-    const newRoll = roll2d6Single()
+    const { die1: rd1, die2: rd2, total: newRoll } = roll2d6WithDice()
     const record = injuryRecords[injuryRecords.length - 1]
     const member = workingCompany.members.find((m) => m.id === record.memberId)
     if (!member) return
@@ -612,6 +635,8 @@ export default function PostMatchSummaryPage() {
       ...record,
       rerolled: true,
       rerollRoll: newRoll,
+      rerollDie1: rd1,
+      rerollDie2: rd2,
       rerollOutcome: finalOutcome,
     }
     setInjuryRecords((prev) => [...prev.slice(0, -1), finalRecord])
@@ -747,13 +772,13 @@ export default function PostMatchSummaryPage() {
       let updated = m
 
       if (record.result === 'ci_boost') {
-        // C and I improve by going lower (target number decreases)
+        // C and I improve by going lower (target number decreases) — store as -1 delta
         updated = {
           ...m,
           statIncreases: {
             ...m.statIncreases,
-            courage: (m.statIncreases.courage ?? 0) + 1,
-            intelligence: (m.statIncreases.intelligence ?? 0) + 1,
+            courage: (m.statIncreases.courage ?? 0) - 1,
+            intelligence: (m.statIncreases.intelligence ?? 0) - 1,
           },
           experience: Math.max(0, m.experience - 5),
         }
@@ -782,15 +807,18 @@ export default function PostMatchSummaryPage() {
       }
     })
 
-    // Mark done and advance
-    setWarriorProgRecords((prev) =>
-      prev.map((r) =>
-        r.memberId === record.memberId
-          ? { ...r, done: true, chosenPromotion: chosenPromotionIdx }
-          : r
+    // For hero_in_making, don't mark done yet — path selection happens next
+    // and applyHeroPath will call advanceProgression once the path is chosen
+    if (record.result !== 'hero_in_making') {
+      setWarriorProgRecords((prev) =>
+        prev.map((r) =>
+          r.memberId === record.memberId
+            ? { ...r, done: true, chosenPromotion: chosenPromotionIdx }
+            : r
+        )
       )
-    )
-    advanceProgression('warriors', record.memberId)
+      advanceProgression('warriors', record.memberId)
+    }
   }
 
   // Apply hero in the making path selection
@@ -820,10 +848,10 @@ export default function PostMatchSummaryPage() {
         ),
       }
     })
-    // Update the warrior record with path then advance
+    // Mark done, store path, then advance
     setWarriorProgRecords((prev) =>
       prev.map((r) =>
-        r.memberId === memberId ? { ...r, newPathId: pathId } : r
+        r.memberId === memberId ? { ...r, done: true, newPathId: pathId } : r
       )
     )
     advanceProgression('warriors', memberId)
@@ -1064,9 +1092,10 @@ export default function PostMatchSummaryPage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
+                        gap: 1,
                       }}
                     >
-                      <Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {rec.memberName}
                         </Typography>
@@ -1078,18 +1107,73 @@ export default function PostMatchSummaryPage() {
                             : describeWarriorRoll(rec.roll!)}
                         </Typography>
                       </Box>
-                      <Chip
-                        label={`${rec.rerolled ? rec.rerollRoll : rec.roll}`}
-                        size="small"
-                        sx={{
-                          fontSize: '0.65rem',
-                          fontFamily: '"Cinzel Decorative", serif',
-                          fontWeight: 700,
-                          background: 'rgba(0,0,0,0.3)',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                        }}
-                      />
+                      {/* Dice display */}
+                      {(() => {
+                        const d1 = rec.rerolled ? rec.rerollDie1 : rec.die1
+                        const d2 = rec.rerolled ? rec.rerollDie2 : rec.die2
+                        const total = rec.rerolled ? rec.rerollRoll : rec.roll
+                        return (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {d1 != null && d2 != null ? (
+                              <>
+                                <DieFace value={d1} size={24} />
+                                <Typography
+                                  sx={{
+                                    fontSize: '0.65rem',
+                                    opacity: 0.5,
+                                    fontFamily: '"Cinzel Decorative", serif',
+                                  }}
+                                >
+                                  +
+                                </Typography>
+                                <DieFace value={d2} size={24} />
+                                <Typography
+                                  sx={{
+                                    fontSize: '0.65rem',
+                                    opacity: 0.5,
+                                    fontFamily: '"Cinzel Decorative", serif',
+                                  }}
+                                >
+                                  =
+                                </Typography>
+                              </>
+                            ) : null}
+                            <Box
+                              sx={{
+                                minWidth: 28,
+                                height: 24,
+                                border: '1px solid',
+                                borderColor: 'primary.dark',
+                                borderRadius: 0.75,
+                                background: 'rgba(0,0,0,0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                px: 0.5,
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: '0.7rem',
+                                  fontFamily: '"Cinzel Decorative", serif',
+                                  fontWeight: 700,
+                                  color: 'primary.main',
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {total}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )
+                      })()}
                     </Box>
                     <Typography
                       variant="caption"
@@ -1134,7 +1218,7 @@ export default function PostMatchSummaryPage() {
                   <AnimatedDice
                     finalValue={diceValue}
                     label={currentCasualty.memberName}
-                    onSettled={() => {}}
+                    onSettled={(d1, d2) => setDiceIndividual([d1, d2])}
                   />
                 </Box>
               )}
@@ -1269,21 +1353,19 @@ export default function PostMatchSummaryPage() {
                     companyDef={companyDef}
                     getStatsForUnit={getStatsForUnit}
                     onApply={(idx) => applyWarriorProg(currentWarrior, idx)}
-                    onNeedPathSelect={() =>
-                      setPathSelectMember(
-                        (() => {
-                          const m = workingCompany?.members.find(
-                            (x) => x.id === currentWarrior.memberId
-                          )
-                          return {
-                            memberId: currentWarrior.memberId,
-                            memberName: currentWarrior.memberName,
-                            baseUnitId: m?.baseUnitId ?? '',
-                            equipment: m?.equipment ?? [],
-                          }
-                        })()
+                    onNeedPathSelect={() => {
+                      // Apply hero_in_making transformation first (sets role + heroStats)
+                      applyWarriorProg(currentWarrior)
+                      const m = workingCompany?.members.find(
+                        (x) => x.id === currentWarrior.memberId
                       )
-                    }
+                      setPathSelectMember({
+                        memberId: currentWarrior.memberId,
+                        memberName: currentWarrior.memberName,
+                        baseUnitId: m?.baseUnitId ?? '',
+                        equipment: m?.equipment ?? [],
+                      })
+                    }}
                   />
                 )}
 

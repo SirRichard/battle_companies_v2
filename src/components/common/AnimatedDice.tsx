@@ -12,8 +12,8 @@ interface Props {
   finalValue: number | null
   /** Size in px of each die face. Default 44. */
   dieSize?: number
-  /** Called when the animation finishes settling. */
-  onSettled?: () => void
+  /** Called when the animation finishes settling. Passes the individual die values. */
+  onSettled?: (die1: number, die2: number) => void
   /** Label shown below the dice (e.g. hero name). */
   label?: string
 }
@@ -53,6 +53,7 @@ function DieFace({ value, size }: { value: number; size: number }) {
   )
 }
 
+export { DieFace }
 export default function AnimatedDice({
   finalValue,
   dieSize = 48,
@@ -93,10 +94,12 @@ export default function AnimatedDice({
         const d2 = finalValue - d1
         const clampedD2 = Math.max(1, Math.min(6, d2))
         const adjustedD1 = finalValue - clampedD2
-        setDie1(Math.max(1, Math.min(6, adjustedD1)))
-        setDie2(clampedD2)
+        const finalD1 = Math.max(1, Math.min(6, adjustedD1))
+        const finalD2 = clampedD2
+        setDie1(finalD1)
+        setDie2(finalD2)
         setSettled(true)
-        onSettled?.()
+        onSettled?.(finalD1, finalD2)
       }
     }
     setTimeout(flash, 80)

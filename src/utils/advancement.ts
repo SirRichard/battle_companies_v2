@@ -179,7 +179,11 @@ export function canIncreaseStat(
   ]
 
   if (relativeStats.includes(stat)) {
-    if (relMax !== undefined && current >= relMax) return false
+    // For target-number stats, current is stored as a negative delta; compare absolute value
+    const improvementCount = ['shoot', 'courage', 'intelligence'].includes(stat)
+      ? Math.abs(current)
+      : current
+    if (relMax !== undefined && improvementCount >= relMax) return false
   } else {
     // Absolute: check total value
     const baseVal = baseStats[stat] ?? 1
@@ -202,12 +206,7 @@ export function canIncreaseStat(
 
   // Global caps from rules manual
   if (stat === 'fight' && (baseStats.fight ?? 1) + current >= 9) return false
-  if (stat === 'shoot') {
-    // shoot value improves by going lower; path_max is absolute floor
-    // stored as increase count; base 4+ → increase 1 = 3+
-    // relMax on shoot means max number of improvements
-    if (relMax !== undefined && current >= relMax) return false
-  }
+  // shoot already handled above via Math.abs(current)
 
   return true
 }
@@ -228,11 +227,13 @@ export function applyStatIncrease(member: Member, stat: string): Member {
     }
   }
   const current = (member.statIncreases as Record<string, number>)[stat] ?? 0
+  // For target-number stats (shoot/courage/intelligence), improving means the number goes DOWN
+  const delta = ['shoot', 'courage', 'intelligence'].includes(stat) ? -1 : 1
   return {
     ...member,
     statIncreases: {
       ...member.statIncreases,
-      [stat]: current + 1,
+      [stat]: current + delta,
     },
     experience: Math.max(0, member.experience - 5),
   }
