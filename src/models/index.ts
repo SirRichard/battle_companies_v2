@@ -233,4 +233,5 @@ export interface WizardState {
   sergeantIds: string[]
   heroPaths: Record<string, string> // tempId -> pathId
   heroSpellChoices: Record<string, string> // tempId -> magicalPowerId (Channeling only)
+  goldPurchases: Record<string, string[]> // tempId -> additional wargear ids bought with gold
 }

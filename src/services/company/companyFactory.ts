@@ -60,7 +60,8 @@ export function buildStartingMembers(
   leaderId: string,
   sergeantIds: string[],
   heroPaths: Record<string, string> = {},
-  heroSpellChoices: Record<string, string> = {}
+  heroSpellChoices: Record<string, string> = {},
+  goldPurchases: Record<string, string[]> = {}
 ): Member[] {
   const members: Member[] = []
   let memberIndex = 0
@@ -68,7 +69,7 @@ export function buildStartingMembers(
   for (const entry of companyDef.startingRoster) {
     for (let i = 0; i < entry.count; i++) {
       const tempId = `member_${memberIndex}`
-      const name = memberNames[tempId] ?? `Warrior #${memberIndex + 1}`
+      const name = memberNames[tempId]?.trim() || `Warrior #${memberIndex + 1}`
 
       let role: MemberRole = 'warrior'
       const isLeader = tempId === leaderId
@@ -105,7 +106,10 @@ export function buildStartingMembers(
         name,
         baseUnitId: entry.baseUnitId,
         role,
-        equipment: [...(entry.equipment ?? [])],
+        equipment: [
+          ...(entry.equipment ?? []),
+          ...(goldPurchases[tempId] ?? []),
+        ],
         experience: 0,
         lifetimeExperience: 0,
         injuries: [],
@@ -140,7 +144,8 @@ export function createCompany(
     wizardState.leaderId!,
     wizardState.sergeantIds,
     heroPaths,
-    heroSpellChoices
+    heroSpellChoices,
+    wizardState.goldPurchases ?? {}
   )
 
   const now = new Date().toISOString()
@@ -155,7 +160,7 @@ export function createCompany(
     alignment: wizardState.alignment!,
     members,
     influence: 0,
-    gold: companyDef.gold,
+    gold: 0,
     wins: 0,
     draws: 0,
     losses: 0,

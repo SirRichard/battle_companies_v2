@@ -20,6 +20,7 @@ import StepMemberNames from '../components/wizard/StepMemberNames'
 import StepLeaderSelection from '../components/wizard/StepLeaderSelection'
 import StepPathSelection from '../components/wizard/StepPathSelection'
 import StepSpellSelection from '../components/wizard/StepSpellSelection'
+import StepGoldEquipment from '../components/wizard/StepGoldEquipment'
 
 import { useAppContext } from '../context/AppContext'
 import type { Alignment, WizardState } from '../models'
@@ -135,6 +136,7 @@ const STEPS = [
   'Members',
   'Command',
   'Paths',
+  'Gold',
 ]
 
 const STEP_TITLES = [
@@ -145,6 +147,7 @@ const STEP_TITLES = [
   'Name Your Members',
   'Appoint Your Heroes',
   'Choose Hero Paths',
+  'Spend Your Gold',
 ]
 
 const MotionBox = motion(Box)
@@ -170,6 +173,7 @@ const INITIAL_WIZARD: WizardState = {
   sergeantIds: [],
   heroPaths: {},
   heroSpellChoices: {},
+  goldPurchases: {},
 }
 
 export default function CreateCompanyPage() {
@@ -218,6 +222,7 @@ export default function CreateCompanyPage() {
   }, [searchParams])
   const [showAbortConfirm, setShowAbortConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showGoldConfirm, setShowGoldConfirm] = useState(false)
 
   // ─── Derived data ────────────────────────────────────────────────────────
 
@@ -249,9 +254,7 @@ export default function CreateCompanyPage() {
       case 3:
         return wizard.companyName.trim().length > 0
       case 4:
-        return tempMemberIds.every(
-          (id) => (wizard.memberNames[id] ?? '').trim().length > 0
-        )
+        return true // names are optional; blank names get defaults like 'Warrior #1'
       case 5:
         return wizard.leaderId !== null && wizard.sergeantIds.length === 2
       case 6: {
@@ -265,6 +268,8 @@ export default function CreateCompanyPage() {
           return true
         })
       }
+      case 7:
+        return true // gold step is always advanceable (unspent gold is discarded)
       default:
         return false
     }
@@ -321,7 +326,25 @@ export default function CreateCompanyPage() {
 
   // ─── Final save ──────────────────────────────────────────────────────────
 
-  const handleFinish = async () => {
+  // Gold remaining helper
+  const goldRemaining = () => {
+    if (!selectedCompany) return 0
+    const wg = wargearData as Array<{ id: string; rating?: [number, number] }>
+    const spent = (
+      Object.values(wizard.goldPurchases ?? {}) as string[][]
+    ).reduce(
+      (sum: number, items: string[]) =>
+        sum +
+        items.reduce((s: number, wId: string) => {
+          const w = wg.find((x) => x.id === wId)
+          return s + (w?.rating?.[0] ?? 1)
+        }, 0),
+      0
+    )
+    return (selectedCompany.gold ?? 0) - spent
+  }
+
+  const doFinish = async () => {
     if (!selectedCompany || saving) return
     setSaving(true)
     try {
@@ -338,6 +361,55 @@ export default function CreateCompanyPage() {
       setSaving(false)
     }
   }
+
+  const handleFinish = () => {
+    // If company has gold and we're on the gold step, confirm before saving
+    if ((selectedCompany?.gold ?? 0) > 0 && wizard.step === STEPS.length - 1) {
+      setShowGoldConfirm(true)
+    } else {
+      void doFinish()
+    }
+  }
+
+  // Enter key shortcut for Next / Form Company (only when canAdvance() is true and step > 1)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return
+      // Don't fire if focus is inside a text input or textarea
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'BUTTON') return
+      if (wizard.step <= 1) return
+      if (!canAdvance()) return
+      if (wizard.step === STEPS.length - 1) {
+        handleFinish()
+      } else {
+        if (wizard.step === 5 && selectedCompany) {
+          const allIds = getAllUnitIdsForRoster(selectedCompany)
+          const missing = allIds.filter((id) => !getStatsForUnit(id))
+          if (missing.length > 0) {
+            navigate(`/stats?wizard=1&units=${missing.join(',')}`)
+            return
+          }
+        }
+        // Skip gold step if no gold
+        if (wizard.step === 6 && (selectedCompany?.gold ?? 0) === 0) {
+          handleFinish()
+          return
+        }
+        go(wizard.step + 1)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    wizard.step,
+    canAdvance,
+    handleFinish,
+    selectedCompany,
+    go,
+    navigate,
+    getStatsForUnit,
+  ])
 
   const handleAbort = useCallback(() => {
     sessionStorage.removeItem(WIZARD_DRAFT_KEY)
@@ -454,7 +526,9 @@ export default function CreateCompanyPage() {
                   const formattedPath =
                     pLabel.charAt(0).toUpperCase() + pLabel.slice(1)
                   const isLeader = tid === wizard.leaderId
-                  const name = wizard.memberNames[tid] ?? tid
+                  const tidIdx2 = parseInt(tid.replace('member_', ''), 10)
+                  const name =
+                    wizard.memberNames[tid]?.trim() || `Warrior #${tidIdx2 + 1}`
                   const spell = wizard.heroSpellChoices[tid]
 
                   // Resolve roster entry for unit type + equipment
@@ -637,8 +711,13 @@ export default function CreateCompanyPage() {
         const needsSpell =
           currentPathId === 'path_of_channeling' &&
           !wizard.heroSpellChoices[pendingHeroTempId]
+        const heroTempIdx2 = parseInt(
+          pendingHeroTempId.replace('member_', ''),
+          10
+        )
         const heroName =
-          wizard.memberNames[pendingHeroTempId] ?? pendingHeroTempId
+          wizard.memberNames[pendingHeroTempId]?.trim() ||
+          `Warrior #${heroTempIdx2 + 1}`
         const heroRole =
           pendingHeroTempId === wizard.leaderId ? 'leader' : 'sergeant'
 
@@ -700,6 +779,50 @@ export default function CreateCompanyPage() {
               setWizard((w) => ({
                 ...w,
                 heroPaths: { ...w.heroPaths, [pendingHeroTempId]: pathId },
+              }))
+            }
+          />
+        )
+      }
+
+      // ── Step 7: Gold Equipment ──────────────────────────────────────────
+      case 7: {
+        if (!selectedCompany) return null
+        // Build the roster member list with names + hero status
+        const goldMembers: Array<{
+          tempId: string
+          name: string
+          baseUnitId: string
+          equipment: string[]
+          isHero: boolean
+        }> = []
+        let mi = 0
+        for (const entry of selectedCompany.startingRoster) {
+          for (let i = 0; i < entry.count; i++) {
+            const tid = `member_${mi}`
+            const name = wizard.memberNames[tid]?.trim() || `Warrior #${mi + 1}`
+            const isHero =
+              tid === wizard.leaderId || wizard.sergeantIds.includes(tid)
+            goldMembers.push({
+              tempId: tid,
+              name,
+              baseUnitId: entry.baseUnitId,
+              equipment: entry.equipment ?? [],
+              isHero,
+            })
+            mi++
+          }
+        }
+        return (
+          <StepGoldEquipment
+            gold={selectedCompany.gold ?? 0}
+            members={goldMembers}
+            companyTypeId={selectedCompany.id}
+            goldPurchases={wizard.goldPurchases ?? {}}
+            onUpdate={(tempId, wargearIds) =>
+              setWizard((w) => ({
+                ...w,
+                goldPurchases: { ...w.goldPurchases, [tempId]: wargearIds },
               }))
             }
           />
@@ -800,9 +923,7 @@ export default function CreateCompanyPage() {
             <Button
               variant="contained"
               onClick={() => {
-                // Between step 5 (heroes) and step 6 (paths), check for missing stats.
-                // If any are missing, redirect to stats entry; the wizard draft is
-                // preserved in sessionStorage so we can return seamlessly.
+                // Between step 5 and 6: check for missing stats
                 if (wizard.step === 5 && selectedCompany) {
                   const allIds = getAllUnitIdsForRoster(selectedCompany)
                   const missing = allIds.filter((id) => !getStatsForUnit(id))
@@ -810,6 +931,11 @@ export default function CreateCompanyPage() {
                     navigate(`/stats?wizard=1&units=${missing.join(',')}`)
                     return
                   }
+                }
+                // After paths (step 6): skip gold step if no gold
+                if (wizard.step === 6 && (selectedCompany?.gold ?? 0) === 0) {
+                  handleFinish()
+                  return
                 }
                 go(wizard.step + 1)
               }}
@@ -840,6 +966,24 @@ export default function CreateCompanyPage() {
         onConfirm={handleAbort}
         onCancel={() => setShowAbortConfirm(false)}
         dangerous
+      />
+
+      {/* Gold confirmation — warns about unspent gold */}
+      <ConfirmDialog
+        open={showGoldConfirm}
+        title="Form Company?"
+        message={
+          goldRemaining() > 0
+            ? `You have ${goldRemaining()} Gold unspent. Any unspent gold is discarded and cannot be recovered. Proceed?`
+            : 'Finalise your company and begin your campaign?'
+        }
+        confirmLabel="Form Company"
+        onConfirm={() => {
+          setShowGoldConfirm(false)
+          void doFinish()
+        }}
+        onCancel={() => setShowGoldConfirm(false)}
+        dangerous={goldRemaining() > 0}
       />
     </Box>
   )

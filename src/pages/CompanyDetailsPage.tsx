@@ -191,7 +191,6 @@ export default function CompanyDetailsPage() {
             value: `${company.wins}W / ${company.draws}D / ${company.losses}L`,
           },
           { label: 'Members', value: `${company.members.length}` },
-          { label: 'Gold', value: `${company.gold}` },
         ].map(({ label, value, highlight }) => (
           <Box key={label}>
             <Typography
@@ -1392,6 +1391,110 @@ function StoreTab({
       w.influenceCost > 0
   )
 
+  // ── Accessible wargear helpers ────────────────────────────────────────────
+
+  // Extract every baseUnitId referenced in a company's tables/advancements
+  const getCompanyBaseUnitIds = (): Set<string> => {
+    const ids = new Set<string>()
+    const addFromEntry = (entry: any) => {
+      if (entry.baseUnitId) ids.add(entry.baseUnitId)
+      if (entry.toBaseUnitId) ids.add(entry.toBaseUnitId)
+      if (entry.fromBaseUnitId) ids.add(entry.fromBaseUnitId)
+      if (entry.units)
+        (entry.units as any[]).forEach(
+          (u: any) => u.baseUnitId && ids.add(u.baseUnitId)
+        )
+      if (entry.pool)
+        (entry.pool as any[]).forEach(
+          (u: any) => u.baseUnitId && ids.add(u.baseUnitId)
+        )
+    }
+    for (const entry of companyDef?.startingRoster ?? []) addFromEntry(entry)
+    for (const entry of companyDef?.reinforcementTable ?? [])
+      addFromEntry(entry)
+    for (const entry of (companyDef as any)?.specialTable ?? [])
+      addFromEntry(entry)
+    for (const entry of companyDef?.advancements ?? []) addFromEntry(entry)
+    return ids
+  }
+
+  // Armour tier ranking
+  const ARMOUR_TIER: Record<string, number> = {
+    light_armour: 1,
+    armour: 2,
+    heavy_armour: 3,
+    dwarf_armour: 3,
+    heavy_dwarf_armour: 4,
+  }
+
+  // Get the wargear IDs accessible to a member (options-only for warriors,
+  // all baseEquipment+options across all company units for heroes)
+  const getAccessibleWargearIds = (member: Member): Set<string> => {
+    const BASE_UNITS_FULL = baseUnitsData as Array<{
+      id: string
+      baseEquipment?: string[]
+      equipmentOptions?: { options: Array<{ equipment: string[] }> }
+    }>
+
+    const collectFromUnit = (
+      unitId: string,
+      includeBase: boolean,
+      out: Set<string>
+    ) => {
+      const unit = BASE_UNITS_FULL.find((u) => u.id === unitId)
+      if (!unit) return
+      if (includeBase) (unit.baseEquipment ?? []).forEach((e) => out.add(e))
+      for (const opt of unit.equipmentOptions?.options ?? []) {
+        opt.equipment.forEach((e) => out.add(e))
+      }
+    }
+
+    const isHero = member.role !== 'warrior'
+    const accessible = new Set<string>()
+
+    if (!isHero) {
+      // Warriors: only their own equipmentOptions
+      collectFromUnit(member.baseUnitId, false, accessible)
+    } else {
+      // Heroes: baseEquipment + options from all units across the company
+      const companyUnitIds = getCompanyBaseUnitIds()
+      for (const unitId of companyUnitIds) {
+        collectFromUnit(unitId, true, accessible)
+      }
+    }
+
+    return accessible
+  }
+
+  // Determine armour upgrade eligibility for a member
+  const getArmourUpgrade = (
+    member: Member,
+    accessible: Set<string>
+  ): string | null => {
+    // Current highest armour tier on the member
+    const allEquip = [
+      ...(BASE_UNITS_MAP[member.baseUnitId]?.baseEquipment ?? []),
+      ...member.equipment,
+    ]
+    const currentTier = allEquip.reduce(
+      (best, e) => Math.max(best, ARMOUR_TIER[e] ?? 0),
+      0
+    )
+    if (currentTier === 0) return null // no armour at all — only show if accessible
+
+    // Find the lowest-tier accessible armour above current
+    let bestUpgrade: string | null = null
+    let bestTier = currentTier
+    for (const wId of accessible) {
+      const tier = ARMOUR_TIER[wId]
+      if (tier !== undefined && tier > bestTier) {
+        bestUpgrade = wId
+        bestTier = tier
+      }
+    }
+    return bestUpgrade
+  }
+
   const handleBuyWargear = async (
     memberId: string,
     wargearId: string,
@@ -2133,9 +2236,23 @@ function StoreTab({
                 Available Wargear — {selectedMember.name}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {purchasableWargear
-                  .filter((w) => {
-                    if (selectedMember.equipment.includes(w.id)) return false
+                {(() => {
+                  const accessible = getAccessibleWargearIds(selectedMember)
+                  const armourUpgradeId = getArmourUpgrade(
+                    selectedMember,
+                    accessible
+                  )
+                  const allMemberEquip = [
+                    ...(BASE_UNITS_MAP[selectedMember.baseUnitId]
+                      ?.baseEquipment ?? []),
+                    ...selectedMember.equipment,
+                  ]
+
+                  const filtered = purchasableWargear.filter((w) => {
+                    // Must be in accessible set for this member
+                    if (!accessible.has(w.id)) return false
+                    // Already equipped (base or chosen)
+                    if (allMemberEquip.includes(w.id)) return false
                     // Only one mount
                     if (
                       w.category === 'mount' &&
@@ -2144,12 +2261,27 @@ function StoreTab({
                       )
                     )
                       return false
+                    // Armour: only show if it is the valid upgrade tier; suppress all others
+                    if (ARMOUR_TIER[w.id] !== undefined) {
+                      return w.id === armourUpgradeId
+                    }
                     return true
                   })
-                  .map((w) => {
+
+                  if (filtered.length === 0) {
+                    return (
+                      <Typography
+                        variant="body2"
+                        sx={{ opacity: 0.5, textAlign: 'center', py: 2 }}
+                      >
+                        All available wargear already equipped.
+                      </Typography>
+                    )
+                  }
+
+                  return filtered.map((w) => {
                     const cost = w.influenceCost!
                     const canAfford = company.influence >= cost
-                    // Bow limit check
                     const wouldViolateBow =
                       w.category === 'bow' &&
                       wouldExceedBowLimit([
@@ -2182,6 +2314,7 @@ function StoreTab({
                           ? 'Cavalry limit'
                           : null
                     const blocked = !canAfford || !!limitViolation
+                    const isArmourUpgrade = ARMOUR_TIER[w.id] !== undefined
                     return (
                       <Box
                         key={w.id}
@@ -2201,7 +2334,11 @@ function StoreTab({
                         }}
                       >
                         <Box>
-                          <Typography variant="body2">{w.label}</Typography>
+                          <Typography variant="body2">
+                            {isArmourUpgrade
+                              ? `Upgrade to ${w.label}`
+                              : w.label}
+                          </Typography>
                           <Typography variant="caption" sx={{ opacity: 0.5 }}>
                             {limitViolation
                               ? `${w.category} · ${limitViolation} reached`
@@ -2221,17 +2358,8 @@ function StoreTab({
                         </Button>
                       </Box>
                     )
-                  })}
-                {purchasableWargear.filter(
-                  (w) => !selectedMember.equipment.includes(w.id)
-                ).length === 0 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ opacity: 0.5, textAlign: 'center', py: 2 }}
-                  >
-                    All available wargear already equipped.
-                  </Typography>
-                )}
+                  })
+                })()}
               </Box>
               <Box
                 sx={{
