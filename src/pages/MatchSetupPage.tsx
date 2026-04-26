@@ -3,12 +3,12 @@
  *
  * Step 1 of the match flow:
  *   1. Enter opponent rating
- *   2. If underdog by ≥15pts → Against the Odds bonus selection
+ *   2. If underdog by ≥15pts → Against the Odds multi-select bonus selection
  *   3. Scenario pick (manual dropdown OR random roll)
- *   4. Navigate to MatchTrackingPage
+ *   4. Navigate to ToolkitAssignmentPage (if toolkit selected) or MatchTrackingPage
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Box,
@@ -25,6 +25,7 @@ import {
 } from '@mui/material'
 import CasinoIcon from '@mui/icons-material/Casino'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import CheckIcon from '@mui/icons-material/Check'
 import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
@@ -41,6 +42,76 @@ interface ScenarioDef {
   secondRoll: number
 }
 const SCENARIOS = scenariosData as ScenarioDef[]
+
+export const TOOLKIT_KITS: { id: string; label: string; items: string[] }[] = [
+  {
+    id: 'healers',
+    label: "Healer's Kit",
+    items: [
+      'wondrous_cram',
+      'wondrous_cram',
+      'wondrous_cram',
+      'wondrous_cram',
+      'wondrous_cram',
+      'healing_herbs',
+      'healing_herbs',
+    ],
+  },
+  {
+    id: 'explorer',
+    label: "Explorer's Kit",
+    items: [
+      'scroll_of_hidden_paths',
+      'mountain_boots',
+      'mountain_boots',
+      'mountain_boots',
+      'woodland_belt',
+      'woodland_belt',
+      'woodland_belt',
+      'map',
+    ],
+  },
+  {
+    id: 'scholar',
+    label: "Scholar's Kit",
+    items: [
+      'ring_of_warding',
+      'badge_of_courage',
+      'lucky_talisman',
+      'seeing_stone',
+    ],
+  },
+  {
+    id: 'hunter',
+    label: "Hunter's Kit",
+    items: [
+      'envenom_weapon',
+      'envenom_weapon',
+      'envenom_weapon',
+      'envenom_weapon',
+      'envenom_weapon',
+      'trophy_pelt',
+      'concealing_cloak',
+    ],
+  },
+  {
+    id: 'raider',
+    label: "Raider's Kit",
+    items: [
+      'torching_brand',
+      'torching_brand',
+      'torching_brand',
+      'torching_brand',
+      'torching_brand',
+      'climbing_ropes',
+      'climbing_ropes',
+      'climbing_ropes',
+      'climbing_ropes',
+      'climbing_ropes',
+      'dwarven_brew',
+    ],
+  },
+]
 
 const ATO_BONUSES: {
   id: AtoBonusType
@@ -64,6 +135,18 @@ const ATO_BONUSES: {
     id: 'reroll',
     label: 'Rerolls',
     desc: '2 rerolls usable at any point during the match.',
+    ratingValue: 15,
+  },
+  {
+    id: 'toolkit',
+    label: 'Tool Kit',
+    desc: 'Temporarily equip your models from a kit for this match.',
+    ratingValue: 30,
+  },
+  {
+    id: 'wanderer',
+    label: 'Wanderer',
+    desc: 'Temporarily recruit a Wanderer for the match.',
     ratingValue: 15,
   },
   {
@@ -101,7 +184,7 @@ export default function MatchSetupPage() {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [opponentRating, setOpponentRating] = useState('')
-  const [atoBonus, setAtoBonus] = useState<AtoBonusType | null>(null)
+  const [atoBonuses, setAtoBonuses] = useState<AtoBonusType[]>([])
   const [scenarioId, setScenarioId] = useState('')
   const [rolledScenario, setRolledScenario] = useState<ScenarioDef | null>(null)
   const [showAbort, setShowAbort] = useState(false)
@@ -110,7 +193,6 @@ export default function MatchSetupPage() {
     null
   )
 
-  // Check for an in-progress match on mount
   useEffect(() => {
     if (!companyId) return
     loadActiveMatch(companyId).then((m) => {
@@ -127,19 +209,16 @@ export default function MatchSetupPage() {
     : opponentRatingNum - companyRating
   const isUnderdog = ratingDiff >= 15
 
-  // How much "bonus rating" the chosen ATO adds
-  const atoBonusRating = atoBonus
-    ? (ATO_BONUSES.find((b) => b.id === atoBonus)?.ratingValue ?? 0)
-    : 0
-  const adjustedRating = companyRating + atoBonusRating
+  const totalAtoBonusRating = atoBonuses.reduce((sum, id) => {
+    return sum + (ATO_BONUSES.find((b) => b.id === id)?.ratingValue ?? 0)
+  }, 0)
+  const adjustedRating = companyRating + totalAtoBonusRating
   const activeScenario =
     rolledScenario ?? SCENARIOS.find((s) => s.id === scenarioId)
   const canProceed =
     !isNaN(opponentRatingNum) &&
     opponentRatingNum > 0 &&
     activeScenario !== undefined
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleRollScenario = () => {
     const s = rollScenario()
@@ -150,6 +229,22 @@ export default function MatchSetupPage() {
   const handleManualScenario = (id: string) => {
     setScenarioId(id)
     setRolledScenario(null)
+  }
+
+  const handleAtoToggle = (id: AtoBonusType) => {
+    setAtoBonuses((prev) => {
+      const already = prev.includes(id)
+      if (already) return prev.filter((b) => b !== id)
+      // Check would not exceed opponent rating
+      const newTotal =
+        prev.reduce(
+          (sum, b) =>
+            sum + (ATO_BONUSES.find((x) => x.id === b)?.ratingValue ?? 0),
+          0
+        ) + (ATO_BONUSES.find((b) => b.id === id)?.ratingValue ?? 0)
+      if (companyRating + newTotal > opponentRatingNum) return prev
+      return [...prev, id]
+    })
   }
 
   const handleStart = async () => {
@@ -164,8 +259,9 @@ export default function MatchSetupPage() {
       opponentRating: opponentRatingNum,
       scenarioId: activeScenario.id,
       scenarioLabel: activeScenario.label,
-      atoBonus,
-      rerollsRemaining: atoBonus === 'reroll' ? 2 : 0,
+      atoBonuses,
+      rerollsRemaining: atoBonuses.includes('reroll') ? 2 : 0,
+      toolkitItems: [], // filled in ToolkitAssignmentPage if toolkit selected
       members: activeMembers.map((m) => ({
         memberId: m.id,
         memberName: m.name,
@@ -185,17 +281,16 @@ export default function MatchSetupPage() {
     }
 
     await saveActiveMatch(match)
-    navigate(`/companies/${company.id}/match`)
+
+    // If toolkit selected, go to assignment page first
+    if (atoBonuses.includes('toolkit')) {
+      navigate(`/companies/${company.id}/match/toolkit`)
+    } else {
+      navigate(`/companies/${company.id}/match`)
+    }
   }
 
-  const handleResume = () => {
-    navigate(`/companies/${companyId}/match`)
-  }
-
-  const handleAtoSelect = (id: AtoBonusType) => {
-    // Toggle off if already selected
-    setAtoBonus((prev) => (prev === id ? null : id))
-  }
+  const handleResume = () => navigate(`/companies/${companyId}/match`)
 
   if (!company) {
     return (
@@ -224,7 +319,7 @@ export default function MatchSetupPage() {
           width: '100%',
         }}
       >
-        {/* ── Your rating ─────────────────────────────────────────────────── */}
+        {/* ── Your rating ── */}
         <Box
           sx={{
             mb: 3,
@@ -253,7 +348,7 @@ export default function MatchSetupPage() {
           </Typography>
         </Box>
 
-        {/* ── Opponent rating ─────────────────────────────────────────────── */}
+        {/* ── Opponent rating ── */}
         <SectionLabel>Opponent's Rating</SectionLabel>
         <TextField
           fullWidth
@@ -262,19 +357,19 @@ export default function MatchSetupPage() {
           onChange={(e) => {
             const v = e.target.value.replace(/[^0-9]/g, '')
             setOpponentRating(v)
-            setAtoBonus(null) // reset bonus if rating changes
+            setAtoBonuses([])
           }}
           type="number"
           inputProps={{ min: 1 }}
           sx={{ mt: 1, mb: 3 }}
         />
 
-        {/* ── Against the Odds ─────────────────────────────────────────────── */}
+        {/* ── Against the Odds ── */}
         {isUnderdog && (
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <SectionLabel>Against the Odds</SectionLabel>
-              <Tooltip title="Your rating is 15+ below your opponent's. Choose one bonus to even the odds.">
+              <Tooltip title="Select one or more bonuses. Your adjusted rating cannot exceed your opponent's.">
                 <HelpOutlineIcon
                   sx={{ fontSize: 16, opacity: 0.5, cursor: 'help' }}
                 />
@@ -289,18 +384,23 @@ export default function MatchSetupPage() {
                 mb: 1.5,
               }}
             >
-              You are outrated by {ratingDiff} pts. Select one bonus — your
-              adjusted rating cannot exceed your opponent's.
+              Outrated by {ratingDiff} pts. Select bonuses — adjusted rating
+              cannot exceed opponent's.
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {ATO_BONUSES.filter(
                 (bonus) => bonus.ratingValue <= ratingDiff
               ).map((bonus) => {
-                const isSelected = atoBonus === bonus.id
+                const isSelected = atoBonuses.includes(bonus.id)
+                const wouldExceed =
+                  !isSelected &&
+                  companyRating + totalAtoBonusRating + bonus.ratingValue >
+                    opponentRatingNum
+                const disabled = wouldExceed
                 return (
                   <Box
                     key={bonus.id}
-                    onClick={() => handleAtoSelect(bonus.id)}
+                    onClick={() => !disabled && handleAtoToggle(bonus.id)}
                     sx={{
                       p: 1.5,
                       border: '1px solid',
@@ -309,12 +409,15 @@ export default function MatchSetupPage() {
                       background: isSelected
                         ? 'rgba(201,168,76,0.08)'
                         : 'rgba(0,0,0,0.15)',
-                      cursor: 'pointer',
+                      cursor: disabled ? 'default' : 'pointer',
+                      opacity: disabled ? 0.4 : 1,
                       transition: 'all 0.15s',
-                      '&:hover': {
-                        borderColor: 'primary.dark',
-                        background: 'rgba(201,168,76,0.05)',
-                      },
+                      '&:hover': !disabled
+                        ? {
+                            borderColor: 'primary.dark',
+                            background: 'rgba(201,168,76,0.05)',
+                          }
+                        : {},
                     }}
                   >
                     <Box
@@ -325,15 +428,28 @@ export default function MatchSetupPage() {
                         mb: 0.25,
                       }}
                     >
-                      <Typography
-                        variant="body2"
+                      <Box
                         sx={{
-                          fontWeight: 600,
-                          color: isSelected ? 'primary.main' : 'text.primary',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.75,
                         }}
                       >
-                        {bonus.label}
-                      </Typography>
+                        {isSelected && (
+                          <CheckIcon
+                            sx={{ fontSize: 14, color: 'primary.main' }}
+                          />
+                        )}
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: isSelected ? 'primary.main' : 'text.primary',
+                          }}
+                        >
+                          {bonus.label}
+                        </Typography>
+                      </Box>
                       <Chip
                         label={`+${bonus.ratingValue} pts`}
                         size="small"
@@ -354,7 +470,7 @@ export default function MatchSetupPage() {
                 )
               })}
             </Box>
-            {atoBonus && (
+            {atoBonuses.length > 0 && (
               <Typography
                 variant="caption"
                 sx={{
@@ -372,7 +488,7 @@ export default function MatchSetupPage() {
 
         <Divider sx={{ mb: 3, opacity: 0.3 }} />
 
-        {/* ── Scenario ────────────────────────────────────────────────────── */}
+        {/* ── Scenario ── */}
         <SectionLabel>Scenario</SectionLabel>
         <Box
           sx={{
@@ -383,16 +499,15 @@ export default function MatchSetupPage() {
             gap: 1.5,
           }}
         >
-          {/* Random roll button — disabled if Ambush! bonus chosen */}
           <Button
             variant="outlined"
             startIcon={<CasinoIcon />}
             onClick={handleRollScenario}
-            disabled={atoBonus === 'ambush'}
+            disabled={atoBonuses.includes('ambush')}
             fullWidth
             sx={{ justifyContent: 'flex-start', px: 2 }}
           >
-            {atoBonus === 'ambush'
+            {atoBonuses.includes('ambush')
               ? 'Ambush! — Choose below'
               : 'Roll Random Scenario'}
           </Button>
@@ -443,7 +558,7 @@ export default function MatchSetupPage() {
           </FormControl>
         </Box>
 
-        {/* ── Start button ─────────────────────────────────────────────────── */}
+        {/* ── Start button ── */}
         <Button
           variant="contained"
           fullWidth
@@ -457,11 +572,12 @@ export default function MatchSetupPage() {
             py: 1.5,
           }}
         >
-          Begin Battle
+          {atoBonuses.includes('toolkit')
+            ? 'Next: Assign Kit Items →'
+            : 'Begin Battle'}
         </Button>
       </Box>
 
-      {/* ── Resume dialog ────────────────────────────────────────────────── */}
       <ConfirmDialog
         open={resumePrompt}
         title="Match In Progress"
@@ -472,7 +588,6 @@ export default function MatchSetupPage() {
         onCancel={() => setResumePrompt(false)}
       />
 
-      {/* ── Abort dialog ─────────────────────────────────────────────────── */}
       <ConfirmDialog
         open={showAbort}
         title="Cancel Setup"
@@ -486,7 +601,7 @@ export default function MatchSetupPage() {
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <Typography
       sx={{

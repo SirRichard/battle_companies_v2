@@ -11,14 +11,16 @@ export class BattleCompaniesDB extends Dexie {
   constructor() {
     super('BattleCompaniesDB')
 
-    this.version(1).stores({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(this as any).version(1).stores({
       companies: 'id, name, factionId, alignment, lastPlayedAt',
       baseUnitStats: 'baseUnitId',
       appState: 'key',
     })
 
     // Version 2: add activeMatches table for in-progress match persistence
-    this.version(2).stores({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(this as any).version(2).stores({
       companies: 'id, name, factionId, alignment, lastPlayedAt',
       baseUnitStats: 'baseUnitId',
       appState: 'key',

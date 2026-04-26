@@ -6,11 +6,12 @@
  * XP progress bar, injuries, special rules, point value, editable name.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import {
   Box,
   Typography,
   Drawer,
+  SwipeableDrawer,
   IconButton,
   TextField,
   Chip,
@@ -20,6 +21,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Popover,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
@@ -29,6 +31,8 @@ import { getUnitLabel, getWargearLabel } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
 import pathsData from '../../data/paths.json'
 import baseUnitsData from '../../data/baseUnits.json'
+import specialRulesData from '../../data/specialRules.json'
+import heroicActionsData from '../../data/heroicActions.json'
 import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
@@ -39,6 +43,35 @@ interface PathDef {
   heroicAction?: string
 }
 const ALL_PATHS = pathsData as unknown as PathDef[]
+
+// Labels that represent Heroic Actions stored inside member.specialRules
+const HEROIC_ACTION_LABELS = new Set([
+  'Heroic Accuracy',
+  'Heroic Challenge',
+  'Heroic Channelling',
+  'Heroic Defence',
+  'Heroic March',
+  'Heroic Resolve',
+  'Heroic Strength',
+  'Heroic Strike',
+  'Heroic Move',
+  'Heroic Shoot',
+  'Heroic Combat',
+])
+
+// Rule description lookup
+const SPECIAL_RULES_MAP = (
+  specialRulesData as Array<{ id: string; label: string; description: string }>
+).reduce<Record<string, string>>((acc, r) => {
+  acc[r.label] = r.description
+  return acc
+}, {})
+const HEROIC_ACTIONS_MAP = (
+  heroicActionsData as Array<{ id: string; label: string; description: string }>
+).reduce<Record<string, string>>((acc, a) => {
+  acc[a.label] = a.description
+  return acc
+}, {})
 
 function getPathLabel(pathId: string): string {
   return (
@@ -266,7 +299,37 @@ export default function MemberDetailsDrawer({
     setTreatAdjust(0)
   }
 
-  if (!member) return null
+  // ── Stat tooltip state ──────────────────────────────────────────────────────
+  const [statAnchor, setStatAnchor] = useState<{
+    el: HTMLElement
+    key: string
+  } | null>(null)
+
+  // ── Rule info popup state ────────────────────────────────────────────────────
+  const [rulePopup, setRulePopup] = useState<{
+    label: string
+    description: string
+  } | null>(null)
+
+  // Early return — all hooks must be declared above this point
+  if (!member) {
+    return (
+      <SwipeableDrawer
+        anchor="bottom"
+        open={open}
+        onClose={onClose}
+        onOpen={() => {}}
+        disableSwipeToOpen
+        PaperProps={{
+          sx: { borderRadius: '16px 16px 0 0', background: '#1a1008', p: 2 },
+        }}
+      >
+        <Typography sx={{ textAlign: 'center', opacity: 0.4, py: 4 }}>
+          No member selected.
+        </Typography>
+      </SwipeableDrawer>
+    )
+  }
 
   const isHero = member.role !== 'warrior'
   const rating = calcMemberRating(member, baseStats)
@@ -281,11 +344,21 @@ export default function MemberDetailsDrawer({
   const equipBonus = calcEquipmentStatBonus(
     member.equipment ?? [],
     member.baseUnitId,
-    member.armourUpgraded
+    member.armourUpgraded,
+    member.armourUpgrades
   )
 
   // Build effective stat values: base + increases + decreases (injuries) + equipment bonuses
   const base = baseStats?.stats
+
+  // Compute path advancement totals per stat (for tooltip)
+  const pathAdvances: Partial<Record<string, number>> = {}
+  if (member.statIncreases) {
+    for (const [key, val] of Object.entries(member.statIncreases)) {
+      if (val && val !== 0) pathAdvances[key] = val
+    }
+  }
+
   const effectiveStats = base
     ? STAT_DEFS.map(({ key, label, isTargetNumber }) => {
         const baseVal = base[key] ?? 0
@@ -303,6 +376,43 @@ export default function MemberDetailsDrawer({
           else if (effectiveVal < baseVal) colour = 'error.main'
         }
 
+        // Build breakdown lines for tooltip
+        const breakdown: string[] = []
+        if (increase !== 0) {
+          const sign = isTargetNumber
+            ? increase < 0
+              ? '+'
+              : '−'
+            : increase > 0
+              ? '+'
+              : '−'
+          const abs = Math.abs(increase)
+          breakdown.push(`Path advancement: ${sign}${abs}`)
+        }
+        if (decrease !== 0) {
+          breakdown.push(`Injuries: −${decrease}`)
+        }
+        if (key === 'defence' && eqBonus !== 0) {
+          // Breakdown armour upgrades separately from shield
+          const shieldBonus = (member.equipment ?? []).includes('shield')
+            ? 1
+            : 0
+          const armourBonus = eqBonus - shieldBonus
+          if (shieldBonus > 0) breakdown.push('Shield: +1')
+          if (armourBonus > 0) {
+            const upgrades =
+              member.armourUpgrades ?? (member.armourUpgraded ? ['armour'] : [])
+            if (upgrades.length > 0) {
+              const wgLabel = upgrades[upgrades.length - 1]
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase())
+              breakdown.push(`Upgrade to ${wgLabel}: +${armourBonus}`)
+            } else {
+              breakdown.push(`Armour upgrade: +${armourBonus}`)
+            }
+          }
+        }
+
         return {
           key,
           label,
@@ -310,6 +420,7 @@ export default function MemberDetailsDrawer({
           baseVal,
           effectiveVal,
           colour,
+          breakdown,
         }
       })
     : []
@@ -570,9 +681,28 @@ export default function MemberDetailsDrawer({
               }}
             >
               {effectiveStats.map(
-                ({ key, label, isTargetNumber, effectiveVal, colour }, idx) => (
+                (
+                  {
+                    key,
+                    label,
+                    isTargetNumber,
+                    effectiveVal,
+                    colour,
+                    breakdown,
+                  },
+                  idx
+                ) => (
                   <Box
                     key={key}
+                    onClick={
+                      breakdown.length > 0
+                        ? (e) =>
+                            setStatAnchor({
+                              el: e.currentTarget as HTMLElement,
+                              key,
+                            })
+                        : undefined
+                    }
                     sx={{
                       flex: 1,
                       textAlign: 'center',
@@ -587,6 +717,7 @@ export default function MemberDetailsDrawer({
                             ? 'rgba(192,57,43,0.15)'
                             : 'rgba(0,0,0,0.2)',
                       transition: 'background 0.15s',
+                      cursor: breakdown.length > 0 ? 'pointer' : 'default',
                     }}
                   >
                     <Typography
@@ -612,6 +743,21 @@ export default function MemberDetailsDrawer({
                     >
                       {formatStatValue(effectiveVal, isTargetNumber, key)}
                     </Typography>
+                    {breakdown.length > 0 && (
+                      <Box
+                        sx={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: '50%',
+                          background:
+                            colour === 'inherit'
+                              ? 'rgba(200,164,90,0.4)'
+                              : colour,
+                          mx: 'auto',
+                          mt: 0.4,
+                        }}
+                      />
+                    )}
                   </Box>
                 )
               )}
@@ -620,8 +766,134 @@ export default function MemberDetailsDrawer({
               <Box sx={{ display: 'flex', gap: 2, mt: 0.75, px: 0.25 }}>
                 <Legend colour="success.main" label="Above base" />
                 <Legend colour="error.main" label="Below base" />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    opacity: 0.4,
+                    fontStyle: 'normal',
+                    ml: 'auto',
+                    fontSize: '0.58rem',
+                  }}
+                >
+                  Tap modified stat for details
+                </Typography>
               </Box>
             )}
+            {/* Stat breakdown popover */}
+            <Popover
+              open={!!statAnchor}
+              anchorEl={statAnchor?.el}
+              onClose={() => setStatAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+              PaperProps={{
+                sx: {
+                  background: 'linear-gradient(160deg,#1a1008 0%,#110a03 100%)',
+                  border: '1px solid rgba(200,164,90,0.3)',
+                  borderRadius: 1,
+                  p: 1.5,
+                  minWidth: 160,
+                  maxWidth: 220,
+                },
+              }}
+            >
+              {statAnchor &&
+                (() => {
+                  const stat = effectiveStats.find(
+                    (s) => s.key === statAnchor.key
+                  )
+                  if (!stat) return null
+                  return (
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          fontSize: '0.7rem',
+                          color: 'primary.main',
+                          mb: 1,
+                        }}
+                      >
+                        {stat.label} breakdown
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          mb: 0.5,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                          Base
+                        </Typography>
+                        <Typography variant="caption">
+                          {formatStatValue(
+                            stat.baseVal,
+                            stat.isTargetNumber,
+                            stat.key
+                          )}
+                        </Typography>
+                      </Box>
+                      {stat.breakdown.map((line, i) => (
+                        <Box
+                          key={i}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            mb: 0.25,
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ opacity: 0.75, flex: 1, mr: 1 }}
+                          >
+                            {line.split(':')[0]}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color:
+                                line.includes('−') || line.includes('Injur')
+                                  ? 'error.light'
+                                  : 'success.light',
+                            }}
+                          >
+                            {line.split(':')[1]?.trim()}
+                          </Typography>
+                        </Box>
+                      ))}
+                      <Box
+                        sx={{
+                          mt: 0.75,
+                          pt: 0.75,
+                          borderTop: '1px solid rgba(200,164,90,0.2)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          Total
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 700,
+                            color:
+                              stat.colour === 'inherit'
+                                ? 'text.primary'
+                                : stat.colour,
+                          }}
+                        >
+                          {formatStatValue(
+                            stat.effectiveVal,
+                            stat.isTargetNumber,
+                            stat.key
+                          )}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )
+                })()}
+            </Popover>
           </Box>
         )}
 
@@ -660,27 +932,120 @@ export default function MemberDetailsDrawer({
           )}
         </Box>
 
-        {/* ── Special Rules ─────────────────────────────────────────────────── */}
-        {member.specialRules.length > 0 && (
-          <Box sx={{ mb: 2.5 }}>
-            <SectionLabel>Special Rules</SectionLabel>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
-              {member.specialRules.map((r) => (
-                <Chip
-                  key={r}
-                  label={r}
-                  size="small"
-                  sx={{
-                    fontSize: '0.72rem',
-                    borderColor: 'primary.dark',
-                    color: 'primary.light',
-                    border: '1px solid',
-                    background: 'rgba(201,168,76,0.05)',
-                  }}
-                />
-              ))}
+        {/* ── Heroic Actions ───────────────────────────────────────────────── */}
+        {(() => {
+          const heroicActions = member.specialRules.filter((r) =>
+            HEROIC_ACTION_LABELS.has(r)
+          )
+          if (heroicActions.length === 0) return null
+          return (
+            <Box sx={{ mb: 2.5 }}>
+              <SectionLabel>Heroic Actions</SectionLabel>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
+                {heroicActions.map((r) => (
+                  <Chip
+                    key={r}
+                    label={r}
+                    size="small"
+                    onClick={() => {
+                      const desc = HEROIC_ACTIONS_MAP[r] ?? SPECIAL_RULES_MAP[r]
+                      if (desc) setRulePopup({ label: r, description: desc })
+                    }}
+                    sx={{
+                      fontSize: '0.72rem',
+                      borderColor: 'rgba(201,168,76,0.5)',
+                      color: 'primary.main',
+                      border: '1px solid',
+                      background: 'rgba(201,168,76,0.08)',
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </Box>
             </Box>
-          </Box>
+          )
+        })()}
+
+        {/* ── Special Rules ─────────────────────────────────────────────────── */}
+        {(() => {
+          const specialRules = member.specialRules.filter(
+            (r) => !HEROIC_ACTION_LABELS.has(r)
+          )
+          if (specialRules.length === 0) return null
+          return (
+            <Box sx={{ mb: 2.5 }}>
+              <SectionLabel>Special Rules</SectionLabel>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
+                {specialRules.map((r) => {
+                  const desc = SPECIAL_RULES_MAP[r] ?? HEROIC_ACTIONS_MAP[r]
+                  return (
+                    <Chip
+                      key={r}
+                      label={r}
+                      size="small"
+                      onClick={
+                        desc
+                          ? () => setRulePopup({ label: r, description: desc })
+                          : undefined
+                      }
+                      sx={{
+                        fontSize: '0.72rem',
+                        borderColor: 'primary.dark',
+                        color: 'primary.light',
+                        border: '1px solid',
+                        background: 'rgba(201,168,76,0.05)',
+                        cursor: desc ? 'pointer' : 'default',
+                      }}
+                    />
+                  )
+                })}
+              </Box>
+            </Box>
+          )
+        })()}
+
+        {/* ── Rule info popup ───────────────────────────────────────────────── */}
+        {rulePopup && (
+          <Dialog
+            open
+            onClose={() => setRulePopup(null)}
+            PaperProps={{
+              sx: {
+                background: 'linear-gradient(160deg,#1a1008 0%,#110a03 100%)',
+                border: '1px solid rgba(200,164,90,0.25)',
+                borderRadius: 2,
+                maxWidth: 340,
+              },
+            }}
+          >
+            <DialogTitle
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                fontSize: '0.8rem',
+                color: 'primary.main',
+                pb: 1,
+              }}
+            >
+              {rulePopup.label}
+            </DialogTitle>
+            <DialogContent>
+              <Typography
+                variant="body2"
+                sx={{ opacity: 0.85, lineHeight: 1.65 }}
+              >
+                {rulePopup.description}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setRulePopup(null)}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
         )}
 
         {/* ── Experience ───────────────────────────────────────────────────── */}
@@ -1139,7 +1504,7 @@ export default function MemberDetailsDrawer({
 
 // ─── Small sub-components ─────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <Typography
       sx={{

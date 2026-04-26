@@ -63,12 +63,14 @@ export interface EquipmentStatBonus {
  *
  * @param equipment     - member.equipment (assigned option + purchased wargear)
  * @param baseUnitId    - used to determine base armour tier for upgrade delta
- * @param armourUpgraded - hero-only flag: has this hero purchased one armour upgrade?
+ * @param armourUpgraded - legacy bool flag (kept for backward compat)
+ * @param armourUpgrades - new array of wargear IDs that caused armour upgrades
  */
 export function calcEquipmentStatBonus(
   equipment: string[],
   baseUnitId: string,
-  armourUpgraded?: boolean
+  armourUpgraded?: boolean,
+  armourUpgrades?: string[]
 ): EquipmentStatBonus {
   let defenceBonus = 0
 
@@ -77,11 +79,16 @@ export function calcEquipmentStatBonus(
     defenceBonus += 1
   }
 
-  // Armour upgrade (heroes only): the upgrade adds the delta between the
-  // new tier's defence value and the base unit's existing armour tier.
-  if (armourUpgraded) {
+  // Armour upgrade (heroes only): count upgrades purchased and compute delta.
+  // armourUpgrades[] is the new mechanism; armourUpgraded bool is legacy fallback.
+  const upgradeCount = armourUpgrades
+    ? armourUpgrades.length
+    : armourUpgraded
+      ? 1
+      : 0
+  if (upgradeCount > 0) {
     const baseTier = getBaseArmourTier(baseUnitId)
-    const upgradedTier = baseTier + 1
+    const upgradedTier = Math.min(4, baseTier + upgradeCount)
     const baseDefenceFromArmour = ARMOUR_DEFENCE[`armour_${baseTier}`] ?? 0
     const upgradedDefenceFromArmour =
       ARMOUR_DEFENCE[`armour_${upgradedTier}`] ?? 0

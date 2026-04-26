@@ -123,11 +123,16 @@ export function applyWarriorPromotion(
   const baseEquipment = newUnit?.baseEquipment ?? []
   let equipment: string[]
   if (retainWargear) {
-    // Keep existing wargear that is valid for the new profile
+    // Keep existing wargear that was added BEYOND the old base profile
+    // (member.equipment already excludes old base equipment since it's stored separately)
     equipment = [...member.equipment]
   } else {
-    equipment = [...baseEquipment, ...(newEquipment ?? [])]
+    // Only store the additional carry-over items — base equipment is implicit in the profile
+    equipment = [...(newEquipment ?? [])]
   }
+  // Ensure we don't double-store items already in the new base profile
+  const baseSet = new Set(baseEquipment)
+  equipment = equipment.filter((e) => !baseSet.has(e))
   return {
     ...member,
     baseUnitId: toBaseUnitId,

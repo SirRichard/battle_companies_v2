@@ -8,7 +8,7 @@
  *   3. Done         — Return to Company Details
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
   Box,
@@ -175,6 +175,39 @@ function describeWarriorRoll(roll: number): string {
   return 'Lesson Learned'
 }
 
+// Explains what each injury outcome actually does
+const OUTCOME_EXPLANATIONS: Record<string, string> = {
+  dead: "The Hero's adventure ends here. Remove the Hero and all their wargear from the company roster permanently.",
+  arm_wound:
+    'The Hero cannot benefit from a shield in any way, use a two-handed weapon, pike, or fire a bow or crossbow of any sort. They may still carry a Company Standard and fight with a Hand Weapon. A second Arm Wound forces retirement.',
+  leg_wound:
+    'The Hero has their Move value permanently reduced by 1". A second Leg Wound forces retirement.',
+  broken_honour:
+    'The Hero may no longer provide a Stand Fast, nor may they affect members of the Battle Company with their Heroic Actions. A second result grants the Fearful special rule. A third result forces retirement.',
+  missing_next_game:
+    'The Hero must miss the next game. Alternatively, the Hero may reroll on this chart — the second result applies even if worse. If this result occurs after a reroll, the Hero must miss the next game.',
+  full_recovery:
+    'The Hero may play in the next game as normal. Additionally, the Hero may heal one Arm Wound, Leg Wound, or Broken Honour they previously obtained.',
+  protection_by_valar:
+    'The Hero is considered to have made a Full Recovery. Additionally, the Hero permanently gains +1 Fate point (up to their Path Maximum).',
+  wounds_of_a_hero:
+    "The Hero model's Battle Company immediately gains an extra D6 Influence Points. Additionally, the Hero is considered to have made a Full Recovery.",
+  scratch_choice:
+    "T'is Just a Scratch! The Hero must choose: miss the next game, or reroll on this chart (the second result applies even if worse). If the reroll also produces this result, the Hero must miss the next game.",
+  warrior_dead:
+    'Remove the Warrior and all their wargear from the company roster permanently.',
+  warrior_injured:
+    'The Warrior must miss the next game but suffers no further effects.',
+  warrior_full_recovery:
+    'The Warrior makes a full recovery and may fight in the next battle as normal.',
+  warrior_lesson_learned:
+    'The Warrior is considered to have made a Full Recovery. Additionally, the Warrior gains +D3 Experience.',
+}
+
+function getOutcomeExplanation(outcomeType: string): string {
+  return OUTCOME_EXPLANATIONS[outcomeType] ?? 'Result applied.'
+}
+
 // ─── Progression result descriptors ──────────────────────────────────────────
 
 function describeStatOption(options: string[]): string {
@@ -309,6 +342,10 @@ export default function PostMatchSummaryPage() {
     memberId: string
     memberName: string
   } | null>(null)
+  const [injuryExplain, setInjuryExplain] = useState<{
+    label: string
+    explanation: string
+  } | null>(null)
   const [healDialog, setHealDialog] = useState<{
     memberId: string
     memberName: string
@@ -350,7 +387,7 @@ export default function PostMatchSummaryPage() {
   // ── Guard — resolved below in JSX via early-return-safe conditional ────────
   const isLoading = !postMatchData || !company || !companyDef || !workingCompany
 
-  const casualties = postMatchData.casualties
+  const casualties = postMatchData!.casualties
   const hasCasualties = casualties.length > 0
 
   // ─── Step header ─────────────────────────────────────────────────────────────
@@ -549,10 +586,9 @@ export default function PostMatchSummaryPage() {
     } else {
       // Check if full_recovery with healable injuries
       const canHeal =
-        (outcomeToApply.type === 'full_recovery' ||
-          outcomeToApply.type === 'protection_by_valar' ||
-          outcomeToApply.type === 'wounds_of_a_hero') &&
-        outcomeToApply.type !== 'warrior_full_recovery'
+        outcomeToApply.type === 'full_recovery' ||
+        outcomeToApply.type === 'protection_by_valar' ||
+        outcomeToApply.type === 'wounds_of_a_hero'
       const healableTypes = updated.injuries
         .filter(
           (i) =>
@@ -990,19 +1026,19 @@ export default function PostMatchSummaryPage() {
     const matchRecord = {
       id: uuidv4(),
       date: new Date().toISOString(),
-      result: postMatchData.result,
-      opponentRating: postMatchData.opponentRating,
-      scenarioId: postMatchData.scenarioId,
-      scenarioLabel: postMatchData.scenarioLabel,
-      influenceGained: postMatchData.influenceBase + bonusInfluence,
-      casualties: postMatchData.casualties.map((c) => ({
+      result: postMatchData!.result,
+      opponentRating: postMatchData!.opponentRating,
+      scenarioId: postMatchData!.scenarioId,
+      scenarioLabel: postMatchData!.scenarioLabel,
+      influenceGained: postMatchData!.influenceBase + bonusInfluence,
+      casualties: postMatchData!.casualties.map((c) => ({
         memberId: c.memberId,
         memberName: c.memberName,
         injuryResult:
           injuryRecords.find((r) => r.memberId === c.memberId)?.outcome?.type ??
           'unknown',
       })),
-      xpGained: postMatchData.xpGained,
+      xpGained: postMatchData!.xpGained,
     }
 
     const finalCompany: Company = {
@@ -1096,9 +1132,37 @@ export default function PostMatchSummaryPage() {
                       }}
                     >
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {rec.memberName}
-                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {rec.memberName}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              opacity: 0.5,
+                              fontSize: '0.62rem',
+                              px: 0.75,
+                              py: 0.15,
+                              border: '1px solid',
+                              borderColor: rec.isHero
+                                ? 'primary.dark'
+                                : 'divider',
+                              borderRadius: 0.5,
+                              color: rec.isHero
+                                ? 'primary.light'
+                                : 'text.secondary',
+                            }}
+                          >
+                            {rec.isHero ? 'Hero' : 'Warrior'}
+                          </Typography>
+                        </Box>
                         <Typography variant="caption" sx={{ opacity: 0.6 }}>
                           {rec.isHero
                             ? describeHeroRoll(
@@ -1175,16 +1239,57 @@ export default function PostMatchSummaryPage() {
                         )
                       })()}
                     </Box>
-                    <Typography
-                      variant="caption"
+                    <Box
                       sx={{
-                        display: 'block',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 0.5,
                         mt: 0.5,
-                        color: outcomeColour(outcome),
                       }}
                     >
-                      {outcomeLabel(outcome, rec.memberName)}
-                    </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ flex: 1, color: outcomeColour(outcome) }}
+                      >
+                        {outcomeLabel(outcome, rec.memberName)}
+                      </Typography>
+                      <Box
+                        component="span"
+                        onClick={() =>
+                          setInjuryExplain({
+                            label: rec.isHero
+                              ? describeHeroRoll(
+                                  rec.rerolled ? rec.rerollRoll! : rec.roll!
+                                )
+                              : describeWarriorRoll(rec.roll!),
+                            explanation: getOutcomeExplanation(outcome.type),
+                          })
+                        }
+                        sx={{
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          width: 18,
+                          height: 18,
+                          borderRadius: '50%',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.55,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: 'text.secondary',
+                          '&:hover': {
+                            opacity: 1,
+                            borderColor: 'primary.dark',
+                          },
+                          userSelect: 'none',
+                        }}
+                      >
+                        ?
+                      </Box>
+                    </Box>
                     {rec.healed && (
                       <Typography
                         variant="caption"
@@ -1372,7 +1477,7 @@ export default function PostMatchSummaryPage() {
               {/* Completed warrior progressions */}
               {warriorProgRecords
                 .filter((r) => r.done)
-                .map((rec) => (
+                .map((rec: WarriorProgRecord) => (
                   <CompletedWarriorCard key={rec.memberId} record={rec} />
                 ))}
 
@@ -1402,7 +1507,7 @@ export default function PostMatchSummaryPage() {
               {/* Completed hero advancements */}
               {heroAdvRecords
                 .filter((r) => r.done)
-                .map((rec) => (
+                .map((rec: HeroAdvRecord) => (
                   <CompletedHeroCard key={rec.memberId} record={rec} />
                 ))}
 
@@ -1601,13 +1706,55 @@ export default function PostMatchSummaryPage() {
         onConfirm={() => navigate(`/companies/${companyId}`)}
         onCancel={() => setShowReturnConfirm(false)}
       />
+
+      {/* Injury result explanation popup */}
+      {injuryExplain && (
+        <Dialog
+          open
+          onClose={() => setInjuryExplain(null)}
+          PaperProps={{
+            sx: {
+              background: '#1a0f05',
+              border: '1px solid',
+              borderColor: 'primary.dark',
+              borderRadius: 2,
+              maxWidth: 420,
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '0.85rem',
+              color: 'primary.main',
+              pb: 1,
+            }}
+          >
+            {injuryExplain.label}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" sx={{ opacity: 0.85, lineHeight: 1.6 }}>
+              {injuryExplain.explanation}
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ px: 2, pb: 2 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setInjuryExplain(null)}
+            >
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StepCard({ children }: { children: React.ReactNode }) {
+function StepCard({ children }: { children: ReactNode }) {
   return (
     <Box
       sx={{
@@ -1771,7 +1918,12 @@ function WarriorProgressionCard({
   )
 }
 
-function CompletedWarriorCard({ record }: { record: WarriorProgRecord }) {
+function CompletedWarriorCard({
+  record,
+}: {
+  key?: string
+  record: WarriorProgRecord
+}) {
   const labels: Record<WarriorProgResult, string> = {
     no_change: 'No change.',
     promoted: `Promoted to ${record.promotionOptions?.[record.chosenPromotion ?? 0] ? getUnitLabel(record.promotionOptions[record.chosenPromotion ?? 0].toBaseUnitId) : '?'}`,
@@ -2282,7 +2434,12 @@ function ExtraChoiceUI({
   return null
 }
 
-function CompletedHeroCard({ record }: { record: HeroAdvRecord }) {
+function CompletedHeroCard({
+  record,
+}: {
+  key?: string
+  record: HeroAdvRecord
+}) {
   const chosen = record.chosen === 'A' ? record.resultA : record.resultB
   return (
     <Box

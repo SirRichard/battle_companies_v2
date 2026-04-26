@@ -149,16 +149,20 @@ export default function MatchTrackingPage() {
     let influenceBase = 2 // participation
     if (result === 'win') influenceBase += 2
     else if (result === 'draw') influenceBase += 1
-    if (match.atoBonus === 'influence')
+    if (match.atoBonuses.includes('influence'))
       influenceBase += result === 'win' ? 2 : 1
 
-    // Build XP per member (participation + counter + ATO bonus)
-    const xpBonus =
-      match.atoBonus === 'experience' ? (result === 'win' ? 2 : 1) : 0
+    // Build XP per member (participation + counter gains)
+    // ATO experience bonus applies only to members who participated (not missing/injured)
+    const xpBonus = match.atoBonuses.includes('experience')
+      ? result === 'win'
+        ? 2
+        : 1
+      : 0
     const xpGained = match.members.map((mm) => ({
       memberId: mm.memberId,
       memberName: mm.memberName,
-      xp: 1 + mm.xpCounterGains + xpBonus,
+      xp: 1 + mm.xpCounterGains + xpBonus, // all match members are participants
     }))
 
     // Apply XP to company members now (injuries applied in post-match)
@@ -192,7 +196,7 @@ export default function MatchTrackingPage() {
       opponentRating: match.opponentRating,
       scenarioId: match.scenarioId,
       scenarioLabel: match.scenarioLabel,
-      atoBonus: match.atoBonus,
+      atoBonuses: match.atoBonuses,
       influenceBase,
       casualties: match.members
         .filter((m) => m.isCasualty)
@@ -255,7 +259,7 @@ export default function MatchTrackingPage() {
       />
 
       {/* ── Reroll counter ─────────────────────────────────────────────────── */}
-      {match.atoBonus === 'reroll' && match.rerollsRemaining > 0 && (
+      {match.atoBonuses.includes('reroll') && match.rerollsRemaining > 0 && (
         <Box
           sx={{
             px: 3,
@@ -539,6 +543,7 @@ export default function MatchTrackingPage() {
 // ─── MemberMatchCard ──────────────────────────────────────────────────────────
 
 interface CardProps {
+  key?: string
   mm: MemberMatchState
   delay: number
   baseStats: Record<string, number> | undefined

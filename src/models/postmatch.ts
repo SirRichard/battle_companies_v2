@@ -25,7 +25,7 @@ export interface PostMatchData {
   opponentRating: number
   scenarioId: string
   scenarioLabel: string
-  atoBonus: AtoBonusType | null
+  atoBonuses: AtoBonusType[]
   influenceBase: number // base influence (2 + result bonus + ato)
   casualties: PostMatchCasualty[]
   xpGained: PostMatchXpEntry[]

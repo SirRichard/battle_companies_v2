@@ -171,7 +171,10 @@ export interface Member {
   pathId?: string
   statIncreases: Partial<MemberStats> // advances above base
   statDecreases: Partial<MemberStats> // injuries that reduce stats
-  armourUpgraded?: boolean // hero has purchased one armour upgrade
+  armourUpgraded?: boolean // legacy — superseded by armourUpgrades
+  armourUpgrades?: string[] // wargear IDs that caused a +1D armour upgrade (one per purchase)
+  ownedEquipment?: string[] // Equipment item IDs (from Armoury Equipment tab)
+  creatureId?: string // Attached creature ID (Leader/Sergeant only, one per hero)
 }
 
 export interface MatchRecord {

@@ -35,6 +35,8 @@ import { calcCompanyRating, calcMemberRating } from '../utils/rating'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
+import equipmentData from '../data/equipment.json'
+import creaturesData from '../data/creatures.json'
 import wanderersData from '../data/wanderers.json'
 
 const COMPANIES_DEF = companiesData as CompanyDefinition[]
@@ -380,6 +382,7 @@ export default function CompanyDetailsPage() {
 // ─── MemberRow ────────────────────────────────────────────────────────────────
 
 interface MemberRowProps {
+  key?: string
   member: Member
   isHero: boolean
   delay: number
@@ -532,17 +535,13 @@ function MemberRow({
       )}
 
       {(() => {
-        // Warriors: assigned option only. Heroes: base equipment + assigned/purchased.
-        const assignedEquip = member.equipment ?? []
-        const displayWargear = isHero
-          ? Array.from(
-              new Set([
-                ...(BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-                  ?.baseEquipment ?? []),
-                ...assignedEquip,
-              ])
-            )
-          : assignedEquip
+        // Always show base profile equipment + any additional purchased/assigned equipment
+        const baseEquip =
+          BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+            ?.baseEquipment ?? []
+        const displayWargear = Array.from(
+          new Set([...baseEquip, ...(member.equipment ?? [])])
+        )
         return displayWargear.length > 0 ? (
           <Box
             sx={{
@@ -591,63 +590,6 @@ function MemberRow({
           </Box>
         )
       })()}
-
-      {/* Inline stat changes — only shown if any increases or decreases exist */}
-      {(() => {
-        const inc = member.statIncreases ?? {}
-        const dec = member.statDecreases ?? {}
-        const changed = Object.keys({ ...inc, ...dec }).filter(
-          (k) => ((inc as any)[k] ?? 0) !== 0 || ((dec as any)[k] ?? 0) !== 0
-        )
-        const ABBR: Record<string, string> = {
-          move: 'Mv',
-          fight: 'Fv',
-          shoot: 'Sv',
-          strength: 'S',
-          defence: 'D',
-          attacks: 'A',
-          wounds: 'W',
-          courage: 'C',
-          intelligence: 'I',
-        }
-        if (changed.length === 0) return null
-        const reverseStats = new Set(['shoot', 'courage', 'intelligence'])
-        return (
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 0.4,
-              justifyContent: 'flex-end',
-              flexShrink: 0,
-              maxWidth: 120,
-            }}
-          >
-            {changed.map((k) => {
-              const netInc = ((inc as any)[k] ?? 0) - ((dec as any)[k] ?? 0)
-              const isPositive = reverseStats.has(k) ? netInc < 0 : netInc > 0
-              const colour = isPositive ? 'success.main' : 'error.light'
-              const sign = netInc > 0 ? '+' : ''
-              return (
-                <Typography
-                  key={k}
-                  variant="caption"
-                  sx={{
-                    fontSize: '0.58rem',
-                    color: colour,
-                    fontWeight: 700,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {ABBR[k] ?? k}
-                  {sign}
-                  {netInc}
-                </Typography>
-              )
-            })}
-          </Box>
-        )
-      })()}
     </MotionBox>
   )
 }
@@ -658,6 +600,7 @@ function HistoryMatchCard({
   match,
   index,
 }: {
+  key?: string
   match: import('../models').MatchRecord
   index: number
 }) {
@@ -964,7 +907,7 @@ function StoreTab({
   getStatsForUnit,
 }: StoreTabProps) {
   const [section, setSection] = useState<
-    'reinforcements' | 'wargear' | 'wanderers'
+    'reinforcements' | 'wargear' | 'equipment' | 'creatures' | 'wanderers'
   >('reinforcements')
   const [rollResult, setRollResult] = useState<ReinforcementResult | null>(null)
   const [_isRolling, setIsRolling] = useState(false)
@@ -1503,6 +1446,7 @@ function StoreTab({
     if (company.influence < influenceCost) return
     const member = company.members.find((m) => m.id === memberId)
     if (!member) return
+    const isArmourUpgrade = ARMOUR_TIER[wargearId] !== undefined
     const newEquipment = [...member.equipment, wargearId]
     const candidate = { baseUnitId: member.baseUnitId, equipment: newEquipment }
     // Enforce bow/throwing/cavalry limits
@@ -1536,13 +1480,23 @@ function StoreTab({
       setTimeout(() => setMsg(null), 3500)
       return
     }
-    void candidate // used above
+    void candidate
     const updated: Company = {
       ...company,
       influence: company.influence - influenceCost,
-      members: company.members.map((m) =>
-        m.id === memberId ? { ...m, equipment: newEquipment } : m
-      ),
+      members: company.members.map((m) => {
+        if (m.id !== memberId) return m
+        const updatedMember = { ...m, equipment: newEquipment }
+        // Track armour upgrade in armourUpgrades[] for tooltip breakdown
+        if (isArmourUpgrade) {
+          updatedMember.armourUpgrades = [
+            ...(m.armourUpgrades ?? []),
+            wargearId,
+          ]
+          updatedMember.armourUpgraded = true // keep legacy flag in sync
+        }
+        return updatedMember
+      }),
     }
     await saveCompany(updated)
     setMsg(`Purchased ${getWargearLabel(wargearId)}!`)
@@ -1554,14 +1508,23 @@ function StoreTab({
   return (
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
       {/* Section toggle */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-        {(['reinforcements', 'wargear', 'wanderers'] as const).map((s) => (
+      <Box sx={{ display: 'flex', gap: 0.5, mb: 3, flexWrap: 'wrap' }}>
+        {(
+          [
+            'reinforcements',
+            'wargear',
+            'equipment',
+            'creatures',
+            'wanderers',
+          ] as const
+        ).map((s) => (
           <Box
             key={s}
             onClick={() => setSection(s)}
             sx={{
-              flex: 1,
-              py: 1.25,
+              flex: '1 1 auto',
+              minWidth: 68,
+              py: 1,
               textAlign: 'center',
               cursor: 'pointer',
               borderRadius: 1,
@@ -1575,8 +1538,8 @@ function StoreTab({
             <Typography
               sx={{
                 fontFamily: '"Cinzel Decorative", serif',
-                fontSize: '0.62rem',
-                letterSpacing: '0.08em',
+                fontSize: '0.56rem',
+                letterSpacing: '0.06em',
                 textTransform: 'uppercase',
                 color: section === s ? 'primary.main' : 'text.secondary',
               }}
@@ -1585,7 +1548,11 @@ function StoreTab({
                 ? 'Reinforce'
                 : s === 'wargear'
                   ? 'Wargear'
-                  : 'Wanderers'}
+                  : s === 'equipment'
+                    ? 'Equipment'
+                    : s === 'creatures'
+                      ? 'Creatures'
+                      : 'Wanderers'}
             </Typography>
           </Box>
         ))}
@@ -2233,7 +2200,66 @@ function StoreTab({
                   fontSize: '0.58rem',
                 }}
               >
-                Available Wargear — {selectedMember.name}
+                {selectedMember.name}
+              </Typography>
+
+              {/* Current equipment */}
+              {(() => {
+                const currentEquip = [
+                  ...(BASE_UNITS_MAP[selectedMember.baseUnitId]
+                    ?.baseEquipment ?? []),
+                  ...selectedMember.equipment,
+                ]
+                return currentEquip.length > 0 ? (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        opacity: 0.45,
+                        display: 'block',
+                        mb: 0.5,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        fontSize: '0.56rem',
+                      }}
+                    >
+                      Current Equipment
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {currentEquip.map((eq, i) => (
+                        <Box
+                          key={`${eq}-${i}`}
+                          sx={{
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'rgba(200,164,90,0.25)',
+                            background: 'rgba(0,0,0,0.2)',
+                            fontSize: '0.68rem',
+                            color: 'text.secondary',
+                          }}
+                        >
+                          {getWargearLabel(eq)}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                ) : null
+              })()}
+
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.45,
+                  display: 'block',
+                  mb: 0.75,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontSize: '0.56rem',
+                }}
+              >
+                Available to Purchase
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {(() => {
@@ -2379,6 +2405,16 @@ function StoreTab({
             </Box>
           )}
         </Box>
+      )}
+
+      {/* ── EQUIPMENT ────────────────────────────────────────────────── */}
+      {section === 'equipment' && (
+        <EquipmentSection company={company} saveCompany={saveCompany} />
+      )}
+
+      {/* ── CREATURES ────────────────────────────────────────────────── */}
+      {section === 'creatures' && (
+        <CreaturesSection company={company} saveCompany={saveCompany} />
       )}
 
       {/* ── WANDERERS ────────────────────────────────────────────────── */}
@@ -3081,6 +3117,650 @@ function ReinforcementResultCard({
         >
           Recruit
         </Button>
+      </Box>
+    </Box>
+  )
+}
+
+// ─── EquipmentSection ─────────────────────────────────────────────────────────
+
+interface EquipmentDef {
+  id: string
+  label: string
+  size: 'large' | 'small'
+  rating: number | number[]
+  influenceCost: number
+  description?: string
+  heroOnly?: boolean
+  alignment?: string
+}
+
+const ALL_EQUIPMENT = equipmentData as unknown as EquipmentDef[]
+
+function EquipmentSection({
+  company,
+  saveCompany,
+}: {
+  company: Company
+  saveCompany: (c: Company) => Promise<void>
+}) {
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const selectedMember = company.members.find((m) => m.id === selectedMemberId)
+
+  const handleBuy = async (memberId: string, equipId: string, cost: number) => {
+    if (company.influence < cost) return
+    const member = company.members.find((m) => m.id === memberId)
+    if (!member) return
+
+    const eq = ALL_EQUIPMENT.find((e) => e.id === equipId)
+    if (!eq) return
+
+    // Check large/small capacity: member can carry 1 large + 1 small (or backpack extends small)
+    const currentLarge = (member.ownedEquipment ?? []).filter((id) => {
+      const e = ALL_EQUIPMENT.find((x) => x.id === id)
+      return e?.size === 'large'
+    }).length
+    const currentSmall = (member.ownedEquipment ?? []).filter((id) => {
+      const e = ALL_EQUIPMENT.find((x) => x.id === id)
+      return e?.size === 'small'
+    }).length
+    const hasBackpack = (member.ownedEquipment ?? []).includes('backpack')
+    const maxSmall = hasBackpack ? 4 : 1
+
+    if (eq.size === 'large' && currentLarge >= 1) {
+      setMsg('Cannot purchase — already carrying one Large item.')
+      setTimeout(() => setMsg(null), 3000)
+      return
+    }
+    if (eq.size === 'small' && currentSmall >= maxSmall) {
+      setMsg(`Cannot purchase — already carrying ${maxSmall} Small item(s).`)
+      setTimeout(() => setMsg(null), 3000)
+      return
+    }
+
+    const updated: Company = {
+      ...company,
+      influence: company.influence - cost,
+      members: company.members.map((m) =>
+        m.id === memberId
+          ? { ...m, ownedEquipment: [...(m.ownedEquipment ?? []), equipId] }
+          : m
+      ),
+    }
+    await saveCompany(updated)
+    setMsg(`Purchased ${eq.label}!`)
+    setTimeout(() => setMsg(null), 2500)
+  }
+
+  const alignment = company.alignment ?? 'good'
+
+  const availableEquipment = ALL_EQUIPMENT.filter((eq) => {
+    if (!eq.influenceCost) return false
+    if (eq.alignment === 'evil' && alignment !== 'evil') return false
+    if (eq.alignment === 'good' && alignment !== 'good') return false
+    return true
+  })
+
+  return (
+    <Box>
+      {msg && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'success.main',
+            borderRadius: 1,
+            background: 'rgba(46,204,113,0.08)',
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'success.light' }}>
+            {msg}
+          </Typography>
+        </Box>
+      )}
+
+      <Typography
+        variant="caption"
+        sx={{ opacity: 0.6, display: 'block', mb: 1.5 }}
+      >
+        Select a company member to purchase Equipment for:
+      </Typography>
+
+      {/* Member selector */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
+        {company.members.map((m) => {
+          const isHero = m.role !== 'warrior'
+          return (
+            <Box
+              key={m.id}
+              onClick={() =>
+                setSelectedMemberId(m.id === selectedMemberId ? null : m.id)
+              }
+              sx={{
+                px: 1.5,
+                py: 1,
+                border: '1px solid',
+                borderColor:
+                  selectedMemberId === m.id ? 'primary.main' : 'divider',
+                borderRadius: 1,
+                cursor: 'pointer',
+                background:
+                  selectedMemberId === m.id
+                    ? 'rgba(201,168,76,0.06)'
+                    : 'rgba(0,0,0,0.15)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color:
+                      selectedMemberId === m.id
+                        ? 'primary.main'
+                        : 'text.primary',
+                  }}
+                >
+                  {m.name}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                  {isHero ? m.role : 'Warrior'}
+                </Typography>
+              </Box>
+            </Box>
+          )
+        })}
+      </Box>
+
+      {selectedMember &&
+        (() => {
+          const isHero = selectedMember.role !== 'warrior'
+          const owned = selectedMember.ownedEquipment ?? []
+          const currentLarge = owned.filter(
+            (id) => ALL_EQUIPMENT.find((e) => e.id === id)?.size === 'large'
+          ).length
+          const currentSmall = owned.filter(
+            (id) => ALL_EQUIPMENT.find((e) => e.id === id)?.size === 'small'
+          ).length
+          const hasBackpack = owned.includes('backpack')
+          const maxSmall = hasBackpack ? 4 : 1
+          const filtered = availableEquipment.filter((eq) => {
+            if (eq.heroOnly && !isHero) return false
+            if (owned.includes(eq.id)) return false
+            return true
+          })
+
+          return (
+            <Box>
+              {owned.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      opacity: 0.45,
+                      display: 'block',
+                      mb: 0.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      fontSize: '0.56rem',
+                    }}
+                  >
+                    Current Equipment
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {owned.map((id) => {
+                      const eq = ALL_EQUIPMENT.find((e) => e.id === id)
+                      return (
+                        <Chip
+                          key={id}
+                          label={`${eq?.size === 'large' ? '◈' : '◇'} ${eq?.label ?? id}`}
+                          size="small"
+                          sx={{
+                            fontSize: '0.68rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            color: 'text.secondary',
+                          }}
+                        />
+                      )
+                    })}
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ opacity: 0.45, display: 'block', mt: 0.5 }}
+                  >
+                    Large: {currentLarge}/1 · Small: {currentSmall}/{maxSmall}
+                  </Typography>
+                </Box>
+              )}
+
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.45,
+                  display: 'block',
+                  mb: 0.75,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontSize: '0.56rem',
+                }}
+              >
+                Available to Purchase
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {filtered.length === 0 ? (
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.5, textAlign: 'center', py: 2 }}
+                  >
+                    No equipment available.
+                  </Typography>
+                ) : (
+                  filtered.map((eq) => {
+                    const canAfford = company.influence >= eq.influenceCost
+                    const wouldExceedLarge =
+                      eq.size === 'large' && currentLarge >= 1
+                    const wouldExceedSmall =
+                      eq.size === 'small' && currentSmall >= maxSmall
+                    const blocked =
+                      !canAfford || wouldExceedLarge || wouldExceedSmall
+                    const limitMsg = wouldExceedLarge
+                      ? 'Large limit'
+                      : wouldExceedSmall
+                        ? 'Small limit'
+                        : null
+                    return (
+                      <Box
+                        key={eq.id}
+                        sx={{
+                          px: 1.5,
+                          py: 1,
+                          border: '1px solid',
+                          borderColor: limitMsg ? 'warning.dark' : 'divider',
+                          borderRadius: 1,
+                          background: 'rgba(0,0,0,0.15)',
+                          opacity: blocked ? 0.5 : 1,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                          }}
+                        >
+                          <Box sx={{ flex: 1, mr: 1 }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600 }}
+                              >
+                                {eq.label}
+                              </Typography>
+                              <Chip
+                                label={eq.size}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.55rem',
+                                  height: 16,
+                                  background: 'transparent',
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  color: 'text.secondary',
+                                }}
+                              />
+                              {eq.heroOnly && (
+                                <Chip
+                                  label="Hero"
+                                  size="small"
+                                  sx={{
+                                    fontSize: '0.55rem',
+                                    height: 16,
+                                    background: 'rgba(201,168,76,0.08)',
+                                    border: '1px solid',
+                                    borderColor: 'primary.dark',
+                                    color: 'primary.light',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            {eq.description && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  opacity: 0.6,
+                                  display: 'block',
+                                  mt: 0.25,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {eq.description.length > 100
+                                  ? eq.description.slice(0, 100) + '…'
+                                  : eq.description}
+                              </Typography>
+                            )}
+                            {limitMsg && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: 'warning.main',
+                                  display: 'block',
+                                  mt: 0.25,
+                                }}
+                              >
+                                {limitMsg} reached
+                              </Typography>
+                            )}
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={blocked}
+                            onClick={() =>
+                              handleBuy(
+                                selectedMember.id,
+                                eq.id,
+                                eq.influenceCost
+                              )
+                            }
+                            sx={{
+                              minWidth: 62,
+                              fontSize: '0.62rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {eq.influenceCost} IP
+                          </Button>
+                        </Box>
+                      </Box>
+                    )
+                  })
+                )}
+              </Box>
+              <Box
+                sx={{
+                  mt: 1.5,
+                  px: 1,
+                  py: 0.75,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  background: 'rgba(0,0,0,0.1)',
+                }}
+              >
+                <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                  Company Influence: {company.influence} IP
+                </Typography>
+              </Box>
+            </Box>
+          )
+        })()}
+    </Box>
+  )
+}
+
+// ─── CreaturesSection ─────────────────────────────────────────────────────────
+
+interface CreatureDef {
+  id: string
+  label: string
+  pointsCost: number
+  influenceCost: number
+  keywords: string[]
+  stats: Record<string, number | null>
+  specialRules: string[]
+  description?: string
+}
+
+const ALL_CREATURES = creaturesData as unknown as CreatureDef[]
+
+function CreaturesSection({
+  company,
+  saveCompany,
+}: {
+  company: Company
+  saveCompany: (c: Company) => Promise<void>
+}) {
+  const [msg, setMsg] = useState<string | null>(null)
+
+  // Only Leader and Sergeants can have creatures; one per hero
+  const eligibleHeroes = company.members.filter(
+    (m) => m.role === 'leader' || m.role === 'sergeant'
+  )
+
+  const handleBuy = async (
+    memberId: string,
+    creatureId: string,
+    cost: number
+  ) => {
+    if (company.influence < cost) return
+    const member = company.members.find((m) => m.id === memberId)
+    if (!member) return
+    if (member.creatureId) {
+      setMsg('This hero already has a creature.')
+      setTimeout(() => setMsg(null), 3000)
+      return
+    }
+    const updated: Company = {
+      ...company,
+      influence: company.influence - cost,
+      members: company.members.map((m) =>
+        m.id === memberId ? { ...m, creatureId } : m
+      ),
+    }
+    await saveCompany(updated)
+    const creature = ALL_CREATURES.find((c) => c.id === creatureId)
+    setMsg(`${creature?.label ?? creatureId} attached!`)
+    setTimeout(() => setMsg(null), 2500)
+  }
+
+  return (
+    <Box>
+      {msg && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'success.main',
+            borderRadius: 1,
+            background: 'rgba(46,204,113,0.08)',
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'success.light' }}>
+            {msg}
+          </Typography>
+        </Box>
+      )}
+
+      <Typography
+        variant="caption"
+        sx={{ opacity: 0.6, display: 'block', mb: 1 }}
+      >
+        Creatures can only be attached to your Leader or Sergeants — one per
+        hero.
+      </Typography>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {eligibleHeroes.map((hero) => {
+          const existingCreature = hero.creatureId
+            ? ALL_CREATURES.find((c) => c.id === hero.creatureId)
+            : null
+          return (
+            <Box
+              key={hero.id}
+              sx={{
+                p: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                background: 'rgba(0,0,0,0.15)',
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: 'primary.light', mb: 1 }}
+              >
+                {hero.name}{' '}
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{ opacity: 0.6 }}
+                >
+                  ({hero.role})
+                </Typography>
+              </Typography>
+
+              {existingCreature ? (
+                <Box
+                  sx={{
+                    px: 1.25,
+                    py: 1,
+                    border: '1px solid',
+                    borderColor: 'primary.dark',
+                    borderRadius: 1,
+                    background: 'rgba(201,168,76,0.05)',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'primary.main', fontWeight: 600 }}
+                  >
+                    {existingCreature.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                    Attached creature
+                  </Typography>
+                </Box>
+              ) : (
+                <Box
+                  sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}
+                >
+                  {ALL_CREATURES.map((creature) => {
+                    const canAfford =
+                      company.influence >= creature.influenceCost
+                    return (
+                      <Box
+                        key={creature.id}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          px: 1.25,
+                          py: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          opacity: canAfford ? 1 : 0.5,
+                        }}
+                      >
+                        <Box sx={{ flex: 1, mr: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {creature.label}
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              gap: 0.5,
+                              mt: 0.25,
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            {creature.specialRules.map((r) => (
+                              <Chip
+                                key={String(r)}
+                                label={String(r).replace(/_/g, ' ')}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.58rem',
+                                  height: 16,
+                                  background: 'transparent',
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  color: 'text.secondary',
+                                }}
+                              />
+                            ))}
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'flex',
+                              gap: 1.5,
+                              mt: 0.5,
+                              opacity: 0.55,
+                            }}
+                          >
+                            {`Mv ${creature.stats.move}" · Fv ${creature.stats.fight} · S ${creature.stats.strength} · D ${creature.stats.defence} · A ${creature.stats.attacks} · W ${creature.stats.wounds}`}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!canAfford}
+                          onClick={() =>
+                            handleBuy(
+                              hero.id,
+                              creature.id,
+                              creature.influenceCost
+                            )
+                          }
+                          sx={{
+                            minWidth: 62,
+                            fontSize: '0.62rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {creature.influenceCost} IP
+                        </Button>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              )}
+            </Box>
+          )
+        })}
+
+        {eligibleHeroes.length === 0 && (
+          <Typography
+            variant="body2"
+            sx={{ opacity: 0.5, textAlign: 'center', py: 2 }}
+          >
+            No Leader or Sergeants in company yet.
+          </Typography>
+        )}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 2,
+          px: 1,
+          py: 0.75,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          background: 'rgba(0,0,0,0.1)',
+        }}
+      >
+        <Typography variant="caption" sx={{ opacity: 0.5 }}>
+          Company Influence: {company.influence} IP
+        </Typography>
       </Box>
     </Box>
   )
