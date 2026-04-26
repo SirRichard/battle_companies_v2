@@ -541,6 +541,7 @@ export default function PostMatchSummaryPage() {
   }, [diceValue])
 
   const applyInjuryAndAdvance = (record: InjuryRecord) => {
+    if (!workingCompany) return
     const outcomeToApply = record.rerolled
       ? record.rerollOutcome!
       : record.outcome!
@@ -656,6 +657,7 @@ export default function PostMatchSummaryPage() {
 
   // Scratch: reroll
   const handleScratchReroll = () => {
+    if (!workingCompany) return
     setScratchDialog(null)
     const { die1: rd1, die2: rd2, total: newRoll } = roll2d6WithDice()
     const record = injuryRecords[injuryRecords.length - 1]
@@ -722,6 +724,7 @@ export default function PostMatchSummaryPage() {
   // ─── PROGRESSION STEP ────────────────────────────────────────────────────────
 
   const initProgressionStep = () => {
+    if (!workingCompany) return
     // Find warriors and heroes who need progression
     const members = workingCompany.members
     const warriors = members.filter(
