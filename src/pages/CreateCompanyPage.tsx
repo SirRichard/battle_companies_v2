@@ -818,6 +818,7 @@ export default function CreateCompanyPage() {
             gold={selectedCompany.gold ?? 0}
             members={goldMembers}
             companyTypeId={selectedCompany.id}
+            leaderId={wizard.leaderId}
             goldPurchases={wizard.goldPurchases ?? {}}
             onUpdate={(tempId, wargearIds) =>
               setWizard((w) => ({

@@ -6,7 +6,7 @@
  * XP progress bar, injuries, special rules, point value, editable name.
  */
 
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import {
   Box,
   Typography,
@@ -23,6 +23,8 @@ import {
   DialogActions,
   Popover,
 } from '@mui/material'
+import ConfirmDialog from './ConfirmDialog'
+import { DieFace } from './AnimatedDice'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
@@ -34,6 +36,17 @@ import baseUnitsData from '../../data/baseUnits.json'
 import specialRulesData from '../../data/specialRules.json'
 import heroicActionsData from '../../data/heroicActions.json'
 import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
+import { CHANNELING_SPELLS } from '../wizard/StepSpellSelection'
+import wargearData from '../../data/wargear.json'
+
+// ─── Wargear category lookup ──────────────────────────────────────────────────
+
+const WARGEAR_CATEGORY_MAP = (
+  wargearData as Array<{ id: string; category?: string }>
+).reduce<Record<string, string>>((acc, w) => {
+  if (w.category) acc[w.id] = w.category
+  return acc
+}, {})
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -204,24 +217,26 @@ export default function MemberDetailsDrawer({
   }
 
   // ── Injury treatment state ──────────────────────────────────────────────────
-  const [treatDialog, setTreatDialog] = useState<'options' | 'roll' | null>(
-    null
-  )
+  type TreatStage = 'options' | 'rolling' | 'ip_prompt' | 'confirm'
+  const [treatStage, setTreatStage] = useState<TreatStage | null>(null)
   const [treatType, setTreatType] = useState<
-    'remove_warrior' | 'roll_hero' | 'miss_hero' | null
+    'remove_missing' | 'roll_hero' | 'miss_hero' | null
   >(null)
   const [treatTargetInjury, setTreatTargetInjury] = useState<string | null>(
     null
   )
-  const [treatRollResult, setTreatRollResult] = useState<number | null>(null)
+  const [rolledValue, setRolledValue] = useState<number | null>(null)
   const [treatAdjust, setTreatAdjust] = useState(0)
+  // Animated die state for the rolling stage
+  const [animDieValue, setAnimDieValue] = useState<number>(1)
+  const [dieSettled, setDieSettled] = useState(false)
 
   const handleTreatConfirm = async () => {
     if (!member || !company || !onSaveCompany) return
     const influence = company.influence
 
-    if (treatType === 'remove_warrior') {
-      // 1 IP: remove missing_next_game from warrior
+    if (treatType === 'remove_missing') {
+      // 1 IP: remove missing_next_game from any member (hero or warrior)
       const updated = {
         ...company,
         influence: influence - 1,
@@ -231,7 +246,7 @@ export default function MemberDetailsDrawer({
             : {
                 ...m,
                 injuries: m.injuries.filter(
-                  (inj) => inj.type !== 'missing_next_game'
+                  (i) => i.type !== 'missing_next_game'
                 ),
               }
         ),
@@ -263,9 +278,9 @@ export default function MemberDetailsDrawer({
         ),
       }
       await onSaveCompany(updated)
-    } else if (treatType === 'roll_hero' && treatRollResult !== null) {
+    } else if (treatType === 'roll_hero' && rolledValue !== null) {
       const totalCost = 1 + treatAdjust
-      if (treatRollResult + treatAdjust >= 5) {
+      if (rolledValue + treatAdjust >= 5) {
         // success — remove the injury
         const updated = {
           ...company,
@@ -292,12 +307,70 @@ export default function MemberDetailsDrawer({
         await onSaveCompany({ ...company, influence: influence - totalCost })
       }
     }
-    setTreatDialog(null)
+    setTreatStage(null)
     setTreatType(null)
     setTreatTargetInjury(null)
-    setTreatRollResult(null)
+    setRolledValue(null)
     setTreatAdjust(0)
+    setDieSettled(false)
   }
+
+  // Handle "Spend IP" — deduct 1 extra IP and apply improved outcome (treat as success)
+  const handleSpendIP = async () => {
+    if (!member || !company || !onSaveCompany || rolledValue === null) return
+    const influence = company.influence
+    const totalCost = 1 + treatAdjust + 1 // base 1 + pre-roll adjust + 1 for IP spend
+    // Spending IP always treats as success — remove the injury
+    const updated = {
+      ...company,
+      influence: influence - totalCost,
+      members: company.members.map((m) =>
+        m.id !== member.id
+          ? m
+          : {
+              ...m,
+              injuries: (() => {
+                const injs = [...m.injuries]
+                const idx = injs.findIndex((i) => i.type === treatTargetInjury)
+                if (idx >= 0) injs.splice(idx, 1)
+                return injs
+              })(),
+            }
+      ),
+    }
+    await onSaveCompany(updated)
+    setTreatStage(null)
+    setTreatType(null)
+    setTreatTargetInjury(null)
+    setRolledValue(null)
+    setTreatAdjust(0)
+    setDieSettled(false)
+  }
+
+  // Animated die effect — runs when treatStage transitions to 'rolling'
+  useEffect(() => {
+    if (treatStage !== 'rolling') return
+    const finalRoll = Math.floor(Math.random() * 6) + 1
+    setRolledValue(finalRoll)
+    setDieSettled(false)
+    let count = 0
+    const totalFlashes = 10
+    const flash = () => {
+      count++
+      const delay = 80 + (count / totalFlashes) * 240
+      if (count < totalFlashes) {
+        setAnimDieValue(Math.floor(Math.random() * 6) + 1)
+        setTimeout(flash, delay)
+      } else {
+        setAnimDieValue(finalRoll)
+        setDieSettled(true)
+        // Transition to ip_prompt after a short pause
+        setTimeout(() => setTreatStage('ip_prompt'), 400)
+      }
+    }
+    setTimeout(flash, 80)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treatStage])
 
   // ── Stat tooltip state ──────────────────────────────────────────────────────
   const [statAnchor, setStatAnchor] = useState<{
@@ -310,6 +383,10 @@ export default function MemberDetailsDrawer({
     label: string
     description: string
   } | null>(null)
+
+  // ── Wargear edit mode state ───────────────────────────────────────────────
+  const [wargearEditMode, setWargearEditMode] = useState(false)
+  const [removeConfirmItem, setRemoveConfirmItem] = useState<string | null>(null)
 
   // Early return — all hooks must be declared above this point
   if (!member) {
@@ -899,7 +976,33 @@ export default function MemberDetailsDrawer({
 
         {/* ── Wargear ───────────────────────────────────────────────────────── */}
         <Box sx={{ mb: 2.5 }}>
-          <SectionLabel>Wargear</SectionLabel>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <SectionLabel>Wargear</SectionLabel>
+            {isHero && (
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {!wargearEditMode && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setWargearEditMode(true)}
+                    sx={{ fontSize: '0.6rem', py: 0.25, px: 1, minWidth: 0, borderColor: 'primary.dark', color: 'primary.light' }}
+                  >
+                    Edit
+                  </Button>
+                )}
+                {wargearEditMode && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => setWargearEditMode(false)}
+                    sx={{ fontSize: '0.6rem', py: 0.25, px: 1, minWidth: 0 }}
+                  >
+                    Done
+                  </Button>
+                )}
+              </Box>
+            )}
+          </Box>
           {allWargear.length === 0 ? (
             <Typography
               variant="caption"
@@ -914,20 +1017,37 @@ export default function MemberDetailsDrawer({
             </Typography>
           ) : (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
-              {allWargear.map((eq) => (
-                <Chip
-                  key={eq}
-                  label={getWargearLabel(eq)}
-                  size="small"
-                  sx={{
-                    fontSize: '0.72rem',
-                    borderColor: 'divider',
-                    color: 'text.secondary',
-                    border: '1px solid',
-                    background: 'transparent',
-                  }}
-                />
-              ))}
+              {allWargear.map((eq) => {
+                const isRemovable =
+                  wargearEditMode &&
+                  assignedEquip.includes(eq) &&
+                  !baseEquip.includes(eq) &&
+                  !WARGEAR_CATEGORY_MAP[eq]?.startsWith('armour')
+                return (
+                  <Box key={eq} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Chip
+                      label={getWargearLabel(eq)}
+                      size="small"
+                      sx={{
+                        fontSize: '0.72rem',
+                        borderColor: isRemovable ? 'error.main' : 'divider',
+                        color: isRemovable ? 'error.light' : 'text.secondary',
+                        border: '1px solid',
+                        background: 'transparent',
+                      }}
+                    />
+                    {isRemovable && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setRemoveConfirmItem(eq)}
+                        sx={{ color: 'error.main', p: 0.25, fontSize: '0.9rem', lineHeight: 1 }}
+                      >
+                        ×
+                      </IconButton>
+                    )}
+                  </Box>
+                )
+              })}
             </Box>
           )}
         </Box>
@@ -1048,6 +1168,68 @@ export default function MemberDetailsDrawer({
           </Dialog>
         )}
 
+        {/* ── Magical Powers ────────────────────────────────────────────────── */}
+        {(member.spells?.length ?? 0) > 0 && (
+          <Box sx={{ mb: 2.5 }}>
+            <SectionLabel>Magical Powers</SectionLabel>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 1 }}>
+              {member.spells!.map((spellId) => {
+                const spell = CHANNELING_SPELLS.find((s) => s.id === spellId)
+                if (!spell) return null
+                const improvements = (member.spellImprovements ?? {})[spellId] ?? 0
+                const baseValue = parseInt(spell.castingValue)
+                const effectiveValue = baseValue - improvements
+                return (
+                  <Box
+                    key={spellId}
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      border: '1px solid',
+                      borderColor: 'primary.dark',
+                      borderRadius: 1,
+                      background: 'rgba(201,168,76,0.04)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontFamily: '"IM Fell English", serif',
+                        fontSize: '0.875rem',
+                        color: 'primary.light',
+                      }}
+                    >
+                      {spell.label}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {improvements > 0 && (
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.45, textDecoration: 'line-through', fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}
+                        >
+                          {baseValue}+
+                        </Typography>
+                      )}
+                      <Typography
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          fontSize: '0.75rem',
+                          color: improvements > 0 ? 'success.light' : 'primary.main',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {effectiveValue}+
+                      </Typography>
+                    </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          </Box>
+        )}
+
         {/* ── Experience ───────────────────────────────────────────────────── */}
         <Box sx={{ mb: 2.5 }}>
           <Box
@@ -1082,6 +1264,20 @@ export default function MemberDetailsDrawer({
               value={xpPct}
               sx={{ height: 6, borderRadius: 3, mb: 0.75 }}
             />
+            {member.experience >= 5 && (
+              <Chip
+                label="Ready to Advance"
+                size="small"
+                sx={{
+                  mt: 0.75,
+                  fontSize: '0.65rem',
+                  background: 'rgba(201,168,76,0.15)',
+                  color: 'primary.main',
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                }}
+              />
+            )}
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography
                 variant="caption"
@@ -1132,8 +1328,11 @@ export default function MemberDetailsDrawer({
                 const isWarrior = member.role === 'warrior'
                 const showTreatBtn =
                   canTreat &&
-                  ((isWarrior && injury.type === 'missing_next_game') ||
-                    (!isWarrior && injury.type !== 'missing_next_game'))
+                  (injury.type === 'missing_next_game' ||
+                    (!isWarrior &&
+                      ['arm_wound', 'leg_wound', 'broken_honour'].includes(
+                        injury.type
+                      )))
                 return (
                   <Box
                     key={i}
@@ -1178,7 +1377,7 @@ export default function MemberDetailsDrawer({
                           variant="outlined"
                           onClick={() => {
                             setTreatTargetInjury(injury.type)
-                            setTreatDialog('options')
+                            setTreatStage('options')
                           }}
                           sx={{
                             fontSize: '0.58rem',
@@ -1207,7 +1406,7 @@ export default function MemberDetailsDrawer({
         </Box>
 
         {/* ── Injury treatment dialog ───────────────────────────────────────── */}
-        {treatDialog && company && (
+        {treatStage && company && (
           <Dialog
             open
             PaperProps={{
@@ -1229,7 +1428,8 @@ export default function MemberDetailsDrawer({
               {INJURY_LABELS[treatTargetInjury ?? ''] ?? treatTargetInjury}
             </DialogTitle>
             <DialogContent>
-              {treatDialog === 'options' && (
+              {/* ── Options stage ── */}
+              {treatStage === 'options' && (
                 <Box
                   sx={{
                     display: 'flex',
@@ -1245,34 +1445,32 @@ export default function MemberDetailsDrawer({
                     Company Influence: {company.influence} IP
                   </Typography>
 
-                  {member.role === 'warrior' && (
+                  {treatTargetInjury === 'missing_next_game' ? (
                     <Box
-                      onClick={() => setTreatType('remove_warrior')}
+                      onClick={() => setTreatType('remove_missing')}
                       sx={{
                         p: 1.25,
                         border: '1px solid',
                         borderRadius: 1,
                         cursor: 'pointer',
                         borderColor:
-                          treatType === 'remove_warrior'
+                          treatType === 'remove_missing'
                             ? 'primary.main'
                             : 'divider',
                         background:
-                          treatType === 'remove_warrior'
+                          treatType === 'remove_missing'
                             ? 'rgba(201,168,76,0.08)'
                             : 'rgba(0,0,0,0.2)',
                       }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        Remove Injury (1 IP)
+                        Remove (1 IP)
                       </Typography>
                       <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                        Warrior returns to full duty.
+                        Member returns to full duty.
                       </Typography>
                     </Box>
-                  )}
-
-                  {member.role !== 'warrior' && (
+                  ) : (
                     <>
                       <Box
                         onClick={() => setTreatType('roll_hero')}
@@ -1299,6 +1497,55 @@ export default function MemberDetailsDrawer({
                           roll.
                         </Typography>
                       </Box>
+                      {treatType === 'roll_hero' && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            px: 0.5,
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ opacity: 0.65, flex: 1 }}>
+                            Pre-roll IP boost (optional):
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ minWidth: 28, p: 0.5 }}
+                            disabled={treatAdjust <= 0}
+                            onClick={(e) => { e.stopPropagation(); setTreatAdjust((a) => Math.max(0, a - 1)) }}
+                          >
+                            −
+                          </Button>
+                          <Typography
+                            sx={{
+                              fontFamily: '"Cinzel Decorative", serif',
+                              minWidth: 28,
+                              textAlign: 'center',
+                              fontSize: '0.8rem',
+                              color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
+                            }}
+                          >
+                            {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ minWidth: 28, p: 0.5 }}
+                            disabled={
+                              treatAdjust >= 3 ||
+                              company.influence < 1 + treatAdjust + 1
+                            }
+                            onClick={(e) => { e.stopPropagation(); setTreatAdjust((a) => Math.min(3, a + 1)) }}
+                          >
+                            +
+                          </Button>
+                          <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                            {1 + treatAdjust} IP
+                          </Typography>
+                        </Box>
+                      )}
                       <Box
                         onClick={() => setTreatType('miss_hero')}
                         sx={{
@@ -1328,108 +1575,103 @@ export default function MemberDetailsDrawer({
                 </Box>
               )}
 
-              {treatDialog === 'roll' && treatType === 'roll_hero' && (
-                <Box sx={{ minWidth: 260 }}>
+              {/* ── Rolling stage — animated D6 ── */}
+              {treatStage === 'rolling' && (
+                <Box sx={{ minWidth: 260, textAlign: 'center' }}>
                   <Typography
                     variant="caption"
-                    sx={{ display: 'block', opacity: 0.65, mb: 1.5 }}
+                    sx={{ display: 'block', opacity: 0.65, mb: 2 }}
                   >
-                    Boost roll with extra IP (max +3, 1 IP each). Need 5+ to
-                    succeed.
+                    Rolling D6 for recovery…
                   </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    <DieFace value={animDieValue} size={64} />
+                  </Box>
+                  {dieSettled && rolledValue !== null && (
+                    <Typography
+                      variant="caption"
+                      sx={{ opacity: 0.6, display: 'block' }}
+                    >
+                      Settling…
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
+              {/* ── IP prompt stage ── */}
+              {treatStage === 'ip_prompt' && rolledValue !== null && (
+                <Box sx={{ minWidth: 260 }}>
+                  {/* Show the settled die */}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+                    <DieFace value={rolledValue} size={56} />
+                  </Box>
+                  {/* Roll result summary */}
                   <Box
                     sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mb: 2,
+                      textAlign: 'center',
+                      p: 1.25,
+                      border: '1px solid',
+                      borderColor:
+                        rolledValue + treatAdjust >= 5
+                          ? 'success.main'
+                          : 'error.main',
+                      borderRadius: 1,
+                      background:
+                        rolledValue + treatAdjust >= 5
+                          ? 'rgba(46,204,113,0.06)'
+                          : 'rgba(192,57,43,0.06)',
+                      mb: 1.5,
                     }}
                   >
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: 32, p: 0.5 }}
-                      disabled={treatAdjust <= 0}
-                      onClick={() => setTreatAdjust((a) => Math.max(0, a - 1))}
-                    >
-                      −
-                    </Button>
                     <Typography
                       sx={{
                         fontFamily: '"Cinzel Decorative", serif',
-                        minWidth: 32,
-                        textAlign: 'center',
+                        fontSize: '1.1rem',
                         color:
-                          treatAdjust > 0 ? 'primary.main' : 'text.secondary',
+                          rolledValue + treatAdjust >= 5
+                            ? 'success.light'
+                            : 'error.light',
                       }}
                     >
-                      {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
+                      {rolledValue}
+                      {treatAdjust > 0 &&
+                        ` + ${treatAdjust} = ${rolledValue + treatAdjust}`}
                     </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: 32, p: 0.5 }}
-                      disabled={
-                        treatAdjust >= 3 ||
-                        company.influence < 1 + treatAdjust + 1
-                      }
-                      onClick={() => setTreatAdjust((a) => Math.min(3, a + 1))}
-                    >
-                      +
-                    </Button>
-                    <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
-                      Total: {1 + treatAdjust} IP
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {rolledValue + treatAdjust >= 5
+                        ? '✓ Success — injury removed!'
+                        : '✗ Failed — injury remains.'}
                     </Typography>
                   </Box>
-                  {treatRollResult === null ? (
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={() =>
-                        setTreatRollResult(Math.floor(Math.random() * 6) + 1)
-                      }
-                      sx={{
-                        fontFamily: '"Cinzel Decorative", serif',
-                        fontSize: '0.62rem',
-                      }}
-                    >
-                      Roll D6
-                    </Button>
-                  ) : (
+                  {/* IP balance */}
+                  <Typography
+                    variant="caption"
+                    sx={{ opacity: 0.65, display: 'block', mb: 1 }}
+                  >
+                    Company Influence: {company.influence} IP
+                  </Typography>
+                  {/* Spend IP option — only shown on failure */}
+                  {rolledValue + treatAdjust < 5 && (
                     <Box
                       sx={{
-                        textAlign: 'center',
-                        p: 1.5,
+                        p: 1.25,
                         border: '1px solid',
                         borderColor:
-                          treatRollResult + treatAdjust >= 5
-                            ? 'success.main'
-                            : 'error.main',
+                          company.influence >= 1 + treatAdjust + 1
+                            ? 'primary.dark'
+                            : 'divider',
                         borderRadius: 1,
-                        background:
-                          treatRollResult + treatAdjust >= 5
-                            ? 'rgba(46,204,113,0.06)'
-                            : 'rgba(192,57,43,0.06)',
+                        background: 'rgba(201,168,76,0.04)',
+                        opacity: company.influence >= 1 + treatAdjust + 1 ? 1 : 0.5,
                       }}
                     >
-                      <Typography
-                        sx={{
-                          fontFamily: '"Cinzel Decorative", serif',
-                          fontSize: '1.4rem',
-                          color:
-                            treatRollResult + treatAdjust >= 5
-                              ? 'success.light'
-                              : 'error.light',
-                        }}
-                      >
-                        {treatRollResult}
-                        {treatAdjust > 0 &&
-                          ` + ${treatAdjust} = ${treatRollResult + treatAdjust}`}
+                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
+                        Spend 1 IP to improve outcome
                       </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                        {treatRollResult + treatAdjust >= 5
-                          ? '✓ Success — injury removed!'
-                          : '✗ Failed — injury remains.'}
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                        {company.influence >= 1 + treatAdjust + 1
+                          ? 'Treat the injury as a success regardless of the roll.'
+                          : 'Insufficient IP.'}
                       </Typography>
                     </Box>
                   )}
@@ -1441,15 +1683,18 @@ export default function MemberDetailsDrawer({
                 variant="outlined"
                 size="small"
                 onClick={() => {
-                  setTreatDialog(null)
+                  setTreatStage(null)
                   setTreatType(null)
-                  setTreatRollResult(null)
+                  setRolledValue(null)
                   setTreatAdjust(0)
+                  setDieSettled(false)
                 }}
               >
                 Cancel
               </Button>
-              {treatDialog === 'options' &&
+
+              {/* Options stage: confirm non-roll types */}
+              {treatStage === 'options' &&
                 treatType &&
                 treatType !== 'roll_hero' && (
                   <Button
@@ -1462,23 +1707,47 @@ export default function MemberDetailsDrawer({
                       fontSize: '0.62rem',
                     }}
                   >
-                    Confirm ({1} IP)
+                    Confirm (1 IP)
                   </Button>
                 )}
-              {treatDialog === 'options' && treatType === 'roll_hero' && (
+
+              {/* Options stage: proceed to roll */}
+              {treatStage === 'options' && treatType === 'roll_hero' && (
                 <Button
                   variant="contained"
                   size="small"
-                  onClick={() => setTreatDialog('roll')}
+                  onClick={() => setTreatStage('rolling')}
                   sx={{
                     fontFamily: '"Cinzel Decorative", serif',
                     fontSize: '0.62rem',
                   }}
                 >
-                  Next →
+                  Roll D6 →
                 </Button>
               )}
-              {treatDialog === 'roll' && treatRollResult !== null && (
+
+              {/* IP prompt stage: spend IP (only on failure) */}
+              {treatStage === 'ip_prompt' &&
+                rolledValue !== null &&
+                rolledValue + treatAdjust < 5 && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={company.influence < 1 + treatAdjust + 1}
+                    onClick={handleSpendIP}
+                    sx={{
+                      fontFamily: '"Cinzel Decorative", serif',
+                      fontSize: '0.62rem',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                    }}
+                  >
+                    Spend 1 IP ({1 + treatAdjust + 1} IP total)
+                  </Button>
+                )}
+
+              {/* IP prompt stage: accept result */}
+              {treatStage === 'ip_prompt' && rolledValue !== null && (
                 <Button
                   variant="contained"
                   size="small"
@@ -1488,12 +1757,36 @@ export default function MemberDetailsDrawer({
                     fontSize: '0.62rem',
                   }}
                 >
-                  Confirm ({1 + treatAdjust} IP)
+                  Accept Result ({1 + treatAdjust} IP)
                 </Button>
               )}
             </DialogActions>
           </Dialog>
         )}
+
+        {/* ── Wargear remove confirm dialog ─────────────────────────────────── */}
+        <ConfirmDialog
+          open={removeConfirmItem !== null}
+          title="Remove Wargear"
+          message={`Remove "${getWargearLabel(removeConfirmItem ?? '')}" from ${member.name}? This cannot be undone.`}
+          confirmLabel="Remove"
+          cancelLabel="Cancel"
+          dangerous
+          onConfirm={async () => {
+            if (!removeConfirmItem || !company || !onSaveCompany) {
+              setRemoveConfirmItem(null)
+              return
+            }
+            const updatedMembers = company.members.map((m) =>
+              m.id !== member.id
+                ? m
+                : { ...m, equipment: (m.equipment ?? []).filter((e) => e !== removeConfirmItem) }
+            )
+            await onSaveCompany({ ...company, members: updatedMembers })
+            setRemoveConfirmItem(null)
+          }}
+          onCancel={() => setRemoveConfirmItem(null)}
+        />
 
         {/* Bottom safe area */}
         <Box sx={{ height: 16 }} />

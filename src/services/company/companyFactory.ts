@@ -118,6 +118,7 @@ export function buildStartingMembers(
         pathId: pathId ?? undefined,
         statIncreases: {},
         statDecreases: {},
+        spells: spellChoice ? [spellChoice] : undefined,
       })
 
       memberIndex++

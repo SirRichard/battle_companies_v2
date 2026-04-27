@@ -175,6 +175,8 @@ export interface Member {
   armourUpgrades?: string[] // wargear IDs that caused a +1D armour upgrade (one per purchase)
   ownedEquipment?: string[] // Equipment item IDs (from Armoury Equipment tab)
   creatureId?: string // Attached creature ID (Leader/Sergeant only, one per hero)
+  spells?: string[] // spell IDs from CHANNELING_SPELLS (Path of Channeling only)
+  spellImprovements?: Record<string, number> // spellId → number of casting value improvements (0–2)
 }
 
 export interface MatchRecord {

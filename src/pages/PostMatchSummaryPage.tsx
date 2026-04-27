@@ -22,6 +22,9 @@ import {
   DialogActions,
   Collapse,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemButton,
 } from '@mui/material'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import { motion } from 'framer-motion'
@@ -52,11 +55,15 @@ import {
 } from '../utils/advancement'
 import type { Member, Company, CompanyDefinition } from '../models'
 import type { PostMatchData } from '../models/postmatch'
+import { calcMemberRating } from '../utils/rating'
 import companiesData from '../data/companies.json'
 import specialRulesData from '../data/specialRules.json'
 import heroicActionsData from '../data/heroicActions.json'
 import pathsData from '../data/paths.json'
+import wanderersData from '../data/wanderers.json'
 import { v4 as uuidv4 } from 'uuid'
+import { CHANNELING_SPELLS } from '../components/wizard/StepSpellSelection'
+import PathCardSelector from '../components/common/PathCardSelector'
 
 const MotionBox = motion(Box)
 const COMPANIES = companiesData as CompanyDefinition[]
@@ -373,6 +380,28 @@ export default function PostMatchSummaryPage() {
   // Bonus influence from Wounds of a Hero
   const [bonusInfluence, setBonusInfluence] = useState(0)
 
+  // Wounds of a Hero dialog — pauses injury processing to show the D6 roll
+  const [woundsOfHeroDialog, setWoundsOfHeroDialog] = useState<{
+    memberName: string
+    d6Roll: number
+    bonusInfluence: number
+    memberId: string
+    healableInjuries: Array<'arm_wound' | 'leg_wound' | 'broken_honour'>
+  } | null>(null)
+  const [woundsDialogSettled, setWoundsDialogSettled] = useState(false)
+
+  // ── Death cascade state ─────────────────────────────────────────────────────
+  const [cascadeDialog, setCascadeDialog] = useState<{
+    type: 'leader' | 'sergeant'
+    candidates: Array<{ memberId: string; memberName: string; xp: number; rating: number }>
+  } | null>(null)
+  const [cascadeSummary, setCascadeSummary] = useState<string | null>(null)
+
+  // ── Wanderer ATO selection state ────────────────────────────────────────────
+  const [wandererSelectOpen, setWandererSelectOpen] = useState(false)
+  const [wandererSelectDone, setWandererSelectDone] = useState(false)
+  const [selectedWandererId, setSelectedWandererId] = useState<string | null>(null)
+
   // ── Confirm return ──────────────────────────────────────────────────────────
   const [showReturnConfirm, setShowReturnConfirm] = useState(false)
   const [progressionInitPending, setProgressionInitPending] = useState(false)
@@ -549,7 +578,37 @@ export default function PostMatchSummaryPage() {
     if (!member) return advanceInjuryIndex(record.memberId)
 
     if (outcomeToApply.type === 'wounds_of_a_hero') {
-      setBonusInfluence((prev) => prev + outcomeToApply.bonusInfluence)
+      // Use the pre-rolled D6 from the outcome (requirement 2.5: do not re-roll)
+      const d6Roll = outcomeToApply.bonusInfluence
+      // Apply the injury outcome (full recovery) to the member
+      const { member: updated } = applyInjuryOutcome(member, outcomeToApply)
+      const healableTypes = updated.injuries
+        .filter(
+          (i) =>
+            i.type === 'arm_wound' ||
+            i.type === 'leg_wound' ||
+            i.type === 'broken_honour'
+        )
+        .map((i) => i.type) as Array<'arm_wound' | 'leg_wound' | 'broken_honour'>
+      // Update the working company with the healed member state
+      setWorkingCompany((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          members: prev.members.map((m) =>
+            m.id === updated.id ? updated : m
+          ),
+        }
+      })
+      // Show the dice dialog — heal dialog (if needed) opens after acknowledgment
+      setWoundsOfHeroDialog({
+        memberName: record.memberName,
+        d6Roll,
+        bonusInfluence: d6Roll,
+        memberId: record.memberId,
+        healableInjuries: healableTypes,
+      })
+      return
     }
     if (outcomeToApply.type === 'warrior_lesson_learned') {
       setWorkingCompany((prev) => {
@@ -576,6 +635,11 @@ export default function PostMatchSummaryPage() {
     )
 
     if (isDead) {
+      // Compute survivors (company after removal) for cascade logic
+      const survivors = workingCompany.members.filter((m) => m.id !== record.memberId)
+      const deadRole = member.role
+
+      // Remove the dead member
       setWorkingCompany((prev) => {
         if (!prev) return prev
         return {
@@ -583,13 +647,173 @@ export default function PostMatchSummaryPage() {
           members: prev.members.filter((m) => m.id !== record.memberId),
         }
       })
-      advanceInjuryIndex(record.memberId)
+
+      // ── Death cascade ──────────────────────────────────────────────────
+      if (deadRole === 'leader') {
+        const sergeants = survivors
+          .filter((m) => m.role === 'sergeant')
+          .sort((a, b) => {
+            if (b.experience !== a.experience) return b.experience - a.experience
+            const rA = calcMemberRating(a, getStatsForUnit(a.baseUnitId))
+            const rB = calcMemberRating(b, getStatsForUnit(b.baseUnitId))
+            return rB - rA
+          })
+
+        if (sergeants.length === 0) {
+          setCascadeSummary(`${record.memberName} has fallen. No sergeants remain to take command — the company has no leader.`)
+          advanceInjuryIndex(record.memberId)
+        } else {
+          const best = sergeants[0]
+          const tied = sergeants.filter(
+            (s) =>
+              s.experience === best.experience &&
+              calcMemberRating(s, getStatsForUnit(s.baseUnitId)) ===
+                calcMemberRating(best, getStatsForUnit(best.baseUnitId))
+          )
+          if (tied.length === 1) {
+            // Auto-promote
+            setWorkingCompany((prev) => {
+              if (!prev) return prev
+              return {
+                ...prev,
+                members: prev.members.map((m) =>
+                  m.id === best.id ? { ...m, role: 'leader' as const } : m
+                ),
+              }
+            })
+            setCascadeSummary(`${record.memberName} has fallen. ${best.name} has been promoted to Leader.`)
+            advanceInjuryIndex(record.memberId)
+          } else {
+            // Prompt user to choose
+            setCascadeDialog({
+              type: 'leader',
+              candidates: tied.map((s) => ({
+                memberId: s.id,
+                memberName: s.name,
+                xp: s.experience,
+                rating: calcMemberRating(s, getStatsForUnit(s.baseUnitId)),
+              })),
+            })
+            // advanceInjuryIndex will be called after cascade dialog is resolved
+          }
+        }
+      } else if (deadRole === 'sergeant') {
+        const remainingSergeants = survivors.filter((m) => m.role === 'sergeant')
+        if (remainingSergeants.length >= 2) {
+          // Enough sergeants remain — no cascade needed
+          advanceInjuryIndex(record.memberId)
+        } else {
+          // Need to fill the vacant sergeant slot
+          const heroesInMaking = survivors
+            .filter((m) => m.role === 'hero_in_making')
+            .sort((a, b) => {
+              if (b.experience !== a.experience) return b.experience - a.experience
+              const rA = calcMemberRating(a, getStatsForUnit(a.baseUnitId))
+              const rB = calcMemberRating(b, getStatsForUnit(b.baseUnitId))
+              return rB - rA
+            })
+
+          if (heroesInMaking.length > 0) {
+            const best = heroesInMaking[0]
+            const tied = heroesInMaking.filter(
+              (h) =>
+                h.experience === best.experience &&
+                calcMemberRating(h, getStatsForUnit(h.baseUnitId)) ===
+                  calcMemberRating(best, getStatsForUnit(best.baseUnitId))
+            )
+            if (tied.length === 1) {
+              setWorkingCompany((prev) => {
+                if (!prev) return prev
+                return {
+                  ...prev,
+                  members: prev.members.map((m) =>
+                    m.id === best.id ? { ...m, role: 'sergeant' as const } : m
+                  ),
+                }
+              })
+              setCascadeSummary(`${record.memberName} has fallen. ${best.name} has been promoted to Sergeant.`)
+              advanceInjuryIndex(record.memberId)
+            } else {
+              setCascadeDialog({
+                type: 'sergeant',
+                candidates: tied.map((h) => ({
+                  memberId: h.id,
+                  memberName: h.name,
+                  xp: h.experience,
+                  rating: calcMemberRating(h, getStatsForUnit(h.baseUnitId)),
+                })),
+              })
+            }
+          } else {
+            // No hero_in_making — promote best warrior
+            const warriors = survivors
+              .filter((m) => m.role === 'warrior')
+              .sort((a, b) => {
+                if (b.experience !== a.experience) return b.experience - a.experience
+                const rA = calcMemberRating(a, getStatsForUnit(a.baseUnitId))
+                const rB = calcMemberRating(b, getStatsForUnit(b.baseUnitId))
+                return rB - rA
+              })
+
+            if (warriors.length === 0) {
+              setCascadeSummary(`${record.memberName} has fallen. No eligible members remain to fill the Sergeant role.`)
+              advanceInjuryIndex(record.memberId)
+            } else {
+              const best = warriors[0]
+              const tied = warriors.filter(
+                (w) =>
+                  w.experience === best.experience &&
+                  calcMemberRating(w, getStatsForUnit(w.baseUnitId)) ===
+                    calcMemberRating(best, getStatsForUnit(best.baseUnitId))
+              )
+              if (tied.length === 1) {
+                // Auto-promote warrior to hero_in_making + sergeant, then open path selection
+                setWorkingCompany((prev) => {
+                  if (!prev) return prev
+                  return {
+                    ...prev,
+                    members: prev.members.map((m) =>
+                      m.id === best.id
+                        ? {
+                            ...m,
+                            role: 'sergeant' as const,
+                            heroStats: m.heroStats ?? { might: 1, will: 1, fate: 1 },
+                          }
+                        : m
+                    ),
+                  }
+                })
+                setCascadeSummary(`${record.memberName} has fallen. ${best.name} has been promoted to Hero in the Making and Sergeant — choose their heroic path.`)
+                setPathSelectMember({
+                  memberId: best.id,
+                  memberName: best.name,
+                  baseUnitId: best.baseUnitId,
+                  equipment: best.equipment,
+                })
+                advanceInjuryIndex(record.memberId)
+              } else {
+                setCascadeDialog({
+                  type: 'sergeant',
+                  candidates: tied.map((w) => ({
+                    memberId: w.id,
+                    memberName: w.name,
+                    xp: w.experience,
+                    rating: calcMemberRating(w, getStatsForUnit(w.baseUnitId)),
+                  })),
+                })
+              }
+            }
+          }
+        }
+      } else {
+        // Non-leader/sergeant death — no cascade
+        advanceInjuryIndex(record.memberId)
+      }
     } else {
       // Check if full_recovery with healable injuries
       const canHeal =
         outcomeToApply.type === 'full_recovery' ||
-        outcomeToApply.type === 'protection_by_valar' ||
-        outcomeToApply.type === 'wounds_of_a_hero'
+        outcomeToApply.type === 'protection_by_valar'
       const healableTypes = updated.injuries
         .filter(
           (i) =>
@@ -887,13 +1111,18 @@ export default function PostMatchSummaryPage() {
         ),
       }
     })
-    // Mark done, store path, then advance
-    setWarriorProgRecords((prev) =>
-      prev.map((r) =>
-        r.memberId === memberId ? { ...r, done: true, newPathId: pathId } : r
+    // If this path selection was triggered from the cascade (injury phase),
+    // the member won't be in warriorProgRecords — skip progression advancement
+    const isInProgression = warriorProgRecords.some((r) => r.memberId === memberId)
+    if (isInProgression) {
+      // Mark done, store path, then advance
+      setWarriorProgRecords((prev) =>
+        prev.map((r) =>
+          r.memberId === memberId ? { ...r, done: true, newPathId: pathId } : r
+        )
       )
-    )
-    advanceProgression('warriors', memberId)
+      advanceProgression('warriors', memberId)
+    }
   }
 
   const advanceProgression = (
@@ -929,7 +1158,16 @@ export default function PostMatchSummaryPage() {
     chosenStatIndex?: number,
     chosenOptionIndex?: number,
     chosenMinorRule?: string,
-    chosenHeroicAction?: string
+    chosenHeroicAction?: string,
+    chosenSpell?: string,
+    chosenImproveSpell?: string,
+    // Sub-choices for the second result when roll is 5
+    chosenStatIndexB?: number,
+    chosenOptionIndexB?: number,
+    chosenMinorRuleB?: string,
+    chosenHeroicActionB?: string,
+    chosenSpellB?: string,
+    chosenImproveSpellB?: string
   ) => {
     const chosenResult = chosen === 'A' ? record.resultA : record.resultB
     const otherResult = chosen === 'A' ? record.resultB : record.resultA
@@ -942,7 +1180,9 @@ export default function PostMatchSummaryPage() {
       statIdx?: number,
       optIdx?: number,
       minorRule?: string,
-      heroicAction?: string
+      heroicAction?: string,
+      spellId?: string,
+      improveSpellId?: string
     ): Member => {
       const entry = res.entry
       if (!entry) return member
@@ -955,6 +1195,19 @@ export default function PostMatchSummaryPage() {
       if (entry.type === 'special_rule') {
         const label = entry.label ?? entry.specialRuleId ?? ''
         return applySpecialRule(member, label)
+      }
+      if (entry.type === 'magical_power' && spellId) {
+        const currentSpells = member.spells ?? []
+        if (!currentSpells.includes(spellId)) {
+          return { ...member, spells: [...currentSpells, spellId] }
+        }
+        return member
+      }
+      if (entry.type === 'improve_casting_value' && improveSpellId) {
+        const improvements = { ...(member.spellImprovements ?? {}) }
+        const current = improvements[improveSpellId] ?? 0
+        improvements[improveSpellId] = Math.min(current + 1, 2)
+        return { ...member, spellImprovements: improvements }
       }
       if (entry.type === 'choice') {
         const opts = entry.options as PathProgEntry[]
@@ -977,6 +1230,19 @@ export default function PostMatchSummaryPage() {
           const haData = HEROIC_ACTIONS.find((h) => h.id === heroicAction)
           return applySpecialRule(member, haData?.label ?? heroicAction)
         }
+        if (chosen.type === 'magical_power' && spellId) {
+          const currentSpells = member.spells ?? []
+          if (!currentSpells.includes(spellId)) {
+            return { ...member, spells: [...currentSpells, spellId] }
+          }
+          return member
+        }
+        if (chosen.type === 'improve_casting_value' && improveSpellId) {
+          const improvements = { ...(member.spellImprovements ?? {}) }
+          const current = improvements[improveSpellId] ?? 0
+          improvements[improveSpellId] = Math.min(current + 1, 2)
+          return { ...member, spellImprovements: improvements }
+        }
       }
       if (entry.type === 'minor_special_rule' && minorRule) {
         const ruleData = SPECIAL_RULES.find((r) => r.id === minorRule)
@@ -997,10 +1263,21 @@ export default function PostMatchSummaryPage() {
             chosenStatIndex,
             chosenOptionIndex,
             chosenMinorRule,
-            chosenHeroicAction
+            chosenHeroicAction,
+            chosenSpell,
+            chosenImproveSpell
           )
           if (applyBoth) {
-            updated = applyResult(updated, otherResult)
+            updated = applyResult(
+              updated,
+              otherResult,
+              chosenStatIndexB,
+              chosenOptionIndexB,
+              chosenMinorRuleB,
+              chosenHeroicActionB,
+              chosenSpellB,
+              chosenImproveSpellB
+            )
           }
           return subtractAdvancementXp(updated)
         }),
@@ -1046,6 +1323,10 @@ export default function PostMatchSummaryPage() {
 
     const finalCompany: Company = {
       ...workingCompany,
+      members: workingCompany.members.map((m) => ({
+        ...m,
+        injuries: m.injuries.filter((i) => i.type !== 'missing_next_game'),
+      })),
       matchHistory: [...workingCompany.matchHistory, matchRecord],
       lastPlayedAt: new Date().toISOString(),
     }
@@ -1457,6 +1738,7 @@ export default function PostMatchSummaryPage() {
                 currentWarrior &&
                 !currentWarrior.done && (
                   <WarriorProgressionCard
+                    key={currentWarrior.memberId}
                     record={currentWarrior}
                     companyDef={companyDef}
                     getStatsForUnit={getStatsForUnit}
@@ -1487,6 +1769,7 @@ export default function PostMatchSummaryPage() {
               {/* Active hero advancement */}
               {progPhase === 'heroes' && currentHero && !currentHero.done && (
                 <HeroAdvancementCard
+                  key={currentHero.memberId}
                   record={currentHero}
                   member={
                     workingCompany.members.find(
@@ -1494,14 +1777,22 @@ export default function PostMatchSummaryPage() {
                     )!
                   }
                   getStatsForUnit={getStatsForUnit}
-                  onApply={(chosen, statIdx, optIdx, minorRule, heroicAction) =>
+                  onApply={(chosen, statIdx, optIdx, minorRule, heroicAction, spell, improveSpell, statIdxB, optIdxB, minorRuleB, heroicActionB, spellB, improveSpellB) =>
                     applyHeroAdv(
                       currentHero,
                       chosen,
                       statIdx,
                       optIdx,
                       minorRule,
-                      heroicAction
+                      heroicAction,
+                      spell,
+                      improveSpell,
+                      statIdxB,
+                      optIdxB,
+                      minorRuleB,
+                      heroicActionB,
+                      spellB,
+                      improveSpellB
                     )
                   }
                 />
@@ -1586,6 +1877,24 @@ export default function PostMatchSummaryPage() {
                   New total: {workingCompany.influence}
                 </Typography>
               </Box>
+
+              {postMatchData.atoBonuses.includes('wanderer') && !wandererSelectDone && (
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => {
+                    setSelectedWandererId(workingCompany.wandererId ?? null)
+                    setWandererSelectOpen(true)
+                  }}
+                  sx={{
+                    fontFamily: '"Cinzel Decorative", serif',
+                    fontSize: '0.65rem',
+                    mb: 1,
+                  }}
+                >
+                  Choose Wanderer
+                </Button>
+              )}
 
               <Button
                 variant="contained"
@@ -1687,17 +1996,320 @@ export default function PostMatchSummaryPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Wounds of a Hero dialog ───────────────────────────────────────── */}
+      <Dialog
+        open={!!woundsOfHeroDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.85rem',
+            color: 'primary.main',
+          }}
+        >
+          Wounds of a Hero!
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            <strong>{woundsOfHeroDialog?.memberName}</strong> makes a full
+            recovery and earns bonus Influence for the company!
+          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2,
+              py: 1,
+            }}
+          >
+            <WoundsOfHeroDie
+              finalValue={woundsOfHeroDialog?.d6Roll ?? null}
+              onSettled={() => setWoundsDialogSettled(true)}
+            />
+            {woundsDialogSettled && woundsOfHeroDialog && (
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '1rem',
+                  color: 'primary.main',
+                  fontWeight: 700,
+                }}
+              >
+                +{woundsOfHeroDialog.bonusInfluence} Influence
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            disabled={!woundsDialogSettled}
+            onClick={() => {
+              if (!woundsOfHeroDialog) return
+              const { bonusInfluence: bonus, memberId, healableInjuries } = woundsOfHeroDialog
+              setBonusInfluence((prev) => prev + bonus)
+              setWoundsOfHeroDialog(null)
+              setWoundsDialogSettled(false)
+              if (healableInjuries.length > 0) {
+                // Open heal dialog — advanceInjuryIndex will be called after heal choice
+                setHealDialog({
+                  memberId,
+                  memberName: woundsOfHeroDialog.memberName,
+                  options: healableInjuries,
+                })
+              } else {
+                advanceInjuryIndex(memberId)
+              }
+            }}
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '0.65rem',
+            }}
+          >
+            Acknowledge
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* ── Path selection dialog ─────────────────────────────────────────── */}
       {pathSelectMember && (
         <PathSelectionDialog
           memberName={pathSelectMember.memberName}
           baseUnitId={pathSelectMember.baseUnitId}
           equipment={pathSelectMember.equipment}
+          baseStats={getStatsForUnit(pathSelectMember.baseUnitId)?.stats}
           onSelect={(pathId) =>
             applyHeroPath(pathSelectMember.memberId, pathId)
           }
         />
       )}
+
+      {/* ── Death cascade tie-break dialog ────────────────────────────────── */}
+      <Dialog
+        open={!!cascadeDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.85rem',
+            color: 'primary.main',
+          }}
+        >
+          {cascadeDialog?.type === 'leader' ? 'Choose New Leader' : 'Choose New Sergeant'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1.5, opacity: 0.8 }}>
+            Multiple candidates are tied. Choose who takes the role:
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {cascadeDialog?.candidates.map((c) => (
+              <Button
+                key={c.memberId}
+                variant="outlined"
+                fullWidth
+                onClick={() => {
+                  const newRole = cascadeDialog.type === 'leader' ? 'leader' as const : 'sergeant' as const
+                  setWorkingCompany((prev) => {
+                    if (!prev) return prev
+                    return {
+                      ...prev,
+                      members: prev.members.map((m) =>
+                        m.id === c.memberId ? { ...m, role: newRole } : m
+                      ),
+                    }
+                  })
+                  setCascadeSummary(`${c.memberName} has been promoted to ${cascadeDialog.type === 'leader' ? 'Leader' : 'Sergeant'}.`)
+                  setCascadeDialog(null)
+                  // Find the current injury record to advance
+                  const lastRecord = injuryRecords[injuryRecords.length - 1]
+                  if (lastRecord) advanceInjuryIndex(lastRecord.memberId)
+                }}
+                sx={{ justifyContent: 'space-between', px: 2 }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {c.memberName}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    label={`${c.xp} XP`}
+                    size="small"
+                    sx={{ fontSize: '0.6rem', height: 18, border: '1px solid', borderColor: 'primary.dark', background: 'transparent', color: 'primary.light' }}
+                  />
+                  <Chip
+                    label={`${c.rating} pts`}
+                    size="small"
+                    sx={{ fontSize: '0.6rem', height: 18, border: '1px solid', borderColor: 'divider', background: 'transparent', color: 'text.secondary' }}
+                  />
+                </Box>
+              </Button>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Cascade summary alert ─────────────────────────────────────────── */}
+      <Dialog
+        open={!!cascadeSummary}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.85rem',
+            color: 'primary.main',
+          }}
+        >
+          Command Change
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ opacity: 0.85, lineHeight: 1.6 }}>
+            {cascadeSummary}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => setCascadeSummary(null)}
+            sx={{ fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}
+          >
+            Acknowledge
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Wanderer selection dialog ─────────────────────────────────────── */}
+      <Dialog
+        open={wandererSelectOpen}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontFamily: '"Cinzel Decorative", serif',
+            fontSize: '0.85rem',
+            color: 'primary.main',
+          }}
+        >
+          Choose a Wanderer
+        </DialogTitle>
+        <DialogContent sx={{ px: 1, pb: 0 }}>
+          <List disablePadding>
+            {(wanderersData as Array<{
+              id: string
+              label: string
+              influenceCost: number
+              stats: { move: number; might: number; will: number; fate: number }
+            }>).map((w) => {
+              const isSelected = selectedWandererId === w.id
+              return (
+                <ListItem key={w.id} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton
+                    selected={isSelected}
+                    onClick={() => setSelectedWandererId(w.id)}
+                    sx={{
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: isSelected ? 'primary.main' : 'divider',
+                      background: isSelected
+                        ? 'rgba(201,168,76,0.08)'
+                        : 'rgba(0,0,0,0.15)',
+                      '&.Mui-selected': { background: 'rgba(201,168,76,0.08)' },
+                      '&.Mui-selected:hover': { background: 'rgba(201,168,76,0.12)' },
+                    }}
+                  >
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: isSelected ? 'primary.main' : 'text.primary' }}
+                        >
+                          {w.label}
+                        </Typography>
+                        <Chip
+                          label={`${w.influenceCost} IP`}
+                          size="small"
+                          sx={{
+                            fontSize: '0.6rem',
+                            height: 18,
+                            border: '1px solid',
+                            borderColor: isSelected ? 'primary.dark' : 'divider',
+                            background: 'transparent',
+                            color: isSelected ? 'primary.light' : 'text.secondary',
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                        M{w.stats.move} / W{w.stats.will} / F{w.stats.fate} · Might {w.stats.might}
+                      </Typography>
+                    </Box>
+                  </ListItemButton>
+                </ListItem>
+              )
+            })}
+          </List>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setWandererSelectOpen(false)}
+            fullWidth
+          >
+            Dismiss
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!selectedWandererId}
+            onClick={() => {
+              if (!selectedWandererId) return
+              setWorkingCompany((prev) =>
+                prev ? { ...prev, wandererId: selectedWandererId } : prev
+              )
+              setWandererSelectDone(true)
+              setWandererSelectOpen(false)
+            }}
+            fullWidth
+            sx={{ fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Return confirm ─────────────────────────────────────────────────── */}
       <ConfirmDialog
@@ -1756,6 +2368,56 @@ export default function PostMatchSummaryPage() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// Single animated D6 for Wounds of a Hero dialog
+function WoundsOfHeroDie({
+  finalValue,
+  onSettled,
+}: {
+  finalValue: number | null
+  onSettled?: () => void
+}) {
+  const [displayValue, setDisplayValue] = useState(
+    Math.ceil(Math.random() * 6)
+  )
+  const [settled, setSettled] = useState(false)
+
+  useEffect(() => {
+    if (finalValue === null) {
+      const interval = setInterval(() => {
+        setDisplayValue(Math.ceil(Math.random() * 6))
+      }, 80)
+      return () => clearInterval(interval)
+    }
+    setSettled(false)
+    let count = 0
+    const totalFlashes = 10
+    const flash = () => {
+      count++
+      const delay = 80 + (count / totalFlashes) * 240
+      if (count < totalFlashes) {
+        setDisplayValue(Math.ceil(Math.random() * 6))
+        setTimeout(flash, delay)
+      } else {
+        setDisplayValue(finalValue)
+        setSettled(true)
+        onSettled?.()
+      }
+    }
+    setTimeout(flash, 80)
+  }, [finalValue])
+
+  return (
+    <MotionBox
+      animate={!settled ? { rotate: [0, -8, 8, 0] } : { rotate: 0 }}
+      transition={
+        !settled ? { repeat: Infinity, duration: 0.3 } : { duration: 0.1 }
+      }
+    >
+      <DieFace value={displayValue} size={64} />
+    </MotionBox>
+  )
+}
 
 function StepCard({ children }: { children: ReactNode }) {
   return (
@@ -1969,7 +2631,16 @@ interface HACardProps {
     statIdx?: number,
     optIdx?: number,
     minorRule?: string,
-    heroicAction?: string
+    heroicAction?: string,
+    spell?: string,
+    improveSpell?: string,
+    // Sub-choices for the second result when roll is 5
+    statIdxB?: number,
+    optIdxB?: number,
+    minorRuleB?: string,
+    heroicActionB?: string,
+    spellB?: string,
+    improveSpellB?: string
   ) => void
 }
 
@@ -1984,23 +2655,68 @@ function HeroAdvancementCard({
   const [optionChoice, setOptionChoice] = useState<number>(0)
   const [minorRule, setMinorRule] = useState<string>('')
   const [heroicAction, setHeroicAction] = useState<string>('')
+  const [spellChoice, setSpellChoice] = useState<string>('')
+  const [improveSpellChoice, setImproveSpellChoice] = useState<string>('')
+
+  // Sub-choices for the second result when roll is 5
+  const [statChoiceB, setStatChoiceB] = useState<number>(0)
+  const [optionChoiceB, setOptionChoiceB] = useState<number>(0)
+  const [minorRuleB, setMinorRuleB] = useState<string>('')
+  const [heroicActionB, setHeroicActionB] = useState<string>('')
+  const [spellChoiceB, setSpellChoiceB] = useState<string>('')
+  const [improveSpellChoiceB, setImproveSpellChoiceB] = useState<string>('')
 
   const path = getPath(record.pathId)
+
+  // Detect roll-5: either rollA or rollB is 5
+  const isRoll5 = record.rollA === 5 || record.rollB === 5
+
+  // For roll-5: the roll-5 side is auto-chosen; the other result also applies
+  const roll5Side: 'A' | 'B' = record.rollA === 5 ? 'A' : 'B'
+  const roll5Result = record.rollA === 5 ? record.resultA : record.resultB
+  const otherRoll5Result = record.rollA === 5 ? record.resultB : record.resultA
+
+  // For normal (non-roll-5) flow
   const chosenResult =
     chosen === 'A' ? record.resultA : chosen === 'B' ? record.resultB : null
-  const otherResult =
-    chosen === 'A' ? record.resultB : chosen === 'B' ? record.resultA : null
-  const isRoll5 = chosenResult?.roll === 5
 
-  const canConfirm =
+  // canConfirm for normal flow
+  const canConfirmNormal =
+    !isRoll5 &&
     chosen !== null &&
     needsExtraChoice(
       chosenResult?.entry,
       statChoice,
       optionChoice,
       minorRule,
-      heroicAction
+      heroicAction,
+      spellChoice,
+      improveSpellChoice
     )
+
+  // canConfirm for roll-5 flow: both results must have their sub-choices satisfied
+  const canConfirmRoll5 =
+    isRoll5 &&
+    needsExtraChoice(
+      roll5Result.entry,
+      statChoice,
+      optionChoice,
+      minorRule,
+      heroicAction,
+      spellChoice,
+      improveSpellChoice
+    ) &&
+    needsExtraChoice(
+      otherRoll5Result.entry,
+      statChoiceB,
+      optionChoiceB,
+      minorRuleB,
+      heroicActionB,
+      spellChoiceB,
+      improveSpellChoiceB
+    )
+
+  const canConfirm = isRoll5 ? canConfirmRoll5 : canConfirmNormal
 
   return (
     <MotionBox
@@ -2045,109 +2761,226 @@ function HeroAdvancementCard({
         />
       </Box>
 
-      {isRoll5 && (
-        <Box
-          sx={{
-            mb: 1,
-            px: 1.5,
-            py: 0.75,
-            border: '1px solid',
-            borderColor: 'rgba(201,168,76,0.3)',
-            borderRadius: 1,
-            background: 'rgba(201,168,76,0.04)',
-          }}
-        >
-          <Typography variant="caption" sx={{ color: 'primary.light' }}>
-            You rolled a 5 — you gain +1 Courage or Intelligence AND your other
-            result is also applied!
-          </Typography>
-        </Box>
-      )}
-
-      <Box
-        sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}
-      >
-        {(['A', 'B'] as const).map((side) => {
-          const res = side === 'A' ? record.resultA : record.resultB
-          const isSelected = chosen === side
-          return (
-            <Box
-              key={side}
-              onClick={() => {
-                setChosen(side)
-                setStatChoice(0)
-                setOptionChoice(0)
-                setMinorRule('')
-                setHeroicAction('')
-              }}
-              sx={{
-                p: 1.25,
-                border: '1px solid',
-                borderColor: isSelected ? 'primary.main' : 'divider',
-                borderRadius: 1,
-                cursor: 'pointer',
-                background: isSelected
-                  ? 'rgba(201,168,76,0.08)'
-                  : 'rgba(0,0,0,0.15)',
-                transition: 'all 0.15s',
-                '&:hover': { borderColor: 'primary.dark' },
-              }}
+      {/* ── Roll-5 mode: both results apply automatically ── */}
+      {isRoll5 ? (
+        <>
+          <Box
+            sx={{
+              mb: 1.5,
+              px: 1.5,
+              py: 1,
+              border: '1px solid',
+              borderColor: 'primary.main',
+              borderRadius: 1,
+              background: 'rgba(201,168,76,0.08)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: 'primary.main', fontWeight: 600, display: 'block' }}
             >
-              <Box
+              Roll of 5 — Both Results Apply
+            </Typography>
+            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+              Both results are applied automatically. Make any required choices below.
+            </Typography>
+          </Box>
+
+          {/* Result for the roll-5 side */}
+          <Box
+            sx={{
+              p: 1.25,
+              border: '1px solid',
+              borderColor: 'primary.dark',
+              borderRadius: 1,
+              background: 'rgba(201,168,76,0.05)',
+              mb: 1,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                Roll {roll5Result.roll}
+              </Typography>
+              <Chip
+                label={roll5Result.roll}
+                size="small"
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  mb: 0.25,
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.65rem',
+                  height: 18,
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid',
+                  borderColor: 'primary.dark',
                 }}
-              >
-                <Typography
-                  variant="caption"
+              />
+            </Box>
+            <Typography variant="body2" sx={{ mb: 0.75 }}>
+              {describePathEntry(roll5Result.entry, path)}
+            </Typography>
+            <ExtraChoiceUI
+              entry={roll5Result.entry}
+              path={path}
+              statChoice={statChoice}
+              onStatChoice={setStatChoice}
+              optionChoice={optionChoice}
+              onOptionChoice={setOptionChoice}
+              minorRule={minorRule}
+              onMinorRule={setMinorRule}
+              heroicAction={heroicAction}
+              onHeroicAction={setHeroicAction}
+              spellChoice={spellChoice}
+              onSpellChoice={setSpellChoice}
+              improveSpellChoice={improveSpellChoice}
+              onImproveSpellChoice={setImproveSpellChoice}
+              member={member}
+            />
+          </Box>
+
+          {/* Result for the other side */}
+          <Box
+            sx={{
+              p: 1.25,
+              border: '1px solid',
+              borderColor: 'primary.dark',
+              borderRadius: 1,
+              background: 'rgba(201,168,76,0.05)',
+              mb: 1.5,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                Roll {otherRoll5Result.roll}
+              </Typography>
+              <Chip
+                label={otherRoll5Result.roll}
+                size="small"
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.65rem',
+                  height: 18,
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid',
+                  borderColor: 'primary.dark',
+                }}
+              />
+            </Box>
+            <Typography variant="body2" sx={{ mb: 0.75 }}>
+              {describePathEntry(otherRoll5Result.entry, path)}
+            </Typography>
+            <ExtraChoiceUI
+              entry={otherRoll5Result.entry}
+              path={path}
+              statChoice={statChoiceB}
+              onStatChoice={setStatChoiceB}
+              optionChoice={optionChoiceB}
+              onOptionChoice={setOptionChoiceB}
+              minorRule={minorRuleB}
+              onMinorRule={setMinorRuleB}
+              heroicAction={heroicActionB}
+              onHeroicAction={setHeroicActionB}
+              spellChoice={spellChoiceB}
+              onSpellChoice={setSpellChoiceB}
+              improveSpellChoice={improveSpellChoiceB}
+              onImproveSpellChoice={setImproveSpellChoiceB}
+              member={member}
+            />
+          </Box>
+        </>
+      ) : (
+        /* ── Normal A/B choice mode ── */
+        <>
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}
+          >
+            {(['A', 'B'] as const).map((side) => {
+              const res = side === 'A' ? record.resultA : record.resultB
+              const isSelected = chosen === side
+              return (
+                <Box
+                  key={side}
+                  onClick={() => {
+                    setChosen(side)
+                    setStatChoice(0)
+                    setOptionChoice(0)
+                    setMinorRule('')
+                    setHeroicAction('')
+                    setSpellChoice('')
+                    setImproveSpellChoice('')
+                  }}
                   sx={{
-                    fontWeight: 600,
-                    color: isSelected ? 'primary.main' : 'text.secondary',
+                    p: 1.25,
+                    border: '1px solid',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    background: isSelected
+                      ? 'rgba(201,168,76,0.08)'
+                      : 'rgba(0,0,0,0.15)',
+                    transition: 'all 0.15s',
+                    '&:hover': { borderColor: 'primary.dark' },
                   }}
                 >
-                  Roll {res.roll}
-                </Typography>
-                <Chip
-                  label={res.roll}
-                  size="small"
-                  sx={{
-                    fontFamily: '"Cinzel Decorative", serif',
-                    fontSize: '0.65rem',
-                    height: 18,
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'primary.dark' : 'divider',
-                  }}
-                />
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{ color: isSelected ? 'text.primary' : 'text.secondary' }}
-              >
-                {describePathEntry(res.entry, path)}
-              </Typography>
-            </Box>
-          )
-        })}
-      </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mb: 0.25,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 600,
+                        color: isSelected ? 'primary.main' : 'text.secondary',
+                      }}
+                    >
+                      Roll {res.roll}
+                    </Typography>
+                    <Chip
+                      label={res.roll}
+                      size="small"
+                      sx={{
+                        fontFamily: '"Cinzel Decorative", serif',
+                        fontSize: '0.65rem',
+                        height: 18,
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid',
+                        borderColor: isSelected ? 'primary.dark' : 'divider',
+                      }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: isSelected ? 'text.primary' : 'text.secondary' }}
+                  >
+                    {describePathEntry(res.entry, path)}
+                  </Typography>
+                </Box>
+              )
+            })}
+          </Box>
 
-      {/* Extra choice UI when a result is selected and needs sub-choice */}
-      {chosenResult && chosen && (
-        <ExtraChoiceUI
-          entry={chosenResult.entry}
-          path={path}
-          statChoice={statChoice}
-          onStatChoice={setStatChoice}
-          optionChoice={optionChoice}
-          onOptionChoice={setOptionChoice}
-          minorRule={minorRule}
-          onMinorRule={setMinorRule}
-          heroicAction={heroicAction}
-          onHeroicAction={setHeroicAction}
-          member={member}
-        />
+          {/* Extra choice UI when a result is selected and needs sub-choice */}
+          {chosenResult && chosen && (
+            <ExtraChoiceUI
+              entry={chosenResult.entry}
+              path={path}
+              statChoice={statChoice}
+              onStatChoice={setStatChoice}
+              optionChoice={optionChoice}
+              onOptionChoice={setOptionChoice}
+              minorRule={minorRule}
+              onMinorRule={setMinorRule}
+              heroicAction={heroicAction}
+              onHeroicAction={setHeroicAction}
+              spellChoice={spellChoice}
+              onSpellChoice={setSpellChoice}
+              improveSpellChoice={improveSpellChoice}
+              onImproveSpellChoice={setImproveSpellChoice}
+              member={member}
+            />
+          )}
+        </>
       )}
 
       <Button
@@ -2155,15 +2988,37 @@ function HeroAdvancementCard({
         fullWidth
         size="small"
         disabled={!canConfirm}
-        onClick={() =>
-          onApply(
-            chosen!,
-            statChoice,
-            optionChoice,
-            minorRule || undefined,
-            heroicAction || undefined
-          )
-        }
+        onClick={() => {
+          if (isRoll5) {
+            // Apply the roll-5 side as chosen; the applyHeroAdv function will
+            // apply both results because chosen result has roll === 5
+            onApply(
+              roll5Side,
+              statChoice,
+              optionChoice,
+              minorRule || undefined,
+              heroicAction || undefined,
+              spellChoice || undefined,
+              improveSpellChoice || undefined,
+              statChoiceB,
+              optionChoiceB,
+              minorRuleB || undefined,
+              heroicActionB || undefined,
+              spellChoiceB || undefined,
+              improveSpellChoiceB || undefined
+            )
+          } else {
+            onApply(
+              chosen!,
+              statChoice,
+              optionChoice,
+              minorRule || undefined,
+              heroicAction || undefined,
+              spellChoice || undefined,
+              improveSpellChoice || undefined
+            )
+          }
+        }}
         sx={{ fontFamily: '"Cinzel Decorative", serif', fontSize: '0.62rem' }}
       >
         Confirm Advancement
@@ -2177,7 +3032,9 @@ function needsExtraChoice(
   statChoice: number,
   optChoice: number,
   minorRule: string,
-  heroicAction: string
+  heroicAction: string,
+  spellChoice: string,
+  improveSpellChoice: string
 ): boolean {
   if (!entry) return false
   if (entry.type === 'stat') {
@@ -2185,12 +3042,16 @@ function needsExtraChoice(
     return opts.length <= 1 || statChoice >= 0
   }
   if (entry.type === 'special_rule') return true
+  if (entry.type === 'magical_power') return !!spellChoice
+  if (entry.type === 'improve_casting_value') return !!improveSpellChoice
   if (entry.type === 'choice') {
     const opts = entry.options as PathProgEntry[]
     const chosen = opts[optChoice]
     if (!chosen) return false
     if (chosen.type === 'minor_special_rule') return !!minorRule
     if (chosen.type === 'heroic_action') return !!heroicAction
+    if (chosen.type === 'magical_power') return !!spellChoice
+    if (chosen.type === 'improve_casting_value') return !!improveSpellChoice
     return true
   }
   return true
@@ -2240,6 +3101,10 @@ function ExtraChoiceUI({
   onMinorRule,
   heroicAction,
   onHeroicAction,
+  spellChoice,
+  onSpellChoice,
+  improveSpellChoice,
+  onImproveSpellChoice,
   member,
 }: {
   entry: PathProgEntry
@@ -2252,6 +3117,10 @@ function ExtraChoiceUI({
   onMinorRule: (s: string) => void
   heroicAction: string
   onHeroicAction: (s: string) => void
+  spellChoice: string
+  onSpellChoice: (s: string) => void
+  improveSpellChoice: string
+  onImproveSpellChoice: (s: string) => void
   member: Member
 }) {
   // Stat with multiple options
@@ -2289,6 +3158,105 @@ function ExtraChoiceUI({
       )
     }
     return null
+  }
+
+  // Magical power (direct, not inside choice)
+  if (entry.type === 'magical_power') {
+    const knownSpells = member.spells ?? []
+    const available = CHANNELING_SPELLS.filter((s) => !knownSpells.includes(s.id))
+    return (
+      <Box sx={{ mb: 1.5 }}>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+        >
+          Choose a Magical Power to add:
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {available.map((spell) => (
+            <Box
+              key={spell.id}
+              onClick={() => onSpellChoice(spell.id)}
+              sx={{
+                px: 1.25,
+                py: 0.75,
+                border: '1px solid',
+                borderColor: spellChoice === spell.id ? 'primary.main' : 'divider',
+                borderRadius: 0.75,
+                cursor: 'pointer',
+                background: spellChoice === spell.id ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: spellChoice === spell.id ? 'primary.main' : 'text.secondary' }}>
+                {spell.label}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.5, fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}>
+                {spell.castingValue}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    )
+  }
+
+  // Improve casting value (direct, not inside choice)
+  if (entry.type === 'improve_casting_value') {
+    const knownSpells = member.spells ?? []
+    const improvements = member.spellImprovements ?? {}
+    const improvable = CHANNELING_SPELLS.filter(
+      (s) => knownSpells.includes(s.id) && (improvements[s.id] ?? 0) < 2
+    )
+    return (
+      <Box sx={{ mb: 1.5 }}>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.6, display: 'block', mb: 0.75 }}
+        >
+          Choose a Magical Power to improve:
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {improvable.map((spell) => {
+            const currentImprovements = improvements[spell.id] ?? 0
+            const baseValue = parseInt(spell.castingValue)
+            const effectiveValue = baseValue - currentImprovements
+            return (
+              <Box
+                key={spell.id}
+                onClick={() => onImproveSpellChoice(spell.id)}
+                sx={{
+                  px: 1.25,
+                  py: 0.75,
+                  border: '1px solid',
+                  borderColor: improveSpellChoice === spell.id ? 'primary.main' : 'divider',
+                  borderRadius: 0.75,
+                  cursor: 'pointer',
+                  background: improveSpellChoice === spell.id ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: improveSpellChoice === spell.id ? 'primary.main' : 'text.secondary' }}>
+                  {spell.label}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.5, fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}>
+                  {effectiveValue}+ → {effectiveValue - 1}+
+                </Typography>
+              </Box>
+            )
+          })}
+          {improvable.length === 0 && (
+            <Typography variant="caption" sx={{ opacity: 0.5, fontStyle: 'italic' }}>
+              No spells available to improve (all at maximum).
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    )
   }
 
   // Choice entry
@@ -2430,6 +3398,93 @@ function ExtraChoiceUI({
             </Box>
           </Box>
         )}
+
+        {/* Magical power picker (inside choice) */}
+        {chosenOpt?.type === 'magical_power' && (
+          <Box sx={{ mt: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}
+            >
+              Choose a Magical Power to add:
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {CHANNELING_SPELLS.filter((s) => !(member.spells ?? []).includes(s.id)).map((spell) => (
+                <Box
+                  key={spell.id}
+                  onClick={() => onSpellChoice(spell.id)}
+                  sx={{
+                    px: 1.25,
+                    py: 0.75,
+                    border: '1px solid',
+                    borderColor: spellChoice === spell.id ? 'primary.main' : 'divider',
+                    borderRadius: 0.75,
+                    cursor: 'pointer',
+                    background: spellChoice === spell.id ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem', color: spellChoice === spell.id ? 'primary.main' : 'text.secondary' }}>
+                    {spell.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.5, fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}>
+                    {spell.castingValue}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Improve casting value picker (inside choice) */}
+        {chosenOpt?.type === 'improve_casting_value' && (
+          <Box sx={{ mt: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}
+            >
+              Choose a Magical Power to improve:
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {CHANNELING_SPELLS.filter(
+                (s) =>
+                  (member.spells ?? []).includes(s.id) &&
+                  ((member.spellImprovements ?? {})[s.id] ?? 0) < 2
+              ).map((spell) => {
+                const currentImprovements = (member.spellImprovements ?? {})[spell.id] ?? 0
+                const baseValue = parseInt(spell.castingValue)
+                const effectiveValue = baseValue - currentImprovements
+                return (
+                  <Box
+                    key={spell.id}
+                    onClick={() => onImproveSpellChoice(spell.id)}
+                    sx={{
+                      px: 1.25,
+                      py: 0.75,
+                      border: '1px solid',
+                      borderColor: improveSpellChoice === spell.id ? 'primary.main' : 'divider',
+                      borderRadius: 0.75,
+                      cursor: 'pointer',
+                      background: improveSpellChoice === spell.id ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: improveSpellChoice === spell.id ? 'primary.main' : 'text.secondary' }}>
+                      {spell.label}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.5, fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}>
+                      {effectiveValue}+ → {effectiveValue - 1}+
+                    </Typography>
+                  </Box>
+                )
+              })}
+            </Box>
+          </Box>
+        )}
       </Box>
     )
   }
@@ -2469,12 +3524,11 @@ function CompletedHeroCard({
 
 // ─── PathSelectionDialog ──────────────────────────────────────────────────────
 
-const PATHS_DATA = pathsData as unknown as PathDef[]
-
 interface PathSelectProps {
   memberName: string
   baseUnitId: string
   equipment: string[]
+  baseStats?: Record<string, number>
   onSelect: (pathId: string) => void
 }
 
@@ -2482,10 +3536,39 @@ function PathSelectionDialog({
   memberName,
   baseUnitId,
   equipment,
+  baseStats,
   onSelect,
 }: PathSelectProps) {
-  const [hovered, setHovered] = useState<string | null>(null)
-  const [confirmPath, setConfirmPath] = useState<string | null>(null)
+  const [selectedPathId, setSelectedPathId] = useState<string | null>(null)
+
+  const header = (
+    <Box
+      sx={{
+        mb: 2,
+        pb: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 600, color: 'primary.main', mb: 0.25 }}
+      >
+        {memberName}
+      </Typography>
+      <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+        {getUnitLabel(baseUnitId)}
+      </Typography>
+      {equipment.length > 0 && (
+        <Typography variant="caption" sx={{ display: 'block', opacity: 0.55 }}>
+          {equipment.map((e) => getWargearLabel(e)).join(', ')}
+        </Typography>
+      )}
+      <Typography variant="body2" sx={{ mt: 1, opacity: 0.65 }}>
+        A Hero in the Making — choose their path. This cannot be changed later.
+      </Typography>
+    </Box>
+  )
 
   return (
     <Dialog
@@ -2503,158 +3586,16 @@ function PathSelectionDialog({
     >
       <DialogTitle>Choose a Heroic Path</DialogTitle>
       <DialogContent>
-        <Box
-          sx={{
-            mb: 2,
-            p: 1.5,
-            border: '1px solid',
-            borderColor: 'primary.dark',
-            borderRadius: 1,
-            background: 'rgba(201,168,76,0.04)',
+        <PathCardSelector
+          selectedPathId={selectedPathId}
+          onSelect={(pathId) => {
+            setSelectedPathId(pathId)
+            onSelect(pathId)
           }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: 'primary.main', mb: 0.25 }}
-          >
-            {memberName}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ display: 'block', opacity: 0.75 }}
-          >
-            {getUnitLabel(baseUnitId)}
-          </Typography>
-          {equipment.length > 0 && (
-            <Typography
-              variant="caption"
-              sx={{ display: 'block', opacity: 0.55 }}
-            >
-              {equipment.map((e) => getWargearLabel(e)).join(', ')}
-            </Typography>
-          )}
-          <Typography variant="body2" sx={{ mt: 1, opacity: 0.65 }}>
-            A Hero in the Making — choose their path. This cannot be changed
-            later.
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {PATHS_DATA.map((p) => {
-            const roll7 = p.progression.find((e) => e.roll === 7)
-            const sigStat = (
-              roll7?.options as PathProgEntry[] | undefined
-            )?.find((o) => o.type === 'stat')?.options as string[] | undefined
-            const roll2 = p.progression.find((e) => e.roll === 2)
-            return (
-              <Box
-                key={p.id}
-                onClick={() => setHovered(hovered === p.id ? null : p.id)}
-                sx={{
-                  p: 1.5,
-                  border: '1px solid',
-                  borderColor: hovered === p.id ? 'primary.main' : 'divider',
-                  borderRadius: 1,
-                  cursor: 'pointer',
-                  background:
-                    hovered === p.id
-                      ? 'rgba(201,168,76,0.06)'
-                      : 'rgba(0,0,0,0.15)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                      color: hovered === p.id ? 'primary.main' : 'text.primary',
-                    }}
-                  >
-                    {p.label}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                    {p.heroicAction && (
-                      <Chip
-                        label={p.heroicAction
-                          .replace(/_/g, ' ')
-                          .replace(/\b\w/g, (l) => l.toUpperCase())}
-                        size="small"
-                        sx={{
-                          fontSize: '0.58rem',
-                          height: 18,
-                          border: '1px solid',
-                          borderColor: 'primary.dark',
-                          background: 'transparent',
-                          color: 'primary.light',
-                        }}
-                      />
-                    )}
-                    {sigStat && (
-                      <Chip
-                        label={`Sig: ${sigStat[0]}`}
-                        size="small"
-                        sx={{
-                          fontSize: '0.58rem',
-                          height: 18,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          background: 'transparent',
-                          color: 'text.secondary',
-                        }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-                {hovered === p.id && roll2 && (
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', mt: 0.5, opacity: 0.65 }}
-                  >
-                    Signature ability: {roll2.label ?? '—'}
-                  </Typography>
-                )}
-                {hovered === p.id && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    fullWidth
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setConfirmPath(p.id)
-                    }}
-                    sx={{
-                      mt: 1,
-                      fontFamily: '"Cinzel Decorative", serif',
-                      fontSize: '0.6rem',
-                    }}
-                  >
-                    Select This Path
-                  </Button>
-                )}
-              </Box>
-            )
-          })}
-        </Box>
+          baseStats={baseStats}
+          headerSlot={header}
+        />
       </DialogContent>
-
-      <ConfirmDialog
-        open={!!confirmPath}
-        title="Confirm Path Selection"
-        message={`Commit to the ${PATHS_DATA.find((p) => p.id === confirmPath)?.label ?? ''}? This cannot be changed.`}
-        confirmLabel="Commit"
-        cancelLabel="Go Back"
-        onConfirm={() => {
-          onSelect(confirmPath!)
-          setConfirmPath(null)
-        }}
-        onCancel={() => setConfirmPath(null)}
-      />
     </Dialog>
   )
 }

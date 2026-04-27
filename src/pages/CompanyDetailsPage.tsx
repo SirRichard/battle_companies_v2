@@ -72,6 +72,24 @@ function getRequiredUnitIds(companyTypeId: string): string[] {
   return Array.from(ids)
 }
 
+// Returns all baseUnitIds referenced in a company's reinforcement/special charts
+// Used to build the expanded wargear pool for heroes (Req 11.1, 11.6)
+export function getAllCompanyProfileIds(companyDef: CompanyDefinition): string[] {
+  const ids = new Set<string>()
+  for (const row of companyDef.reinforcementTable) {
+    if (row.baseUnitId) ids.add(row.baseUnitId)
+    if (row.units) row.units.forEach((u: { baseUnitId: string }) => ids.add(u.baseUnitId))
+    if (row.pool) row.pool.forEach((u: { baseUnitId: string }) => ids.add(u.baseUnitId))
+  }
+  for (const row of companyDef.specialTable ?? []) {
+    if (row.baseUnitId) ids.add(row.baseUnitId)
+  }
+  for (const unit of companyDef.specialUnits ?? []) {
+    ids.add(unit.baseUnitId)
+  }
+  return Array.from(ids)
+}
+
 const ROLE_ORDER: Record<string, number> = {
   leader: 0,
   sergeant: 1,
@@ -84,6 +102,16 @@ function roleLabel(role: string): string {
   if (role === 'sergeant') return 'Sergeant'
   if (role === 'hero_in_making') return 'Hero in the Making'
   return ''
+}
+
+function sortMembersForStore<T extends { role: string; name: string }>(
+  members: T[]
+): T[] {
+  return [...members].sort((a, b) => {
+    const roleDiff = (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99)
+    if (roleDiff !== 0) return roleDiff
+    return a.name.localeCompare(b.name)
+  })
 }
 
 export default function CompanyDetailsPage() {
@@ -99,10 +127,14 @@ export default function CompanyDetailsPage() {
   } = useAppContext()
 
   const [activeTab, setActiveTab] = useState(0)
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
 
   const company: Company | null =
     companies.find((c) => c.id === companyId) ?? activeCompany
+
+  const selectedMember = selectedMemberId
+    ? (company?.members.find((m) => m.id === selectedMemberId) ?? null)
+    : null
 
   useEffect(() => {
     if (company) setActiveCompany(company)
@@ -125,15 +157,28 @@ export default function CompanyDetailsPage() {
       navigate(`/stats?companyId=${company.id}`, { replace: true })
   }, [company, searchParams, hasMissingStats, navigate])
 
-  const companyRating = useMemo(
-    () => (company ? calcCompanyRating(company.members, getStatsForUnit) : 0),
-    [company, getStatsForUnit]
-  )
+  const wanderers = wanderersData as Array<{ id: string; pointsCost: number }>
+  const companyRating = useMemo(() => {
+    if (!company) return 0
+    const wanderer = company.wandererId
+      ? wanderers.find((w) => w.id === company.wandererId)
+      : undefined
+    return calcCompanyRating(
+      company.members,
+      getStatsForUnit,
+      wanderer ? { pointsCost: wanderer.pointsCost } : undefined
+    )
+  }, [company, getStatsForUnit, wanderers])
 
   const companyDef = useMemo(
     () => COMPANIES_DEF.find((c) => c.id === company?.companyTypeId),
     [company]
   )
+
+  const wandererCount = company.wandererId ? 1 : 0
+  const totalMembers = company.members.length + wandererCount
+  const maxSize = companyDef?.maxCompanySize ?? 15
+  const isAtMax = totalMembers >= maxSize
 
   const handleRename = useCallback(
     async (memberId: string, newName: string) => {
@@ -145,7 +190,6 @@ export default function CompanyDetailsPage() {
         ),
       }
       await saveCompany(updated)
-      setSelectedMember(updated.members.find((m) => m.id === memberId) ?? null)
     },
     [company, saveCompany]
   )
@@ -192,8 +236,8 @@ export default function CompanyDetailsPage() {
             label: 'Record',
             value: `${company.wins}W / ${company.draws}D / ${company.losses}L`,
           },
-          { label: 'Members', value: `${company.members.length}` },
-        ].map(({ label, value, highlight }) => (
+          { label: 'Members', value: `${totalMembers}/${maxSize}`, atMax: isAtMax },
+        ].map(({ label, value, highlight, atMax }) => (
           <Box key={label}>
             <Typography
               variant="caption"
@@ -205,7 +249,7 @@ export default function CompanyDetailsPage() {
               variant="body2"
               sx={{
                 fontWeight: 700,
-                color: highlight ? 'primary.main' : 'text.primary',
+                color: atMax ? 'warning.main' : highlight ? 'primary.main' : 'text.primary',
               }}
             >
               {value}
@@ -281,7 +325,7 @@ export default function CompanyDetailsPage() {
                       member={member}
                       isHero={true}
                       delay={i * 0.05}
-                      onClick={() => setSelectedMember(member)}
+                      onClick={() => setSelectedMemberId(member.id)}
                       baseStats={getStatsForUnit(member.baseUnitId)}
                     />
                   ))}
@@ -310,7 +354,7 @@ export default function CompanyDetailsPage() {
                       member={member}
                       isHero={false}
                       delay={i * 0.04}
-                      onClick={() => setSelectedMember(member)}
+                      onClick={() => setSelectedMemberId(member.id)}
                       baseStats={getStatsForUnit(member.baseUnitId)}
                     />
                   ))}
@@ -335,32 +379,30 @@ export default function CompanyDetailsPage() {
       </Box>
 
       {/* FAB */}
-      {activeTab === 0 && (
-        <Fab
-          variant="extended"
-          size="medium"
-          onClick={() => navigate(`/companies/${company.id}/match/setup`)}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(180deg, #D4A84C 0%, #8B6914 100%)',
-            border: '1px solid #C9A84C',
-            color: '#1A0F05',
-            fontFamily: '"Cinzel Decorative", serif',
-            fontSize: '0.65rem',
-            letterSpacing: '0.08em',
-            gap: 0.75,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-            '&:hover': {
-              background: 'linear-gradient(180deg, #E8CC7A 0%, #A07820 100%)',
-            },
-          }}
-        >
-          <AddIcon sx={{ fontSize: '1.1rem' }} />
-          Start Match
-        </Fab>
-      )}
+      <Fab
+        variant="extended"
+        size="medium"
+        onClick={() => navigate(`/companies/${company.id}/match/setup`)}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          background: 'linear-gradient(180deg, #D4A84C 0%, #8B6914 100%)',
+          border: '1px solid #C9A84C',
+          color: '#1A0F05',
+          fontFamily: '"Cinzel Decorative", serif',
+          fontSize: '0.65rem',
+          letterSpacing: '0.08em',
+          gap: 0.75,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+          '&:hover': {
+            background: 'linear-gradient(180deg, #E8CC7A 0%, #A07820 100%)',
+          },
+        }}
+      >
+        <AddIcon sx={{ fontSize: '1.1rem' }} />
+        Start Match
+      </Fab>
 
       <MemberDetailsDrawer
         member={selectedMember}
@@ -370,7 +412,7 @@ export default function CompanyDetailsPage() {
             : undefined
         }
         open={!!selectedMember}
-        onClose={() => setSelectedMember(null)}
+        onClose={() => setSelectedMemberId(null)}
         onRename={handleRename}
         company={company}
         onSaveCompany={saveCompany}
@@ -535,13 +577,32 @@ function MemberRow({
       )}
 
       {(() => {
-        // Always show base profile equipment + any additional purchased/assigned equipment
-        const baseEquip =
-          BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-            ?.baseEquipment ?? []
-        const displayWargear = Array.from(
-          new Set([...baseEquip, ...(member.equipment ?? [])])
-        )
+        let displayWargear: string[]
+        if (isHero) {
+          // Heroes: show base equipment + any purchased/assigned equipment
+          const baseEquip =
+            BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+              ?.baseEquipment ?? []
+          displayWargear = Array.from(
+            new Set([...baseEquip, ...(member.equipment ?? [])])
+          )
+        } else {
+          // Warriors: show only the equipment chosen from their loadout options
+          const baseUnit = (
+            baseUnitsData as Array<{
+              id: string
+              baseEquipment?: string[]
+              equipmentOptions?: { options: Array<{ equipment: string[] }> }
+            }>
+          ).find((u) => u.id === member.baseUnitId)
+          const allOptionEquipment =
+            baseUnit?.equipmentOptions?.options.flatMap(
+              (o: { equipment: string[] }) => o.equipment
+            ) ?? []
+          displayWargear = (member.equipment ?? []).filter((e) =>
+            allOptionEquipment.includes(e)
+          )
+        }
         return displayWargear.length > 0 ? (
           <Box
             sx={{
@@ -619,7 +680,23 @@ function HistoryMatchCard({
         ? 'error.light'
         : 'text.secondary'
 
+  const INJURY_OUTCOME_LABELS: Record<string, string> = {
+    arm_wound: 'Arm Wound',
+    leg_wound: 'Leg Wound',
+    broken_honour: 'Broken Honour',
+    missing_next_game: 'Missing Next Game',
+    dead: 'Dead',
+    full_recovery: 'Full Recovery',
+    protection_by_valar: 'Protection by the Valar',
+    wounds_of_a_hero: 'Wounds of a Hero',
+    warrior_dead: 'Dead',
+    warrior_injured: 'Injured',
+    warrior_full_recovery: 'Full Recovery',
+    warrior_lesson_learned: 'Lesson Learned',
+  }
+
   const injuryLabel = (raw: string) =>
+    INJURY_OUTCOME_LABELS[raw] ??
     raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
 
   return (
@@ -889,6 +966,472 @@ function HistoryTab({ company }: { company: Company }) {
   )
 }
 
+// ─── InjuryTreatmentPanel ─────────────────────────────────────────────────────
+
+interface InjuryTreatmentPanelProps {
+  member: Member
+  company: Company
+  onSaveCompany: (c: Company) => Promise<void>
+}
+
+const INJURY_LABELS_PANEL: Record<string, string> = {
+  arm_wound: 'Arm Wound',
+  leg_wound: 'Leg Wound',
+  broken_honour: 'Broken Honour',
+  missing_next_game: 'Missing Next Game',
+}
+
+const INJURY_DESCRIPTIONS_PANEL: Record<string, string> = {
+  arm_wound: 'Cannot use shield, two-handed weapon, pike, or bow/crossbow.',
+  leg_wound: 'Move value permanently reduced by 1".',
+  broken_honour: 'Cannot provide Stand Fast or affect allies with Heroic Actions.',
+  missing_next_game: 'Will sit out the next battle.',
+}
+
+function InjuryTreatmentPanel({
+  member,
+  company,
+  onSaveCompany,
+}: InjuryTreatmentPanelProps) {
+  const [treatDialog, setTreatDialog] = useState<'options' | 'roll' | null>(null)
+  const [treatType, setTreatType] = useState<
+    'remove_warrior' | 'roll_hero' | 'miss_hero' | null
+  >(null)
+  const [treatTargetInjury, setTreatTargetInjury] = useState<string | null>(null)
+  const [treatRollResult, setTreatRollResult] = useState<number | null>(null)
+  const [treatAdjust, setTreatAdjust] = useState(0)
+
+  const isHero = member.role !== 'warrior'
+
+  // Treatable injuries: warriors → missing_next_game; heroes → arm/leg/broken_honour
+  const treatableInjuries = member.injuries.filter((inj) =>
+    isHero
+      ? inj.type !== 'missing_next_game'
+      : inj.type === 'missing_next_game'
+  )
+
+  if (treatableInjuries.length === 0) return null
+
+  const handleTreatConfirm = async () => {
+    const influence = company.influence
+
+    if (treatType === 'remove_warrior') {
+      const updated: Company = {
+        ...company,
+        influence: influence - 1,
+        members: company.members.map((m) =>
+          m.id !== member.id
+            ? m
+            : {
+                ...m,
+                injuries: m.injuries.filter(
+                  (inj) => inj.type !== 'missing_next_game'
+                ),
+              }
+        ),
+      }
+      await onSaveCompany(updated)
+    } else if (treatType === 'miss_hero') {
+      const updated: Company = {
+        ...company,
+        influence: influence - 1,
+        members: company.members.map((m) =>
+          m.id !== member.id
+            ? m
+            : {
+                ...m,
+                injuries: (() => {
+                  const injs = [...m.injuries]
+                  const idx = injs.findIndex((i) => i.type === treatTargetInjury)
+                  if (idx >= 0) injs.splice(idx, 1)
+                  if (!injs.find((i) => i.type === 'missing_next_game')) {
+                    injs.push({ type: 'missing_next_game' as const, count: 1 })
+                  }
+                  return injs
+                })(),
+              }
+        ),
+      }
+      await onSaveCompany(updated)
+    } else if (treatType === 'roll_hero' && treatRollResult !== null) {
+      const totalCost = 1 + treatAdjust
+      if (treatRollResult + treatAdjust >= 5) {
+        const updated: Company = {
+          ...company,
+          influence: influence - totalCost,
+          members: company.members.map((m) =>
+            m.id !== member.id
+              ? m
+              : {
+                  ...m,
+                  injuries: (() => {
+                    const injs = [...m.injuries]
+                    const idx = injs.findIndex(
+                      (i) => i.type === treatTargetInjury
+                    )
+                    if (idx >= 0) injs.splice(idx, 1)
+                    return injs
+                  })(),
+                }
+          ),
+        }
+        await onSaveCompany(updated)
+      } else {
+        await onSaveCompany({ ...company, influence: influence - totalCost })
+      }
+    }
+
+    setTreatDialog(null)
+    setTreatType(null)
+    setTreatTargetInjury(null)
+    setTreatRollResult(null)
+    setTreatAdjust(0)
+  }
+
+  return (
+    <>
+      {treatableInjuries.map((injury, i) => {
+        const canAfford = company.influence >= 1
+        const showTreatBtn = canAfford
+        return (
+          <Box
+            key={i}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              px: 1.5,
+              py: 1,
+              border: '1px solid',
+              borderColor:
+                injury.type === 'missing_next_game' ? 'warning.dark' : 'error.dark',
+              borderRadius: 1,
+              background:
+                injury.type === 'missing_next_game'
+                  ? 'rgba(201,168,76,0.04)'
+                  : 'rgba(192,57,43,0.04)',
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.72rem',
+                  color:
+                    injury.type === 'missing_next_game'
+                      ? 'warning.main'
+                      : 'error.light',
+                }}
+              >
+                {INJURY_LABELS_PANEL[injury.type] ?? injury.type}
+                {injury.count > 1 && ` (×${injury.count})`}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                {INJURY_DESCRIPTIONS_PANEL[injury.type]}
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={!showTreatBtn}
+              onClick={() => {
+                setTreatTargetInjury(injury.type)
+                setTreatDialog('options')
+              }}
+              sx={{
+                fontSize: '0.58rem',
+                py: 0.25,
+                px: 1,
+                minWidth: 0,
+                borderColor: canAfford ? 'primary.dark' : 'divider',
+                color: canAfford ? 'primary.light' : 'text.disabled',
+                flexShrink: 0,
+                ml: 1,
+              }}
+            >
+              {canAfford ? 'Treat' : 'No IP'}
+            </Button>
+          </Box>
+        )
+      })}
+
+      {/* Treatment dialog */}
+      {treatDialog && (
+        <Dialog
+          open
+          PaperProps={{
+            sx: {
+              background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+              border: '1px solid rgba(200,164,90,0.25)',
+              borderRadius: 2,
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '0.85rem',
+              color: 'primary.main',
+            }}
+          >
+            Treat Injury —{' '}
+            {INJURY_LABELS_PANEL[treatTargetInjury ?? ''] ?? treatTargetInjury}
+          </DialogTitle>
+          <DialogContent>
+            {treatDialog === 'options' && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  minWidth: 260,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ opacity: 0.65, display: 'block', mb: 0.5 }}
+                >
+                  Company Influence: {company.influence} IP
+                </Typography>
+
+                {!isHero && (
+                  <Box
+                    onClick={() => setTreatType('remove_warrior')}
+                    sx={{
+                      p: 1.25,
+                      border: '1px solid',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      borderColor:
+                        treatType === 'remove_warrior' ? 'primary.main' : 'divider',
+                      background:
+                        treatType === 'remove_warrior'
+                          ? 'rgba(201,168,76,0.08)'
+                          : 'rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Remove Injury (1 IP)
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                      Warrior returns to full duty.
+                    </Typography>
+                  </Box>
+                )}
+
+                {isHero && (
+                  <>
+                    <Box
+                      onClick={() => setTreatType('roll_hero')}
+                      sx={{
+                        p: 1.25,
+                        border: '1px solid',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        borderColor:
+                          treatType === 'roll_hero' ? 'primary.main' : 'divider',
+                        background:
+                          treatType === 'roll_hero'
+                            ? 'rgba(201,168,76,0.08)'
+                            : 'rgba(0,0,0,0.2)',
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Attempt Recovery — Roll D6 (1+ IP)
+                      </Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                        Roll 5+ to remove injury. Spend extra IP to boost roll.
+                      </Typography>
+                    </Box>
+                    <Box
+                      onClick={() => setTreatType('miss_hero')}
+                      sx={{
+                        p: 1.25,
+                        border: '1px solid',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        borderColor:
+                          treatType === 'miss_hero' ? 'primary.main' : 'divider',
+                        background:
+                          treatType === 'miss_hero'
+                            ? 'rgba(201,168,76,0.08)'
+                            : 'rgba(0,0,0,0.2)',
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Send to Healers (1 IP)
+                      </Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                        Hero misses next game but the injury is removed.
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {treatDialog === 'roll' && treatType === 'roll_hero' && (
+              <Box sx={{ minWidth: 260 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ display: 'block', opacity: 0.65, mb: 1.5 }}
+                >
+                  Boost roll with extra IP (max +3, 1 IP each). Need 5+ to succeed.
+                </Typography>
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}
+                >
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    sx={{ minWidth: 32, p: 0.5 }}
+                    disabled={treatAdjust <= 0}
+                    onClick={() => setTreatAdjust((a) => Math.max(0, a - 1))}
+                  >
+                    −
+                  </Button>
+                  <Typography
+                    sx={{
+                      fontFamily: '"Cinzel Decorative", serif',
+                      minWidth: 32,
+                      textAlign: 'center',
+                      color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
+                    }}
+                  >
+                    {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    sx={{ minWidth: 32, p: 0.5 }}
+                    disabled={
+                      treatAdjust >= 3 || company.influence < 1 + treatAdjust + 1
+                    }
+                    onClick={() => setTreatAdjust((a) => Math.min(3, a + 1))}
+                  >
+                    +
+                  </Button>
+                  <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
+                    Total: {1 + treatAdjust} IP
+                  </Typography>
+                </Box>
+                {treatRollResult === null ? (
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    onClick={() =>
+                      setTreatRollResult(Math.floor(Math.random() * 6) + 1)
+                    }
+                    sx={{
+                      fontFamily: '"Cinzel Decorative", serif',
+                      fontSize: '0.62rem',
+                    }}
+                  >
+                    Roll D6
+                  </Button>
+                ) : (
+                  <Box
+                    sx={{
+                      textAlign: 'center',
+                      p: 1.5,
+                      border: '1px solid',
+                      borderColor:
+                        treatRollResult + treatAdjust >= 5
+                          ? 'success.main'
+                          : 'error.main',
+                      borderRadius: 1,
+                      background:
+                        treatRollResult + treatAdjust >= 5
+                          ? 'rgba(46,204,113,0.06)'
+                          : 'rgba(192,57,43,0.06)',
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontFamily: '"Cinzel Decorative", serif',
+                        fontSize: '1.4rem',
+                        color:
+                          treatRollResult + treatAdjust >= 5
+                            ? 'success.light'
+                            : 'error.light',
+                      }}
+                    >
+                      {treatRollResult}
+                      {treatAdjust > 0 &&
+                        ` + ${treatAdjust} = ${treatRollResult + treatAdjust}`}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {treatRollResult + treatAdjust >= 5
+                        ? '✓ Success — injury removed!'
+                        : '✗ Failed — injury remains.'}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setTreatDialog(null)
+                setTreatType(null)
+                setTreatRollResult(null)
+                setTreatAdjust(0)
+              }}
+            >
+              Cancel
+            </Button>
+            {treatDialog === 'options' &&
+              treatType &&
+              treatType !== 'roll_hero' && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={!treatType}
+                  onClick={handleTreatConfirm}
+                  sx={{
+                    fontFamily: '"Cinzel Decorative", serif',
+                    fontSize: '0.62rem',
+                  }}
+                >
+                  Confirm (1 IP)
+                </Button>
+              )}
+            {treatDialog === 'options' && treatType === 'roll_hero' && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setTreatDialog('roll')}
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.62rem',
+                }}
+              >
+                Next →
+              </Button>
+            )}
+            {treatDialog === 'roll' && treatRollResult !== null && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleTreatConfirm}
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.62rem',
+                }}
+              >
+                Confirm ({1 + treatAdjust} IP)
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      )}
+    </>
+  )
+}
+
 // ─── Store tab ────────────────────────────────────────────────────────────────
 
 interface StoreTabProps {
@@ -907,7 +1450,7 @@ function StoreTab({
   getStatsForUnit,
 }: StoreTabProps) {
   const [section, setSection] = useState<
-    'reinforcements' | 'wargear' | 'equipment' | 'creatures' | 'wanderers'
+    'reinforcements' | 'wargear' | 'equipment' | 'creatures' | 'wanderers' | 'injuries'
   >('reinforcements')
   const [rollResult, setRollResult] = useState<ReinforcementResult | null>(null)
   const [_isRolling, setIsRolling] = useState(false)
@@ -1358,6 +1901,8 @@ function StoreTab({
     for (const entry of (companyDef as any)?.specialTable ?? [])
       addFromEntry(entry)
     for (const entry of companyDef?.advancements ?? []) addFromEntry(entry)
+    // Include specialUnits (Req 11.1)
+    for (const entry of companyDef?.specialUnits ?? []) ids.add(entry.baseUnitId)
     return ids
   }
 
@@ -1399,9 +1944,13 @@ function StoreTab({
       // Warriors: only their own equipmentOptions
       collectFromUnit(member.baseUnitId, false, accessible)
     } else {
-      // Heroes: baseEquipment + options from all units across the company
-      const companyUnitIds = getCompanyBaseUnitIds()
-      for (const unitId of companyUnitIds) {
+      // Heroes: baseEquipment + options from all profiles in the company's
+      // reinforcement/special charts (Req 11.1, 11.2, 11.6)
+      const profileIds = getAllCompanyProfileIds(companyDef)
+      const seen = new Set<string>()
+      for (const unitId of profileIds) {
+        if (seen.has(unitId)) continue
+        seen.add(unitId)
         collectFromUnit(unitId, true, accessible)
       }
     }
@@ -1516,6 +2065,7 @@ function StoreTab({
             'equipment',
             'creatures',
             'wanderers',
+            'injuries',
           ] as const
         ).map((s) => (
           <Box
@@ -1552,7 +2102,9 @@ function StoreTab({
                     ? 'Equipment'
                     : s === 'creatures'
                       ? 'Creatures'
-                      : 'Wanderers'}
+                      : s === 'wanderers'
+                        ? 'Wanderers'
+                        : 'Injuries'}
             </Typography>
           </Box>
         ))}
@@ -2139,7 +2691,7 @@ function StoreTab({
           <Box
             sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}
           >
-            {company.members.map((m) => (
+            {sortMembersForStore(company.members).map((m) => (
               <Box
                 key={m.id}
                 onClick={() =>
@@ -2179,7 +2731,7 @@ function StoreTab({
                     {m.name}
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                    {getUnitLabel(m.baseUnitId)} · {m.role}
+                    {getUnitLabel(m.baseUnitId)} · {roleLabel(m.role) || 'Warrior'}
                   </Typography>
                 </Box>
               </Box>
@@ -2365,11 +2917,11 @@ function StoreTab({
                               ? `Upgrade to ${w.label}`
                               : w.label}
                           </Typography>
-                          <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                            {limitViolation
-                              ? `${w.category} · ${limitViolation} reached`
-                              : w.category}
-                          </Typography>
+                          {limitViolation && (
+                            <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                              {`${limitViolation} reached`}
+                            </Typography>
+                          )}
                         </Box>
                         <Button
                           size="small"
@@ -2420,6 +2972,123 @@ function StoreTab({
       {/* ── WANDERERS ────────────────────────────────────────────────── */}
       {section === 'wanderers' && (
         <WanderersSection company={company} saveCompany={saveCompany} />
+      )}
+
+      {/* ── INJURIES ─────────────────────────────────────────────────── */}
+      {section === 'injuries' && (
+        <Box>
+          {/* Influence balance */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              mb: 2,
+              p: 1.5,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              background: 'rgba(0,0,0,0.15)',
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.6, display: 'block' }}
+              >
+                Influence
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  color: 'primary.main',
+                  fontWeight: 700,
+                }}
+              >
+                {company.influence} IP
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.6, display: 'block' }}
+              >
+                Treatment Cost
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  color: 'text.secondary',
+                  fontWeight: 700,
+                }}
+              >
+                1+ IP
+              </Typography>
+            </Box>
+          </Box>
+
+          {(() => {
+            const injuredMembers = company.members.filter((m) => {
+              const isHero = m.role !== 'warrior'
+              if (isHero) {
+                return m.injuries.some(
+                  (inj) =>
+                    inj.type === 'arm_wound' ||
+                    inj.type === 'leg_wound' ||
+                    inj.type === 'broken_honour'
+                )
+              } else {
+                return m.injuries.some((inj) => inj.type === 'missing_next_game')
+              }
+            })
+
+            if (injuredMembers.length === 0) {
+              return (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 4,
+                    opacity: 0.6,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                    No injuries require treatment.
+                  </Typography>
+                </Box>
+              )
+            }
+
+            return (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {injuredMembers.map((member) => (
+                  <Box key={member.id}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        opacity: 0.55,
+                        display: 'block',
+                        mb: 0.75,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        fontSize: '0.58rem',
+                      }}
+                    >
+                      {member.name} · {getUnitLabel(member.baseUnitId)}
+                    </Typography>
+                    <InjuryTreatmentPanel
+                      member={member}
+                      company={company}
+                      onSaveCompany={saveCompany}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )
+          })()}
+        </Box>
       )}
     </Box>
   )
@@ -3230,7 +3899,7 @@ function EquipmentSection({
 
       {/* Member selector */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
-        {company.members.map((m) => {
+        {sortMembersForStore(company.members).map((m) => {
           const isHero = m.role !== 'warrior'
           return (
             <Box
@@ -3272,7 +3941,7 @@ function EquipmentSection({
                   {m.name}
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                  {isHero ? m.role : 'Warrior'}
+                  {isHero ? roleLabel(m.role) : 'Warrior'}
                 </Typography>
               </Box>
             </Box>
@@ -3539,8 +4208,10 @@ function CreaturesSection({
   const [msg, setMsg] = useState<string | null>(null)
 
   // Only Leader and Sergeants can have creatures; one per hero
-  const eligibleHeroes = company.members.filter(
-    (m) => m.role === 'leader' || m.role === 'sergeant'
+  const eligibleHeroes = sortMembersForStore(
+    company.members.filter(
+      (m) => m.role === 'leader' || m.role === 'sergeant'
+    )
   )
 
   const handleBuy = async (
@@ -3622,7 +4293,7 @@ function CreaturesSection({
                   variant="caption"
                   sx={{ opacity: 0.6 }}
                 >
-                  ({hero.role})
+                  ({roleLabel(hero.role)})
                 </Typography>
               </Typography>
 

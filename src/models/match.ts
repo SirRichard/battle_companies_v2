@@ -18,6 +18,8 @@ export interface MemberMatchState {
   mightCurrent: number | null
   willCurrent: number | null
   fateCurrent: number | null
+  /** IDs of consumable toolkit items that have been used during this match */
+  usedToolkitItems?: string[]
 }
 
 export type AtoBonusType =

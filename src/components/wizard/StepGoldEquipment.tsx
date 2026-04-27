@@ -3,8 +3,12 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
 import baseUnitsData from '../../data/baseUnits.json'
 import wargearData from '../../data/wargear.json'
+import equipmentData from '../../data/equipment.json'
+import creaturesData from '../../data/creatures.json'
 import companiesData from '../../data/companies.json'
 
 interface RosterMember {
@@ -19,7 +23,8 @@ interface Props {
   gold: number
   members: RosterMember[]
   companyTypeId: string
-  goldPurchases: Record<string, string[]> // tempId -> purchased wargear ids
+  leaderId: string | null
+  goldPurchases: Record<string, string[]> // tempId -> purchased wargear/equipment/creature ids
   onUpdate: (tempId: string, wargearIds: string[]) => void
 }
 
@@ -41,9 +46,34 @@ type WargearEntry = {
   purchasable?: boolean
 }
 
+type EquipmentEntry = {
+  id: string
+  label: string
+  rating?: number | [number, number]
+  influenceCost?: number
+  heroOnly?: boolean
+  cavalryOnly?: boolean
+}
+
+type CreatureEntry = {
+  id: string
+  label: string
+  pointsCost: number
+  influenceCost?: number
+  stats: Record<string, number | null>
+  specialRules: string[]
+  companyIds?: string[]
+}
+
 const WARGEAR_MAP = Object.fromEntries(
   (wargearData as WargearEntry[]).map((w) => [w.id, w])
 )
+
+const EQUIPMENT_MAP = Object.fromEntries(
+  (equipmentData as EquipmentEntry[]).map((e) => [e.id, e])
+)
+
+const ALL_CREATURES = creaturesData as unknown as CreatureEntry[]
 
 type BaseUnitEntry = {
   id: string
@@ -130,35 +160,88 @@ function getBestArmourUpgrade(
 function wargearLabel(id: string): string {
   return (
     WARGEAR_MAP[id]?.label ??
+    EQUIPMENT_MAP[id]?.label ??
+    ALL_CREATURES.find((c) => c.id === id)?.label ??
     id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
   )
 }
 
-function goldCost(wargearId: string): number {
-  return WARGEAR_MAP[wargearId]?.rating?.[0] ?? 1
+function goldCost(itemId: string): number {
+  // Check wargear first
+  const wg = WARGEAR_MAP[itemId]
+  if (wg?.rating !== undefined) return wg.rating[0]
+  // Check equipment
+  const eq = EQUIPMENT_MAP[itemId]
+  if (eq?.rating !== undefined) {
+    const r = eq.rating
+    return Array.isArray(r) ? r[0] : r
+  }
+  // Check creatures
+  const cr = ALL_CREATURES.find((c) => c.id === itemId)
+  if (cr) return cr.pointsCost
+  return 1
+}
+
+function getAvailableCreatures(companyTypeId: string): CreatureEntry[] {
+  return ALL_CREATURES.filter(
+    (c) => !c.companyIds || c.companyIds.includes(companyTypeId)
+  )
+}
+
+// ── Sort helpers ─────────────────────────────────────────────────────────────
+
+function sortMembersForGold(
+  members: RosterMember[],
+  leaderId: string | null
+): RosterMember[] {
+  const heroes = members.filter((m) => m.isHero)
+  const warriors = members.filter((m) => !m.isHero)
+  const leader = heroes.find((h) => h.tempId === leaderId) ?? heroes[0] ?? null
+  const sergeants = heroes
+    .filter((h) => h.tempId !== leader?.tempId)
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const sortedWarriors = [...warriors].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+  return [...(leader ? [leader] : []), ...sergeants, ...sortedWarriors]
+}
+
+function getMemberLabel(
+  member: RosterMember,
+  leaderId: string | null
+): string {
+  if (!member.isHero) return 'Warrior'
+  return member.tempId === leaderId ? 'Leader' : 'Sergeant'
 }
 
 export default function StepGoldEquipment({
   gold,
   members,
   companyTypeId,
+  leaderId,
   goldPurchases,
   onUpdate,
 }: Props) {
   const [selectedTempId, setSelectedTempId] = useState<string | null>(null)
+  const [heroTab, setHeroTab] = useState<
+    Record<string, 'wargear' | 'equipment' | 'creatures'>
+  >({})
+
+  const sortedMembers = sortMembersForGold(members, leaderId)
 
   // Total gold remaining
   const totalSpent = Object.values(goldPurchases).reduce(
-    (sum, items) => sum + items.reduce((s, wId) => s + goldCost(wId), 0),
+    (sum, items) => sum + items.reduce((s, id) => s + goldCost(id), 0),
     0
   )
   const goldRemaining = gold - totalSpent
 
-  const selectedMember = members.find((m) => m.tempId === selectedTempId)
+  const selectedMember = sortedMembers.find((m) => m.tempId === selectedTempId)
+  void selectedMember // used implicitly via selectedTempId
 
   const getPurchasedForMember = (tempId: string) => goldPurchases[tempId] ?? []
 
-  const getAvailableForMember = (member: RosterMember): WargearEntry[] => {
+  const getAvailableWargearForMember = (member: RosterMember): WargearEntry[] => {
     const accessible = getAccessible(member, companyTypeId)
     const purchased = getPurchasedForMember(member.tempId)
     const allEquip = [...member.equipment, ...purchased]
@@ -169,6 +252,7 @@ export default function StepGoldEquipment({
       if (w.rating === undefined) return false
       if (!accessible.has(w.id)) return false
       if (allEquip.includes(w.id)) return false
+      if (w.category === 'equipment') return false // equipment items go in Equipment tab
       // Only one mount
       if (
         w.category === 'mount' &&
@@ -181,19 +265,46 @@ export default function StepGoldEquipment({
     })
   }
 
-  const handleBuy = (member: RosterMember, wargearId: string) => {
-    const cost = goldCost(wargearId)
-    if (cost > goldRemaining) return
-    const current = getPurchasedForMember(member.tempId)
-    onUpdate(member.tempId, [...current, wargearId])
+  const getAvailableEquipmentForMember = (
+    member: RosterMember
+  ): EquipmentEntry[] => {
+    const purchased = getPurchasedForMember(member.tempId)
+    const allEquip = [...member.equipment, ...purchased]
+    return (equipmentData as EquipmentEntry[]).filter((e) => {
+      if (allEquip.includes(e.id)) return false
+      if (e.cavalryOnly) return false
+      if (e.heroOnly && !member.isHero) return false
+      return true
+    })
   }
 
-  const handleRemove = (member: RosterMember, wargearId: string) => {
+  const handleBuy = (member: RosterMember, itemId: string) => {
+    const cost = goldCost(itemId)
+    if (cost > goldRemaining) return
+    const current = getPurchasedForMember(member.tempId)
+    onUpdate(member.tempId, [...current, itemId])
+  }
+
+  const handleRemove = (member: RosterMember, itemId: string) => {
     const current = getPurchasedForMember(member.tempId)
     onUpdate(
       member.tempId,
-      current.filter((w) => w !== wargearId)
+      current.filter((w) => w !== itemId)
     )
+  }
+
+  const getActiveTab = (
+    tempId: string,
+    isHero: boolean
+  ): 'wargear' | 'equipment' | 'creatures' => {
+    return heroTab[tempId] ?? 'wargear'
+  }
+
+  const setActiveTab = (
+    tempId: string,
+    tab: 'wargear' | 'equipment' | 'creatures'
+  ) => {
+    setHeroTab((prev) => ({ ...prev, [tempId]: tab }))
   }
 
   return (
@@ -251,10 +362,11 @@ export default function StepGoldEquipment({
 
       {/* Member list */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {members.map((member) => {
+        {sortedMembers.map((member) => {
           const purchased = getPurchasedForMember(member.tempId)
-          const available = getAvailableForMember(member)
           const isSelected = selectedTempId === member.tempId
+          const activeTab = getActiveTab(member.tempId, member.isHero)
+          const memberLabel = getMemberLabel(member, leaderId)
 
           return (
             <Box
@@ -295,11 +407,7 @@ export default function StepGoldEquipment({
                     {member.name}
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                    {member.isHero
-                      ? member.tempId === members.find((m) => m.isHero)?.tempId
-                        ? 'Leader'
-                        : 'Sergeant'
-                      : 'Warrior'}
+                    {memberLabel}
                     {' · '}
                     {member.baseUnitId
                       .replace(/_/g, ' ')
@@ -312,7 +420,7 @@ export default function StepGoldEquipment({
                       variant="caption"
                       sx={{ color: 'success.light', opacity: 0.8 }}
                     >
-                      -{purchased.reduce((s, w) => s + goldCost(w), 0)} gp
+                      -{purchased.reduce((s, id) => s + goldCost(id), 0)} gp
                     </Typography>
                   )}
                   <Typography sx={{ opacity: 0.4, fontSize: '0.8rem' }}>
@@ -321,130 +429,74 @@ export default function StepGoldEquipment({
                 </Box>
               </Box>
 
-              {/* Expanded: purchased chips + available to buy */}
+              {/* Expanded: tabs + content */}
               {isSelected && (
                 <Box
                   sx={{
-                    px: 1.5,
-                    pb: 1.5,
                     borderTop: '1px solid',
                     borderColor: 'divider',
                   }}
                 >
-                  {/* Currently purchased */}
-                  {purchased.length > 0 && (
-                    <Box sx={{ mt: 1, mb: 1.5 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          opacity: 0.5,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          fontSize: '0.58rem',
-                          display: 'block',
-                          mb: 0.75,
-                        }}
-                      >
-                        Purchased
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {purchased.map((wId) => (
-                          <Chip
-                            key={wId}
-                            label={`${wargearLabel(wId)} (${goldCost(wId)} gp)`}
-                            size="small"
-                            onDelete={() => handleRemove(member, wId)}
-                            sx={{
-                              fontSize: '0.68rem',
-                              borderColor: 'primary.dark',
-                              color: 'primary.light',
-                              '& .MuiChip-deleteIcon': {
-                                color: 'primary.dark',
-                              },
-                            }}
-                            variant="outlined"
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
+                  {/* Tabs */}
+                  <Tabs
+                    value={activeTab}
+                    onChange={(_, v) => setActiveTab(member.tempId, v)}
+                    variant="fullWidth"
+                    sx={{
+                      minHeight: 36,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      '& .MuiTab-root': {
+                        minHeight: 36,
+                        fontSize: '0.7rem',
+                        py: 0.5,
+                      },
+                    }}
+                  >
+                    <Tab label="Wargear" value="wargear" />
+                    <Tab label="Equipment" value="equipment" />
+                    {member.isHero && (
+                      <Tab label="Creatures" value="creatures" />
+                    )}
+                  </Tabs>
 
-                  {/* Available to buy */}
-                  {available.length === 0 ? (
-                    <Typography
-                      variant="caption"
-                      sx={{ opacity: 0.4, display: 'block', mt: 1 }}
-                    >
-                      No further wargear available for this member.
-                    </Typography>
-                  ) : (
-                    <>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          opacity: 0.5,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          fontSize: '0.58rem',
-                          display: 'block',
-                          mt: 1,
-                          mb: 0.75,
-                        }}
-                      >
-                        Available
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 0.5,
-                        }}
-                      >
-                        {available.map((w) => {
-                          const cost = goldCost(w.id)
-                          const canAfford = cost <= goldRemaining
-                          const isArmour = ARMOUR_TIER[w.id] !== undefined
-                          return (
-                            <Box
-                              key={w.id}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                px: 1.25,
-                                py: 0.75,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                background: 'rgba(0,0,0,0.1)',
-                                opacity: canAfford ? 1 : 0.38,
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                sx={{ fontSize: '0.8rem' }}
-                              >
-                                {isArmour ? `Upgrade to ${w.label}` : w.label}
-                              </Typography>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                disabled={!canAfford}
-                                onClick={() => handleBuy(member, w.id)}
-                                sx={{
-                                  minWidth: 60,
-                                  fontSize: '0.62rem',
-                                  py: 0.5,
-                                }}
-                              >
-                                {cost} gp
-                              </Button>
-                            </Box>
-                          )
-                        })}
-                      </Box>
-                    </>
-                  )}
+                  <Box sx={{ px: 1.5, pb: 1.5 }}>
+                    {/* ── Wargear tab ── */}
+                    {activeTab === 'wargear' && (
+                      <WargearTabContent
+                        member={member}
+                        purchased={purchased}
+                        available={getAvailableWargearForMember(member)}
+                        goldRemaining={goldRemaining}
+                        onBuy={handleBuy}
+                        onRemove={handleRemove}
+                      />
+                    )}
+
+                    {/* ── Equipment tab ── */}
+                    {activeTab === 'equipment' && (
+                      <EquipmentTabContent
+                        member={member}
+                        purchased={purchased}
+                        available={getAvailableEquipmentForMember(member)}
+                        goldRemaining={goldRemaining}
+                        onBuy={handleBuy}
+                        onRemove={handleRemove}
+                      />
+                    )}
+
+                    {/* ── Creatures tab (heroes only) ── */}
+                    {activeTab === 'creatures' && member.isHero && (
+                      <CreaturesTabContent
+                        member={member}
+                        purchased={purchased}
+                        creatures={getAvailableCreatures(companyTypeId)}
+                        goldRemaining={goldRemaining}
+                        onBuy={handleBuy}
+                        onRemove={handleRemove}
+                      />
+                    )}
+                  </Box>
                 </Box>
               )}
             </Box>
@@ -452,5 +504,331 @@ export default function StepGoldEquipment({
         })}
       </Box>
     </Box>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+interface TabContentProps {
+  member: RosterMember
+  purchased: string[]
+  goldRemaining: number
+  onBuy: (member: RosterMember, id: string) => void
+  onRemove: (member: RosterMember, id: string) => void
+}
+
+function PurchasedChips({
+  purchased,
+  filterFn,
+  member,
+  onRemove,
+}: {
+  purchased: string[]
+  filterFn: (id: string) => boolean
+  member: RosterMember
+  onRemove: (member: RosterMember, id: string) => void
+}) {
+  const filtered = purchased.filter(filterFn)
+  if (filtered.length === 0) return null
+  return (
+    <Box sx={{ mt: 1, mb: 1.5 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          opacity: 0.5,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontSize: '0.58rem',
+          display: 'block',
+          mb: 0.75,
+        }}
+      >
+        Purchased
+      </Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {filtered.map((id) => (
+          <Chip
+            key={id}
+            label={`${wargearLabel(id)} (${goldCost(id)} gp)`}
+            size="small"
+            onDelete={() => onRemove(member, id)}
+            sx={{
+              fontSize: '0.68rem',
+              borderColor: 'primary.dark',
+              color: 'primary.light',
+              '& .MuiChip-deleteIcon': { color: 'primary.dark' },
+            }}
+            variant="outlined"
+          />
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+function WargearTabContent({
+  member,
+  purchased,
+  available,
+  goldRemaining,
+  onBuy,
+  onRemove,
+}: TabContentProps & { available: WargearEntry[] }) {
+  const isWargearId = (id: string) =>
+    WARGEAR_MAP[id] !== undefined && WARGEAR_MAP[id].category !== 'equipment'
+
+  return (
+    <>
+      <PurchasedChips
+        purchased={purchased}
+        filterFn={isWargearId}
+        member={member}
+        onRemove={onRemove}
+      />
+      {available.length === 0 ? (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.4, display: 'block', mt: 1 }}
+        >
+          No further wargear available for this member.
+        </Typography>
+      ) : (
+        <>
+          <Typography
+            variant="caption"
+            sx={{
+              opacity: 0.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontSize: '0.58rem',
+              display: 'block',
+              mt: 1,
+              mb: 0.75,
+            }}
+          >
+            Available
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {available.map((w) => {
+              const cost = goldCost(w.id)
+              const canAfford = cost <= goldRemaining
+              const isArmour = ARMOUR_TIER[w.id] !== undefined
+              return (
+                <Box
+                  key={w.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 1.25,
+                    py: 0.75,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    background: 'rgba(0,0,0,0.1)',
+                    opacity: canAfford ? 1 : 0.38,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                    {isArmour ? `Upgrade to ${w.label}` : w.label}
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={!canAfford}
+                    onClick={() => onBuy(member, w.id)}
+                    sx={{ minWidth: 60, fontSize: '0.62rem', py: 0.5 }}
+                  >
+                    {cost} gp
+                  </Button>
+                </Box>
+              )
+            })}
+          </Box>
+        </>
+      )}
+    </>
+  )
+}
+
+function EquipmentTabContent({
+  member,
+  purchased,
+  available,
+  goldRemaining,
+  onBuy,
+  onRemove,
+}: TabContentProps & { available: EquipmentEntry[] }) {
+  const isEquipmentId = (id: string) => EQUIPMENT_MAP[id] !== undefined
+
+  return (
+    <>
+      <PurchasedChips
+        purchased={purchased}
+        filterFn={isEquipmentId}
+        member={member}
+        onRemove={onRemove}
+      />
+      {available.length === 0 ? (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.4, display: 'block', mt: 1 }}
+        >
+          No equipment available for this member.
+        </Typography>
+      ) : (
+        <>
+          <Typography
+            variant="caption"
+            sx={{
+              opacity: 0.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontSize: '0.58rem',
+              display: 'block',
+              mt: 1,
+              mb: 0.75,
+            }}
+          >
+            Available
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {available.map((e) => {
+              const cost = goldCost(e.id)
+              const canAfford = cost <= goldRemaining
+              return (
+                <Box
+                  key={e.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 1.25,
+                    py: 0.75,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    background: 'rgba(0,0,0,0.1)',
+                    opacity: canAfford ? 1 : 0.38,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                    {e.label}
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={!canAfford}
+                    onClick={() => onBuy(member, e.id)}
+                    sx={{ minWidth: 60, fontSize: '0.62rem', py: 0.5 }}
+                  >
+                    {cost} gp
+                  </Button>
+                </Box>
+              )
+            })}
+          </Box>
+        </>
+      )}
+    </>
+  )
+}
+
+function CreaturesTabContent({
+  member,
+  purchased,
+  creatures,
+  goldRemaining,
+  onBuy,
+  onRemove,
+}: TabContentProps & { creatures: CreatureEntry[] }) {
+  const isCreatureId = (id: string) =>
+    ALL_CREATURES.some((c) => c.id === id)
+
+  const purchasedCreature = purchased.find(isCreatureId)
+  const alreadyHasCreature = purchasedCreature !== undefined
+
+  return (
+    <>
+      <PurchasedChips
+        purchased={purchased}
+        filterFn={isCreatureId}
+        member={member}
+        onRemove={onRemove}
+      />
+      {alreadyHasCreature ? (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.4, display: 'block', mt: 1 }}
+        >
+          This hero already has a creature.
+        </Typography>
+      ) : creatures.length === 0 ? (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.4, display: 'block', mt: 1 }}
+        >
+          No creatures available for this company.
+        </Typography>
+      ) : (
+        <>
+          <Typography
+            variant="caption"
+            sx={{
+              opacity: 0.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontSize: '0.58rem',
+              display: 'block',
+              mt: 1,
+              mb: 0.75,
+            }}
+          >
+            Available
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {creatures.map((c) => {
+              const cost = c.pointsCost
+              const canAfford = cost <= goldRemaining
+              return (
+                <Box
+                  key={c.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 1.25,
+                    py: 0.75,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    background: 'rgba(0,0,0,0.1)',
+                    opacity: canAfford ? 1 : 0.38,
+                  }}
+                >
+                  <Box sx={{ flex: 1, mr: 1 }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                      {c.label}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.55, fontSize: '0.68rem' }}>
+                      {`Mv ${c.stats.move}" · Fv ${c.stats.fight} · S ${c.stats.strength} · D ${c.stats.defence} · A ${c.stats.attacks} · W ${c.stats.wounds}`}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={!canAfford}
+                    onClick={() => onBuy(member, c.id)}
+                    sx={{ minWidth: 60, fontSize: '0.62rem', py: 0.5 }}
+                  >
+                    {cost} gp
+                  </Button>
+                </Box>
+              )
+            })}
+          </Box>
+        </>
+      )}
+    </>
   )
 }

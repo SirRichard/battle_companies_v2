@@ -1,5 +1,12 @@
 import type { Company, Member, StoredBaseUnitStats } from '../../models'
 import { AVERAGE_PROFILE, RATING_POINTS } from '../../constants'
+import specialRulesData from '../../data/specialRules.json'
+
+const MINOR_RULE_LABELS = new Set(
+  (specialRulesData as Array<{ label: string; minor: boolean }>)
+    .filter((r) => r.minor)
+    .map((r) => r.label)
+)
 
 /**
  * Calculates a single member's point rating per SRS §4.8.1.
@@ -69,7 +76,30 @@ export function calcMemberRating(
     }
 
     // Special rules: +5 each (minor rules capped at 10 total)
-    rating += member.specialRules.length * RATING_POINTS.specialRule
+    // Heroic Actions do NOT contribute to rating.
+    const HEROIC_ACTION_LABELS = new Set([
+      'Heroic Accuracy',
+      'Heroic Challenge',
+      'Heroic Channelling',
+      'Heroic Defence',
+      'Heroic March',
+      'Heroic Resolve',
+      'Heroic Strength',
+      'Heroic Strike',
+      'Heroic Move',
+      'Heroic Shoot',
+      'Heroic Combat',
+    ])
+    const countableSpecialRules = member.specialRules.filter(
+      (r) => !HEROIC_ACTION_LABELS.has(r)
+    )
+    const minorRules = countableSpecialRules.filter((r) =>
+      MINOR_RULE_LABELS.has(r)
+    )
+    const majorRules = countableSpecialRules.filter(
+      (r) => !MINOR_RULE_LABELS.has(r)
+    )
+    rating += Math.min(minorRules.length * 5, 10) + majorRules.length * 5
   }
 
   return rating

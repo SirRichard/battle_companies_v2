@@ -30,6 +30,7 @@ import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { calcCompanyRating } from '../utils/rating'
+import wanderersData from '../data/wanderers.json'
 import type { ActiveMatchState, AtoBonusType } from '../models/match'
 import scenariosData from '../data/scenarios.json'
 
@@ -178,8 +179,16 @@ export default function MatchSetupPage() {
     useAppContext()
 
   const company = companies.find((c) => c.id === companyId)
+  const wanderers = wanderersData as Array<{ id: string; pointsCost: number }>
+  const companyWanderer = company?.wandererId
+    ? wanderers.find((w) => w.id === company.wandererId)
+    : undefined
   const companyRating = company
-    ? calcCompanyRating(company.members, getStatsForUnit)
+    ? calcCompanyRating(
+        company.members,
+        getStatsForUnit,
+        companyWanderer ? { pointsCost: companyWanderer.pointsCost } : undefined
+      )
     : 0
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -254,6 +263,14 @@ export default function MatchSetupPage() {
       (m) => !m.injuries.some((i) => i.type === 'missing_next_game')
     )
 
+    const wanderersTyped = wanderersData as Array<{
+      id: string
+      label: string
+      pointsCost: number
+      stats: Record<string, number>
+      equipment: string[]
+    }>
+
     const match: ActiveMatchState = {
       companyId: company.id,
       opponentRating: opponentRatingNum,
@@ -278,6 +295,34 @@ export default function MatchSetupPage() {
         fateCurrent: m.heroStats?.fate ?? null,
       })),
       startedAt: new Date().toISOString(),
+    }
+
+    // Append wanderer as a synthetic MemberMatchState if one is hired
+    if (company.wandererId) {
+      const wandererProfile = wanderersTyped.find(
+        (w) => w.id === company.wandererId
+      )
+      if (wandererProfile) {
+        match.members.push({
+          memberId: company.wandererId,
+          memberName: wandererProfile.label,
+          baseUnitId: company.wandererId,
+          role: 'wanderer',
+          equipment: wandererProfile.equipment,
+          xpCounterGains: 0,
+          isCasualty: false,
+          mightMax: wandererProfile.stats.might ?? null,
+          willMax: wandererProfile.stats.will ?? null,
+          fateMax: wandererProfile.stats.fate ?? null,
+          mightCurrent: wandererProfile.stats.might ?? null,
+          willCurrent: wandererProfile.stats.will ?? null,
+          fateCurrent: wandererProfile.stats.fate ?? null,
+        })
+      } else {
+        console.warn(
+          `[MatchSetup] Wanderer ID "${company.wandererId}" not found in wanderers.json — skipping wanderer in match roster.`
+        )
+      }
     }
 
     await saveActiveMatch(match)

@@ -236,3 +236,248 @@ This spec covers a set of bug fixes and missing features for the Battle Companie
 5. THE StoreTab SHALL display the current influence balance and the cost of each treatment option so the user can make an informed decision.
 6. WHEN the company has insufficient influence to pay for a treatment, THE StoreTab SHALL disable that treatment option and display the reason.
 7. THE injury treatment logic used in the StoreTab SHALL be consistent with the logic already implemented in MemberDetailsDrawer to avoid divergent behaviour.
+
+---
+
+### Requirement 13: Injury Treatment Real-Time Update in MemberDetailsDrawer (BUG-FIX)
+
+**User Story:** As a player, I want the member details drawer to reflect injury changes immediately after treatment, so that I don't have to close and reopen the drawer to see the updated state.
+
+#### Acceptance Criteria
+
+1. WHEN an injury treatment action is confirmed from within the MemberDetailsDrawer, THE MemberDetailsDrawer SHALL update the displayed injury list in real time without requiring the drawer to be closed and reopened.
+2. WHEN a `missing_next_game` injury is removed via treatment, THE MemberDetailsDrawer SHALL immediately remove that injury entry from the displayed injury list.
+3. WHEN a hero injury is successfully treated via the roll path, THE MemberDetailsDrawer SHALL immediately remove the treated injury from the displayed injury list.
+4. THE MemberDetailsDrawer SHALL reflect the updated `company.influence` balance immediately after any treatment action is confirmed.
+5. WHEN a member has a `missing_next_game` status, THE MemberDetailsDrawer SHALL allow the user to spend 1 influence point to remove the status and return the unit to active state without requiring a dice roll.
+6. THE MemberDetailsDrawer SHALL NOT require a roll to remove a `missing_next_game` status; spending the influence point SHALL be sufficient to clear the injury.
+
+---
+
+### Requirement 14: Gold Step Ordering and Hero Classification in Company Creation Wizard (BUG-FIX + FEAT)
+
+**User Story:** As a player, I want the gold/equipment step in the company creation wizard to list members in the correct order and show the right hero classification, so that I can easily identify and equip each member.
+
+#### Acceptance Criteria
+
+1. WHEN the StepGoldEquipment step renders the member list, THE StepGoldEquipment SHALL order members as: heroes first (leader first, then sergeants alphabetically), then warriors alphabetically.
+2. THE StepGoldEquipment SHALL correctly identify the leader as the first hero in the roster and label them "Leader", and all subsequent heroes as "Sergeant".
+3. WHEN a member is a hero, THE StepGoldEquipment SHALL display separate tabs or sections for wargear, equipment, and creatures, allowing the user to switch between them.
+4. WHEN a member is a warrior, THE StepGoldEquipment SHALL display only the wargear and equipment tabs or sections applicable to that warrior's profile.
+5. THE StepGoldEquipment SHALL source creature options from `creatures.json`, filtered to those available to the hero's company.
+6. WHEN a hero purchases a creature, THE StepGoldEquipment SHALL record the creature purchase in the same `goldPurchases` structure used for wargear.
+
+---
+
+### Requirement 15: Remove Non-Armour Weapons from Hero Wargear in MemberDetailsDrawer (FEAT)
+
+**User Story:** As a player, I want to be able to remove non-armour weapons from a hero's wargear in the member details drawer, so that I can correct mistakes or discard unwanted items.
+
+#### Acceptance Criteria
+
+1. WHEN viewing a hero's wargear section in the MemberDetailsDrawer, THE MemberDetailsDrawer SHALL display an "Edit" button that enables wargear removal mode.
+2. WHEN wargear removal mode is active, THE MemberDetailsDrawer SHALL display an "X" (remove) button on each non-armour weapon in the hero's wargear list.
+3. WHEN the user taps the "X" on a wargear item, THE MemberDetailsDrawer SHALL display a confirmation dialog identifying the item to be removed before applying any change.
+4. WHEN the user confirms removal in the confirmation dialog, THE MemberDetailsDrawer SHALL remove the item from `member.equipment` and persist the updated company via `saveCompany`.
+5. THE MemberDetailsDrawer SHALL NOT display a remove button on armour items (items with a category of `armour` in `wargear.json`) or on base equipment items that are part of the unit's default profile.
+6. WHEN wargear removal mode is active, THE MemberDetailsDrawer SHALL display a "Done" button to exit removal mode without making further changes.
+7. THE MemberDetailsDrawer SHALL only expose this wargear removal feature for heroes; warriors SHALL NOT have the edit/remove wargear UI.
+
+---
+
+### Requirement 16: Store Tab Unit Ordering (BUG-FIX)
+
+**User Story:** As a player, I want the unit selector in the Store tab to list members in the correct order, so that I can quickly find the member I want to equip.
+
+#### Acceptance Criteria
+
+1. WHEN the StoreTab renders the member selector for wargear or equipment purchases, THE StoreTab SHALL order members as: heroes first (leader first, then sergeants alphabetically), then warriors alphabetically.
+2. WHEN the StoreTab renders the member selector for the creatures tab, THE StoreTab SHALL display only heroes, ordered as: leader first, then sergeants alphabetically.
+3. THE StoreTab SHALL apply the same ordering rule consistently across all purchase categories (wargear, equipment, creatures).
+4. WHEN a company has no heroes, THE StoreTab SHALL display only warriors in the wargear and equipment selectors, and SHALL display an empty state or hidden creatures tab.
+
+---
+
+### Requirement 17: Show Rank and Equipped Wargear in ToolkitAssignmentPage Member Selector (FEAT)
+
+**User Story:** As a player, I want to see each member's rank and equipped wargear when assigning toolkit items, so that I can make informed assignment decisions.
+
+#### Acceptance Criteria
+
+1. WHEN the ToolkitAssignmentPage renders the member dropdown or selector for item assignment, THE ToolkitAssignmentPage SHALL display each member's rank (e.g. Leader, Sergeant, Hero in the Making, Warrior) alongside their name.
+2. WHEN the ToolkitAssignmentPage renders the member selector, THE ToolkitAssignmentPage SHALL display each member's currently equipped wargear items alongside their name and rank.
+3. THE ToolkitAssignmentPage SHALL source the member's rank from `member.role` and the wargear from the union of `baseEquipment` (from `baseUnits.json`) and `member.equipment`.
+4. THE ToolkitAssignmentPage SHALL display the rank and wargear in a compact format that does not obscure the member's name or make the selector difficult to use on small screens.
+
+---
+
+### Requirement 18: Toolkit Items on MatchTrackingPage with Consumable Usage Tracking (FEAT)
+
+**User Story:** As a player, I want to see assigned toolkit items on each member's match tracking card and be able to mark consumable items as used, so that I can track item usage during a match.
+
+#### Acceptance Criteria
+
+1. WHEN a match has toolkit items assigned (`match.toolkitItems` is non-empty), THE MatchTrackingPage SHALL display each member's assigned toolkit items within that member's match card.
+2. WHEN a toolkit item is consumable, THE MatchTrackingPage SHALL display a "Use" button or toggle next to that item on the member's card.
+3. WHEN the user marks a consumable toolkit item as used, THE MatchTrackingPage SHALL visually indicate the item has been consumed (e.g. strikethrough, greyed out, or a "Used" label) and persist the used state in the active match state.
+4. WHEN a toolkit item is not consumable, THE MatchTrackingPage SHALL display the item as a non-interactive label on the member's card.
+5. THE MatchTrackingPage SHALL source the consumable flag for each item from the item's definition in `wargear.json` or the toolkit item data.
+6. WHEN a member has no assigned toolkit items, THE MatchTrackingPage SHALL NOT render a toolkit section on that member's card.
+7. THE MatchTrackingPage SHALL persist the used/unused state of consumable items in `ActiveMatchState` so that the state survives a page reload during a match.
+
+---
+
+### Requirement 19: PathCardSelector in PostMatchSummaryPage for Heroic Path Selection (FEAT)
+
+**User Story:** As a player, I want to use the swipeable path card interface when choosing a heroic path during post-match hero promotion, so that I have the same rich path information available as in the company creation wizard.
+
+#### Acceptance Criteria
+
+1. WHEN the PostMatchSummaryPage presents a heroic path selection dialog (for a newly promoted Hero in the Making), THE PostMatchSummaryPage SHALL render the PathCardSelector component instead of a plain list of options.
+2. THE PathCardSelector SHALL be pre-populated with all available paths from `paths.json` and SHALL allow the user to swipe or navigate between path cards.
+3. WHEN the user selects a path via PathCardSelector and confirms, THE PostMatchSummaryPage SHALL apply the selected path to the member and continue post-match processing.
+4. THE PostMatchSummaryPage SHALL pass the member's base stats to PathCardSelector so that concrete stat ceilings are displayed rather than relative gains.
+5. WHEN the Path of Channeling is selected, THE PostMatchSummaryPage SHALL present a spell selection step after path confirmation, consistent with the existing spell selection flow.
+
+---
+
+### Requirement 20: Reset Selected Option After Each Hero Promotion in PostMatchSummaryPage (BUG-FIX)
+
+**User Story:** As a player, I want the hero advancement selection to reset after each hero confirms their choice, so that I know I have moved on to the next hero's promotion and don't accidentally apply the previous hero's selection.
+
+#### Acceptance Criteria
+
+1. WHEN a hero confirms their advancement selection in the PostMatchSummaryPage progression step, THE PostMatchSummaryPage SHALL reset the selected option (chosen roll A or B, and any sub-choice index) to its default unselected state before presenting the next hero's advancement.
+2. WHEN the next hero's advancement is presented, THE PostMatchSummaryPage SHALL display no pre-selected option, requiring the user to make a fresh selection.
+3. THE PostMatchSummaryPage SHALL apply this reset for every hero advancement confirmation, regardless of whether the confirmed choice was roll A, roll B, or a bonus roll.
+4. WHEN only one hero has levelled up, THE PostMatchSummaryPage SHALL still reset the selection state after confirmation, so the UI is consistent.
+
+---
+
+### Requirement 21: Start Match Button Available from All Tabs in CompanyDetailsPage (FEAT)
+
+**User Story:** As a player, I want to be able to start a match from any tab on the Company Details page, so that I don't have to navigate back to the Roster tab just to begin a game.
+
+#### Acceptance Criteria
+
+1. THE CompanyDetailsPage SHALL display the "Start Match" action (FAB or equivalent) on all three tabs: Roster, History, and Store.
+2. WHEN the user taps "Start Match" from any tab, THE CompanyDetailsPage SHALL navigate to the match setup page for the current company, identical to the existing behaviour on the Roster tab.
+3. THE CompanyDetailsPage SHALL render the "Start Match" button with the same visual style regardless of which tab is active.
+
+---
+
+### Requirement 22: Against the Odds — Wanderer Selection (NEW-1)
+
+**User Story:** As a player, I want to be able to pick which wanderer my company hires when I select the "wanderer" Against the Odds bonus, so that the chosen wanderer appears in the match tracking roster.
+
+#### Acceptance Criteria
+
+1. WHEN the user selects the "wanderer" ATO bonus in PostMatchSummaryPage, THE PostMatchSummaryPage SHALL present a wanderer selection dialog listing all available wanderers from `wanderers.json` (label, point cost, and key stats).
+2. WHEN the user confirms a wanderer selection, THE PostMatchSummaryPage SHALL persist the chosen wanderer's ID to `company.wandererId` and save the updated company.
+3. WHEN a wanderer is already hired (`company.wandererId` is set) and the user selects the "wanderer" ATO bonus again, THE PostMatchSummaryPage SHALL allow the user to replace the existing wanderer with a new selection.
+4. WHEN the user dismisses the wanderer selection dialog without making a choice, THE PostMatchSummaryPage SHALL leave `company.wandererId` unchanged.
+5. THE wanderer selection dialog SHALL display each wanderer's label, influence cost, and a brief summary of their stats so the user can make an informed choice.
+6. WHEN a wanderer is selected via the ATO bonus flow, THE MatchSetupPage SHALL include that wanderer in the match roster on the next match (consistent with the existing FEAT-4 / Requirement 8 behaviour).
+
+---
+
+### Requirement 23: Consumable Toolkit Items — Remove on Use (NEW-2)
+
+**User Story:** As a player, I want to be able to permanently remove a consumable toolkit item from a member's assignment after using it during a match, so that the item is properly consumed and no longer appears in future matches.
+
+#### Acceptance Criteria
+
+1. WHEN a consumable toolkit item has been marked as used in MatchTrackingPage, THE MatchTrackingPage SHALL display a "Remove" button (or equivalent) alongside the "Used" visual indicator for that item.
+2. WHEN the user taps "Remove" on a used consumable item, THE MatchTrackingPage SHALL remove that item from the member's toolkit assignment in `ActiveMatchState.toolkitItems`.
+3. WHEN a consumable item is removed from `ActiveMatchState.toolkitItems`, THE MatchTrackingPage SHALL immediately hide the item from the member's toolkit section on the match card.
+4. THE removal action SHALL only be available for consumable items that have already been marked as used; unused consumable items SHALL NOT show a "Remove" button.
+5. WHEN the match ends after a consumable item has been removed, THE post-match data SHALL not include that item in the toolkit assignment, so it does not reappear in future matches.
+6. THE MatchTrackingPage SHALL persist the updated `toolkitItems` list (with the removed item absent) in `ActiveMatchState` so the removal survives a page reload.
+
+---
+
+### Requirement 24: Hero Progression Roll of 5 — Apply Both Results Automatically (NEW-3)
+
+**User Story:** As a player, I want the app to automatically give me both progression results when a hero rolls a 5, so that I don't have to manually pick between them — both should be applied and I only need to make choices within each result.
+
+#### Acceptance Criteria
+
+1. WHEN a hero's progression roll is 5, THE PostMatchSummaryPage SHALL automatically apply both the roll-A result and the roll-B result to the hero without requiring the user to choose between them.
+2. WHEN both results are applied on a roll of 5, THE PostMatchSummaryPage SHALL present any sub-choices required by each result (e.g. which stat to increase, which special rule to gain) to the user in sequence.
+3. THE PostMatchSummaryPage SHALL clearly indicate to the user that both results are being applied because the roll was a 5.
+4. WHEN one or both of the roll-5 results require no sub-choice (e.g. a fixed stat increase), THE PostMatchSummaryPage SHALL apply that result automatically without prompting the user.
+5. THE existing `HeroAdvRecord.bonusRoll` field SHALL be used to store the second result when a roll of 5 occurs, and both `resultA` and `bonusRoll` SHALL be applied when the user confirms.
+6. WHEN a roll of 5 occurs and both results have been applied, THE PostMatchSummaryPage SHALL mark the hero's advancement as done and advance to the next hero.
+
+---
+
+### Requirement 25: Injury Treatment — Prompt to Use IP After D6 Roll (NEW-4)
+
+**User Story:** As a player, I want to be prompted to spend Influence Points after seeing the D6 roll result when treating a hero injury, so that I can make an informed decision about whether to use IP and the flow is clear about when IP is spent.
+
+#### Acceptance Criteria
+
+1. WHEN treating a hero injury that requires a D6 roll (`arm_wound`, `leg_wound`, `broken_honour`), THE MemberDetailsDrawer SHALL display the animated D6 roll result to the user before prompting for IP usage.
+2. AFTER the D6 roll result is shown, THE MemberDetailsDrawer SHALL prompt the user with the option to spend IP to improve the outcome (if applicable) or confirm the result as-is.
+3. WHEN the user chooses to spend IP, THE MemberDetailsDrawer SHALL deduct the IP from `company.influence` and apply the improved outcome.
+4. WHEN the user chooses not to spend IP (or no IP option is available), THE MemberDetailsDrawer SHALL apply the rolled outcome without deducting IP.
+5. WHEN the D6 roll results in a success (injury treated), THE MemberDetailsDrawer SHALL still offer the IP prompt before finalising, so the user can confirm the result.
+6. THE MemberDetailsDrawer SHALL display the current IP balance and the cost of spending IP during the prompt so the user can make an informed decision.
+7. WHEN the company has insufficient IP to spend, THE MemberDetailsDrawer SHALL disable the "Spend IP" option and display the reason.
+
+---
+
+### Requirement 26: Store Tab — Capitalize Leader/Sergeant Titles and Fix "Hero in the Making" Label (NEW-5)
+
+**User Story:** As a player, I want the Store tab to display member titles correctly — with "Leader" and "Sergeant" capitalized and heroes in the making shown as "Hero in the Making" — so that the UI is consistent and readable.
+
+#### Acceptance Criteria
+
+1. WHEN the Store tab renders member selectors or member labels under the Wargear, Equipment, or Creatures sub-tabs, THE StoreTab SHALL display the Leader role as "Leader" (capitalized).
+2. WHEN the Store tab renders member selectors or member labels, THE StoreTab SHALL display the Sergeant role as "Sergeant" (capitalized).
+3. WHEN the Store tab renders member selectors or member labels, THE StoreTab SHALL display the hero_in_making role as "Hero in the Making" (human-readable label, not the raw `hero_in_making` string).
+4. THE StoreTab SHALL apply these label corrections consistently across all member selectors and any inline role labels within the Store tab.
+5. THE StoreTab SHALL use the existing `roleLabel` helper function (or equivalent) to derive these labels, ensuring consistency with the rest of the app.
+
+---
+
+### Requirement 27: Roster Tab — Warriors Show Only Loadout Choices (NEW-6)
+
+**User Story:** As a player, I want warriors on the Roster tab to show only their wargear loadout choices (not all their base gear), so that the roster is less cluttered and I can quickly see what options each warrior has selected.
+
+#### Acceptance Criteria
+
+1. WHEN the Roster tab renders a warrior's `MemberRow`, THE MemberRow SHALL display only the warrior's wargear loadout choices — items that represent a selection from the warrior's `equipmentOptions` — rather than all base equipment plus purchased equipment.
+2. WHEN a warrior has no loadout choices (no `equipmentOptions` defined for their profile, or no option has been selected), THE MemberRow SHALL display no wargear chips for that warrior.
+3. THE MemberRow SHALL continue to display all wargear (base equipment + purchased equipment) for heroes; this change applies to warriors only.
+4. WHEN a warrior's full wargear list (base equipment + purchased equipment) is needed, it SHALL remain accessible via the MemberDetailsDrawer for that warrior.
+5. THE Roster tab warrior wargear display change SHALL NOT affect how warrior wargear is shown in any other view (Store tab, MatchTrackingPage, MemberDetailsDrawer, etc.).
+
+---
+
+### Requirement 28: Store > Wargear Tab — Hide Wargear Type Label, Keep Bow Limit (NEW-7)
+
+**User Story:** As a player, I want the Store's Wargear tab to not show the wargear type label under each item name, so that the list is cleaner — but I still want to see the bow limit warning so I know when I can't buy more ranged weapons.
+
+#### Acceptance Criteria
+
+1. WHEN the Store tab renders the Wargear sub-tab purchase options, THE StoreTab SHALL NOT display the wargear type/category label beneath each wargear item's name (e.g. "mount", "hand_weapon", "bow" labels should be hidden).
+2. WHEN a ranged weapon is displayed in the Wargear sub-tab and the company's bow limit has been reached, THE StoreTab SHALL still display a bow-limit warning or indicator for that item (e.g. "Bow limit reached") and disable the purchase button for that item.
+3. WHEN the bow limit has NOT been reached, THE StoreTab SHALL display ranged weapons as purchasable without any bow-limit indicator.
+4. THE removal of the wargear type label SHALL apply to all wargear items in the Wargear sub-tab, including mounts, weapons, and armour.
+5. THE bow limit check and display logic SHALL remain functionally unchanged; only the general wargear type label is hidden.
+
+---
+
+### Requirement 29: Auto-Clear "Missing Next Game" Injury After a Completed Match (BUG-FIX)
+
+**User Story:** As a player, I want a unit's "Missing Next Game" injury to be automatically removed when a match is completed, so that the unit is available for the following game without requiring manual intervention.
+
+#### Acceptance Criteria
+
+1. WHEN the post-match flow completes and the company is saved, THE PostMatchSummaryPage SHALL remove any `missing_next_game` injury from every member who had that status at the start of the match.
+2. THE auto-clear SHALL apply to both heroes and warriors.
+3. THE auto-clear SHALL occur regardless of whether the member participated in the match (i.e. the injury is cleared for all members with that status, not only those who were in the match roster).
+4. WHEN a member has other injuries in addition to `missing_next_game` (e.g. `arm_wound`), THE PostMatchSummaryPage SHALL remove only the `missing_next_game` entry and leave all other injuries intact.
+5. THE auto-clear SHALL happen as part of the final company save at the end of the post-match flow, not as a separate user action.
+6. WHEN no members have a `missing_next_game` injury, THE PostMatchSummaryPage SHALL complete the save normally with no change in behaviour.

@@ -120,7 +120,7 @@ type FieldMeta =
   | (typeof STATS_ENTRY_FIELDS)[number]
   | (typeof MOUNT_STATS_ENTRY_FIELDS)[number]
 
-function validateForm(
+export function validateForm(
   values: FormValues,
   fields: readonly FieldMeta[]
 ): {
@@ -359,10 +359,11 @@ export default function EditStatsPage() {
 
   const handleFieldChange = (key: StatKey, raw: string) => {
     const numeric = raw.replace(/[^0-9]/g, '')
-    setFormValues((prev) => ({ ...prev, [key]: numeric }))
-    // Clear error/warning for this field on edit
-    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
-    if (warnings[key]) setWarnings((prev) => ({ ...prev, [key]: undefined }))
+    const newValues = { ...formValues, [key]: numeric }
+    setFormValues(newValues)
+    const { errors: errs, warnings: warns } = validateForm(newValues, fields)
+    setErrors(errs)
+    setWarnings(warns)
   }
 
   // ─── Browse / edit mode (no companyId, not wizard mode) ────────────────────
@@ -437,6 +438,7 @@ export default function EditStatsPage() {
     : `${currentIndex + 1} of ${unitQueue.length} units`
 
   const hasWarnings = Object.keys(warnings).length > 0
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -653,6 +655,7 @@ export default function EditStatsPage() {
         <Button
           variant="contained"
           onClick={handleSave}
+          disabled={hasErrors}
           sx={{ minWidth: 160, minHeight: 44 }}
         >
           {currentIndex < activeQueue.length - 1 ||

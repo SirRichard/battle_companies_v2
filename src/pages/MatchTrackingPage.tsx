@@ -39,8 +39,24 @@ import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel } from '../utils/labels'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
 import type { Company } from '../models'
-import type { ActiveMatchState, MemberMatchState } from '../models/match'
+import type { ActiveMatchState, MemberMatchState, ToolkitItem } from '../models/match'
 import type { PostMatchData } from '../models/postmatch'
+import wanderersData from '../data/wanderers.json'
+import wargearData from '../data/wargear.json'
+import equipmentData from '../data/equipment.json'
+
+// ─── Toolkit helpers ──────────────────────────────────────────────────────────
+
+function isConsumable(itemId: string): boolean {
+  const wargearItem = (wargearData as Array<{ id: string; consumable?: boolean }>).find(
+    (w) => w.id === itemId
+  )
+  if (wargearItem) return wargearItem.consumable ?? false
+  const equipItem = (equipmentData as Array<{ id: string; consumable?: boolean }>).find(
+    (e) => e.id === itemId
+  )
+  return equipItem?.consumable ?? false
+}
 
 const MotionBox = motion(Box)
 
@@ -61,6 +77,7 @@ const ROLE_ORDER: Record<string, number> = {
   leader: 0,
   sergeant: 1,
   hero_in_making: 2,
+  wanderer: 2.5,
   warrior: 3,
 }
 
@@ -215,6 +232,19 @@ export default function MatchTrackingPage() {
     })
   }
 
+  const handleRemoveToolkitItem = (memberId: string, itemId: string) => {
+    setMatch((prev) =>
+      prev
+        ? {
+            ...prev,
+            toolkitItems: prev.toolkitItems.filter(
+              (t) => !(t.memberId === memberId && t.itemId === itemId)
+            ),
+          }
+        : prev
+    )
+  }
+
   const handleAbort = async () => {
     if (companyId) await clearActiveMatch(companyId)
     navigate(`/companies/${companyId}`)
@@ -229,6 +259,16 @@ export default function MatchTrackingPage() {
   }
 
   const sorted = sortMembers(match.members)
+
+  // Build a lookup for wanderer stats from wanderers.json
+  const wanderersTyped = wanderersData as Array<{
+    id: string
+    label: string
+    stats: Record<string, number>
+  }>
+  const wandererStatsMap = new Map(
+    wanderersTyped.map((w) => [w.id, w.stats])
+  )
 
   // XP help button passed to PageHeader
   const xpHelpButton = (
@@ -310,14 +350,20 @@ export default function MatchTrackingPage() {
             const companyMember = company?.members.find(
               (m) => m.id === mm.memberId
             )
+            const baseStats =
+              getStatsForUnit(mm.baseUnitId)?.stats ??
+              (mm.role === 'wanderer'
+                ? wandererStatsMap.get(mm.memberId)
+                : undefined)
             return (
               <MemberMatchCard
                 key={mm.memberId}
                 mm={mm}
                 delay={i * 0.04}
-                baseStats={getStatsForUnit(mm.baseUnitId)?.stats}
+                baseStats={baseStats}
                 statIncreases={companyMember?.statIncreases ?? {}}
                 statDecreases={companyMember?.statDecreases ?? {}}
+                toolkitItems={match.toolkitItems}
                 onXpChange={(delta) =>
                   updateMember(mm.memberId, {
                     xpCounterGains: Math.max(0, mm.xpCounterGains + delta),
@@ -337,6 +383,14 @@ export default function MatchTrackingPage() {
                     [curKey]: next,
                   } as Partial<MemberMatchState>)
                 }}
+                onUseToolkitItem={(itemId) =>
+                  updateMember(mm.memberId, {
+                    usedToolkitItems: [...(mm.usedToolkitItems ?? []), itemId],
+                  })
+                }
+                onRemoveToolkitItem={(itemId) =>
+                  handleRemoveToolkitItem(mm.memberId, itemId)
+                }
               />
             )
           })}
@@ -549,9 +603,12 @@ interface CardProps {
   baseStats: Record<string, number> | undefined
   statIncreases: Record<string, number>
   statDecreases: Record<string, number>
+  toolkitItems: ToolkitItem[]
   onXpChange: (delta: number) => void
   onCasualtyToggle: () => void
   onMwfChange: (stat: 'might' | 'will' | 'fate', delta: number) => void
+  onUseToolkitItem: (itemId: string) => void
+  onRemoveToolkitItem: (itemId: string) => void
 }
 
 // All 9 stats in display order
@@ -573,9 +630,12 @@ function MemberMatchCard({
   baseStats,
   statIncreases,
   statDecreases,
+  toolkitItems,
   onXpChange,
   onCasualtyToggle,
   onMwfChange,
+  onUseToolkitItem,
+  onRemoveToolkitItem,
 }: CardProps) {
   const isHero = mm.role !== 'warrior'
   const equipBonus = calcEquipmentStatBonus(mm.equipment, mm.baseUnitId)
@@ -587,7 +647,9 @@ function MemberMatchCard({
         ? 'Sgt'
         : mm.role === 'hero_in_making'
           ? 'Hero'
-          : null
+          : mm.role === 'wanderer'
+            ? 'Wanderer'
+            : null
 
   const hasHeroStats = isHero && mm.mightMax !== null
 
@@ -919,6 +981,73 @@ function MemberMatchCard({
           ))}
         </Box>
       )}
+
+      {/* Row 5: Toolkit items */}
+      {(() => {
+        const memberToolkit = toolkitItems.filter((t) => t.memberId === mm.memberId)
+        if (memberToolkit.length === 0) return null
+        return (
+          <Box sx={{ mb: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.55, display: 'block', mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+            >
+              Toolkit
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {memberToolkit.map((item) => {
+                const used = mm.usedToolkitItems?.includes(item.itemId) ?? false
+                if (isConsumable(item.itemId)) {
+                  if (used) {
+                    return (
+                      <Box key={item.itemId} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.6rem', textDecoration: 'line-through', opacity: 0.5, color: 'text.secondary' }}>
+                          {getWargearLabel(item.itemId)}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => onRemoveToolkitItem(item.itemId)}
+                          sx={{ fontSize: '0.55rem', py: 0.25, px: 0.75, minHeight: 0 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    )
+                  }
+                  return (
+                    <Button
+                      key={item.itemId}
+                      size="small"
+                      variant="outlined"
+                      onClick={() => onUseToolkitItem(item.itemId)}
+                      sx={{
+                        fontSize: '0.6rem',
+                        py: 0.25,
+                        px: 1,
+                        minHeight: 0,
+                        borderColor: 'primary.dark',
+                        color: 'primary.light',
+                      }}
+                    >
+                      {getWargearLabel(item.itemId)} · Use
+                    </Button>
+                  )
+                }
+                return (
+                  <Chip
+                    key={item.itemId}
+                    label={getWargearLabel(item.itemId)}
+                    size="small"
+                    sx={{ fontSize: '0.6rem', height: 18 }}
+                  />
+                )
+              })}
+            </Box>
+          </Box>
+        )
+      })()}
 
       <Divider sx={{ opacity: 0.2, mb: 1 }} />
 

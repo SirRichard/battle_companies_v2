@@ -8,8 +8,15 @@
  */
 
 import baseUnitsData from '../data/baseUnits.json'
+import specialRulesData from '../data/specialRules.json'
 import wargearData from '../data/wargear.json'
 import type { Member, MemberStats, StoredBaseUnitStats } from '../models'
+
+const MINOR_RULE_LABELS = new Set(
+  (specialRulesData as Array<{ label: string; minor: boolean }>)
+    .filter((r) => r.minor)
+    .map((r) => r.label)
+)
 
 const BASE_UNITS = baseUnitsData as Array<{
   id: string
@@ -166,19 +173,24 @@ export function calcMemberRating(
   const countableSpecialRules = member.specialRules.filter(
     (r) => !HEROIC_ACTION_LABELS.has(r)
   )
-  heroPoints += countableSpecialRules.length * 5
+  const minorRules = countableSpecialRules.filter((r) => MINOR_RULE_LABELS.has(r))
+  const majorRules = countableSpecialRules.filter((r) => !MINOR_RULE_LABELS.has(r))
+  heroPoints += Math.min(minorRules.length * 5, 10) + majorRules.length * 5
 
   return base + equipCost + heroPoints
 }
 
 export function calcCompanyRating(
   members: Member[],
-  getStatsForUnit: (id: string) => StoredBaseUnitStats | undefined
+  getStatsForUnit: (id: string) => StoredBaseUnitStats | undefined,
+  wanderer?: { pointsCost: number }
 ): number {
-  return members
+  const memberTotal = members
     .filter((m) => !m.injuries.some((i) => i.type === 'missing_next_game'))
     .reduce(
       (sum, m) => sum + calcMemberRating(m, getStatsForUnit(m.baseUnitId)),
       0
     )
+  const wandererTotal = wanderer ? wanderer.pointsCost : 0
+  return memberTotal + wandererTotal
 }

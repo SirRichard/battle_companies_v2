@@ -29,6 +29,9 @@ import { useAppContext } from '../context/AppContext'
 import { TOOLKIT_KITS } from './MatchSetupPage'
 import type { ToolkitItem } from '../models/match'
 import wargearData from '../data/wargear.json'
+import baseUnitsData from '../data/baseUnits.json'
+import { getWargearLabel } from '../utils/labels'
+import type { Member } from '../models'
 
 // ─── Data helpers ──────────────────────────────────────────────────────────────
 
@@ -38,11 +41,33 @@ const WARGEAR_RAW = wargearData as Array<{
   category?: string
 }>
 
+const BASE_UNITS_RAW = baseUnitsData as Array<{
+  id: string
+  label: string
+  baseEquipment?: string[]
+}>
+
 function getItemLabel(id: string): string {
   return (
     WARGEAR_RAW.find((w) => w.id === id)?.label ??
     id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   )
+}
+
+function rankLabel(role: string): string {
+  switch (role) {
+    case 'leader': return 'Leader'
+    case 'sergeant': return 'Sergeant'
+    case 'hero_in_making': return 'Hero in the Making'
+    default: return 'Warrior'
+  }
+}
+
+function memberWargear(member: Member): string {
+  const baseUnit = BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+  const baseEquipment = baseUnit?.baseEquipment ?? []
+  const allIds = Array.from(new Set([...baseEquipment, ...member.equipment]))
+  return allIds.map(getWargearLabel).join(', ')
 }
 
 // Items that need a parameter (weapon selection for Envenom Weapon etc.)
@@ -314,7 +339,17 @@ export default function ToolkitAssignmentPage() {
                         </MenuItem>
                         {activeMembers.map((m) => (
                           <MenuItem key={m.id} value={m.id}>
-                            {m.name}
+                            <Box>
+                              <Typography variant="body2" sx={{ lineHeight: 1.3 }}>
+                                {m.name} · {rankLabel(m.role)}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary', lineHeight: 1.2, display: 'block' }}
+                              >
+                                {memberWargear(m) || '—'}
+                              </Typography>
+                            </Box>
                           </MenuItem>
                         ))}
                       </Select>
