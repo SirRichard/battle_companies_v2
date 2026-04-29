@@ -29,6 +29,7 @@ import type { WizardState, Alignment } from '../../models'
 
 const INITIAL_WIZARD: WizardState = {
   step: 0,
+  visitedSteps: [],
   alignment: null,
   factionId: null,
   companyTypeId: null,
@@ -98,6 +99,7 @@ const alignmentArb: fc.Arbitrary<Alignment> = fc.constantFrom('good', 'evil')
 const bugConditionWizardStateArb: fc.Arbitrary<WizardState> = fc
   .record({
     step: fc.integer({ min: 0, max: 7 }),
+    visitedSteps: fc.array(fc.integer({ min: 0, max: 7 })),
     alignment: fc.oneof(fc.constant(null), alignmentArb),
     factionId: fc.oneof(
       fc.constant(null),

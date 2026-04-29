@@ -75,6 +75,9 @@ const companyDefArb = fc.record({
   factionId: fc.string({ minLength: 1, maxLength: 20 }),
   maxCompanySize: fc.integer({ min: 5, max: 20 }),
   reinforcementCost: fc.integer({ min: 1, max: 5 }),
+  gold: fc.integer({ min: 0, max: 100 }),
+  flavorTexts: fc.constant([]),
+  companySpecialRules: fc.constant([]),
   reinforcementTable: fc.array(reinforcementEntryArb, { minLength: 1, maxLength: 6 }),
   specialTable: fc.option(
     fc.array(specialTableEntryArb, { minLength: 1, maxLength: 4 }),

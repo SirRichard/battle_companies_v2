@@ -126,7 +126,7 @@ const wizardStateWithIncompleteHeroesArb: fc.Arbitrary<WizardState> = fc.record(
     fc.string({ minLength: 5, maxLength: 20 })
   ),
   sergeantIds: fc.oneof(
-    fc.constant([]), // No sergeants
+    fc.constant([] as string[]), // No sergeants
     fc.array(fc.string({ minLength: 5, maxLength: 20 }), {
       minLength: 1,
       maxLength: 1,

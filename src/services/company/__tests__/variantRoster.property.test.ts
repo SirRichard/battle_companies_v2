@@ -63,6 +63,7 @@ function buildWizardState(
 
   return {
     step: 8,
+    visitedSteps: [],
     alignment: 'good',
     factionId: 'gondor',
     companyTypeId: 'the_last_alliance',

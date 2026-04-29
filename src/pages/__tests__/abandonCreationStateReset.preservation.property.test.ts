@@ -27,6 +27,7 @@ import type { WizardState, Alignment } from '../../models'
 
 const INITIAL_WIZARD: WizardState = {
   step: 0,
+  visitedSteps: [],
   alignment: null,
   factionId: null,
   companyTypeId: null,
@@ -111,6 +112,7 @@ const validStepArb: fc.Arbitrary<number> = fc.integer({ min: 0, max: 7 })
 /** Generates a full WizardState with arbitrary values */
 const wizardStateArb: fc.Arbitrary<WizardState> = fc.record({
   step: fc.integer({ min: 0, max: 7 }),
+  visitedSteps: fc.array(fc.integer({ min: 0, max: 7 })),
   alignment: fc.oneof(fc.constant(null), alignmentArb),
   factionId: fc.oneof(
     fc.constant(null),

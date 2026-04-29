@@ -15,8 +15,9 @@ import { describe, it, expect } from 'vitest'
 import * as fc from 'fast-check'
 import { validateForm } from '../EditStatsPage'
 import { STATS_ENTRY_FIELDS, MOUNT_STATS_ENTRY_FIELDS } from '../../constants'
+import type { MemberStats } from '../../models'
 
-type StatKey = string
+type StatKey = keyof MemberStats
 type FormValues = Record<StatKey, string>
 
 // All field sets to test

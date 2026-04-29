@@ -175,8 +175,8 @@ export default function CompanyDetailsPage() {
     [company]
   )
 
-  const wandererCount = company.wandererId ? 1 : 0
-  const totalMembers = company.members.length + wandererCount
+  const wandererCount = company?.wandererId ? 1 : 0
+  const totalMembers = (company?.members.length ?? 0) + wandererCount
   const maxSize = companyDef?.maxCompanySize ?? 15
   const isAtMax = totalMembers >= maxSize
 
