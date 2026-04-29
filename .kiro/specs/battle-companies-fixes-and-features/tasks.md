@@ -514,3 +514,150 @@ Implement four bug fixes and eight features across the Battle Companies PWA. Eac
 - FEAT-3 (task 12) is the most complex item; it builds on the existing `pathSelectMember` / `applyHeroPath` flow already in `PostMatchSummaryPage`
 - No database migrations are needed — all new `Member` fields (`spells`, `spellImprovements`) are optional
 - Task 34 (Req 29) is the simplest remaining task — a single save-time filter with no UI changes
+
+- [x] 36. BUG — Fix StepMemberNames bottom bar overlap
+  - [x] 36.1 Add bottom padding to the wizard scroll container for step 4
+    - In `src/pages/CreateCompanyPage.tsx`, locate the `Box` that wraps the step content (the `flex: 1` scrollable area with `px` and `py` padding)
+    - Add `pb: { xs: 10, sm: 10 }` (or a value matching the bottom action bar height, typically ~72–80px) to that `Box`'s `sx` prop so the last TextField is never hidden behind the bar
+    - Alternatively, if the bottom action bar height is defined as a constant, reference that constant for the padding value
+    - Verify the fix only affects the scroll container and does not change the visual appearance of any other step
+    - _Requirements: 30.1, 30.2, 30.3, 30.4, 30.5_
+
+- [x] 37. FEAT — The Last Alliance variant roster selection
+  - [x] 37.1 Add `variantId` field to `WizardState`
+    - In `src/models/index.ts`, add `variantId: string | null` to the `WizardState` interface
+    - In `src/pages/CreateCompanyPage.tsx`, add `variantId: null` to `INITIAL_WIZARD`
+    - In `selectCompany`, reset `variantId: null` alongside the other resets
+    - _Requirements: 31.4_
+
+  - [x] 37.2 Detect variant-eligible companies in StepCompany and show variant roster in expandable details
+    - In `src/components/wizard/StepCompany.tsx`, update the "Starting Roster" section in the expandable details panel:
+      - Compute `visibleVariants = company.variants?.filter(v => !v.isDefault && (!v.visibleFromFactions || v.visibleFromFactions.includes(factionId))) ?? []`
+      - If `visibleVariants.length > 0`, render the default roster under a "Standard Roster" sub-heading, then render each visible variant's `startingRoster` under a sub-heading matching `variant.label`
+      - If no visible variants exist, render the roster as before (no sub-heading)
+    - _Requirements: 31.7, 31.8_
+
+  - [x] 37.3 Add variant selection step in the wizard after company selection
+    - In `src/pages/CreateCompanyPage.tsx`, in `renderStep` for step 2 (StepCompany), after the user selects a company, check whether the selected company has any variants with `visibleFromFactions` that include `wizard.factionId`
+    - If such variants exist and `wizard.variantId === null`, render an inline variant picker (two cards: standard and Númenórean) below the company list, or as a follow-up prompt within step 2 before the user can advance to step 3
+    - When the user picks a variant, call `setWizard(w => ({ ...w, variantId: selectedVariantId }))` and allow advancing
+    - When no eligible variants exist (or the company is selected from a non-Gondor faction), set `variantId` to the default variant's `id` automatically and allow advancing as before
+    - Update `canAdvance()` for step 2: if the selected company has eligible variants, require `wizard.variantId !== null` in addition to `wizard.companyTypeId !== null`
+    - _Requirements: 31.1, 31.2, 31.3, 31.6_
+
+  - [x] 37.4 Use variant roster in `createCompany` and downstream wizard steps
+    - In `src/services/company/companyFactory.ts`, update `createCompany` to accept an optional `variantId` parameter
+    - When `variantId` is provided and matches a non-default variant on the company definition, use that variant's `startingRoster` (and `reinforcementTable` if present) instead of the company-level defaults
+    - In `src/pages/CreateCompanyPage.tsx`, pass `wizard.variantId` to `createCompany`
+    - Update `tempMemberIds` derivation: when a non-default variant is active, call `generateTempMemberIds` with the variant's `startingRoster` instead of the company's default roster
+    - _Requirements: 31.2, 31.5_
+
+  - [x] 37.5 Write property test for variant roster selection (Property 13)
+    - **Property 13: Variant roster is used when variantId matches a non-default variant**
+    - **Validates: Requirements 31.2, 31.5**
+    - For The Last Alliance company definition, generate `variantId` values from `['last_alliance_standard', 'last_alliance_numenorean']`
+    - Assert that when `variantId === 'last_alliance_numenorean'`, the created company's members are derived from the Númenórean `startingRoster` (6 Warriors of Númenór with shield), not the default roster (Rivendell Warriors + Warriors of Númenór)
+    - Assert that when `variantId === 'last_alliance_standard'` or `null`, the default roster is used
+
+- [x] 38. FEAT — Enforce mustBeLeader / mustBeSergeant in StepLeaderSelection
+  - [x] 38.1 Compute forced assignments from the starting roster in `CreateCompanyPage`
+    - In `src/pages/CreateCompanyPage.tsx`, add a `useMemo` that derives forced leader/sergeant temp IDs from the selected company's `startingRoster`:
+      ```typescript
+      const forcedLeaderId = useMemo(() => {
+        if (!selectedCompany) return null
+        let idx = 0
+        for (const entry of selectedCompany.startingRoster) {
+          for (let i = 0; i < entry.count; i++) {
+            if (entry.mustBeLeader) return `member_${idx}`
+            idx++
+          }
+        }
+        return null
+      }, [selectedCompany])
+
+      const forcedSergeantIds = useMemo(() => {
+        if (!selectedCompany) return []
+        const ids: string[] = []
+        let idx = 0
+        for (const entry of selectedCompany.startingRoster) {
+          for (let i = 0; i < entry.count; i++) {
+            if (entry.mustBeSergeant) ids.push(`member_${idx}`)
+            idx++
+          }
+        }
+        return ids
+      }, [selectedCompany])
+      ```
+    - _Requirements: 32.8_
+
+  - [x] 38.2 Pre-populate wizard state with forced assignments when entering step 5
+    - In `src/pages/CreateCompanyPage.tsx`, add a `useEffect` that fires when `wizard.step === 5` and `selectedCompany` changes (or when step 5 is first entered):
+      - If `forcedLeaderId` is set and `wizard.leaderId !== forcedLeaderId`, call `setWizard(w => ({ ...w, leaderId: forcedLeaderId }))`
+      - For each ID in `forcedSergeantIds` not already in `wizard.sergeantIds`, merge them in: `setWizard(w => ({ ...w, sergeantIds: [...new Set([...forcedSergeantIds, ...w.sergeantIds.filter(id => !forcedSergeantIds.includes(id))])] }))`
+    - This ensures `canAdvance()` for step 5 is immediately `true` when all roles are pre-assigned
+    - _Requirements: 32.5, 34.2, 34.5_
+
+  - [x] 38.3 Pass forced IDs to `StepLeaderSelection` and render locked indicators
+    - Add `forcedLeaderId: string | null` and `forcedSergeantIds: string[]` props to `StepLeaderSelection` in `src/components/wizard/StepLeaderSelection.tsx`
+    - In the member card render, detect `isLockedLeader = member.tempId === forcedLeaderId` and `isLockedSergeant = forcedSergeantIds.includes(member.tempId)`
+    - When `isLockedLeader || isLockedSergeant`, render a lock icon (MUI `LockIcon`) or a "Required" `Chip` alongside the role badge, and set `cursor: 'default'` / skip the `onClick` handler for that card
+    - The existing role badge ("Leader" / "Sergeant") should still appear; the lock indicator is additive
+    - Pass `forcedLeaderId` and `forcedSergeantIds` from `CreateCompanyPage` when rendering `StepLeaderSelection`
+    - _Requirements: 32.1, 32.2, 32.3, 32.4, 32.6, 32.7_
+
+  - [x] 38.4 Write property test for mustBeLeader / mustBeSergeant pre-assignment (Property 14)
+    - **Property 14: Forced role assignments are always respected**
+    - **Validates: Requirements 32.1, 32.2, 32.5, 32.8**
+    - Generate company definitions with arbitrary combinations of `mustBeLeader` and `mustBeSergeant` flags (at most 1 leader and at most 2 sergeants)
+    - Assert that `forcedLeaderId` always corresponds to the temp ID of the roster entry with `mustBeLeader: true` (if any)
+    - Assert that `forcedSergeantIds` contains exactly the temp IDs of all roster entries with `mustBeSergeant: true`
+    - Assert that when forced IDs are merged into wizard state, `leaderId` and `sergeantIds` include all forced values
+
+- [x] 39. FEAT — Skip StepLeaderSelection when all roles are pre-assigned
+  - [x] 39.1 Compute `allRolesForced` flag and wire step-skip logic into `go()`
+    - In `src/pages/CreateCompanyPage.tsx`, add:
+      ```typescript
+      const allRolesForced = useMemo(
+        () => !!forcedLeaderId && forcedSergeantIds.length >= 2,
+        [forcedLeaderId, forcedSergeantIds]
+      )
+      ```
+    - In the `go(nextStep)` function (or in the Next button's `onClick` handler), when navigating from step 4 to step 5 and `allRolesForced` is true, call `go(6)` instead of `go(5)` (skipping step 5)
+    - When navigating back from step 6 and `allRolesForced` is true, call `go(4)` instead of `go(5)`
+    - _Requirements: 33.1, 33.2, 33.3, 33.4_
+
+  - [x] 39.2 Ensure wizard state is pre-populated before the skip
+    - Before calling `go(6)` in the skip path, ensure `wizard.leaderId` and `wizard.sergeantIds` are already set to the forced values (this is guaranteed by task 38.2's `useEffect`, but add a synchronous fallback in the `go()` call site if needed)
+    - _Requirements: 33.2_
+
+  - [x] 39.3 Update Stepper to mark step 5 as complete when skipped
+    - In `src/pages/CreateCompanyPage.tsx`, pass `completed` prop to the step 5 `<Step>` component when `allRolesForced && wizard.step > 5`:
+      ```tsx
+      <Step key="Command" completed={allRolesForced && wizard.step > 5}>
+        <StepLabel>Command</StepLabel>
+      </Step>
+      ```
+    - _Requirements: 33.5_
+
+- [x] 40. BUG — Fix stale canAdvance closure for step 5 Next button
+  - [x] 40.1 Refactor `canAdvance` to avoid stale closure in the Enter key `useEffect`
+    - In `src/pages/CreateCompanyPage.tsx`, convert `canAdvance` from an inline function to a `useCallback` with `wizard` in its dependency array:
+      ```typescript
+      const canAdvance = useCallback((): boolean => {
+        // ... existing switch logic unchanged ...
+      }, [wizard, selectedCompany])
+      ```
+    - The Enter key `useEffect` already lists `canAdvance` as a dependency; with `useCallback` this will now correctly re-subscribe when wizard state changes
+    - _Requirements: 34.3, 34.4_
+
+  - [x] 40.2 Ensure the Next button reads live wizard state
+    - Verify the Next button's `disabled` prop is derived directly from `canAdvance()` (called inline in the render, not from a stale cached value)
+    - If `canAdvance()` is currently called inside a `useMemo` or cached elsewhere, move it to be called directly in the render expression: `disabled={!canAdvance()}`
+    - _Requirements: 34.1, 34.2, 34.6_
+
+  - [x] 40.3 Write property test for canAdvance step 5 correctness (Property 15)
+    - **Property 15: canAdvance for step 5 is true iff leaderId is set and sergeantIds has exactly 2 entries**
+    - **Validates: Requirements 34.1, 34.2, 34.5, 34.6**
+    - Generate arbitrary `leaderId` values (`string | null`) and `sergeantIds` arrays of length 0–3
+    - Assert `canAdvance()` returns `true` if and only if `leaderId !== null && sergeantIds.length === 2`
+    - Include cases where `leaderId` is a forced pre-assigned value to confirm the check is agnostic to how the ID was set

@@ -481,3 +481,80 @@ This spec covers a set of bug fixes and missing features for the Battle Companie
 4. WHEN a member has other injuries in addition to `missing_next_game` (e.g. `arm_wound`), THE PostMatchSummaryPage SHALL remove only the `missing_next_game` entry and leave all other injuries intact.
 5. THE auto-clear SHALL happen as part of the final company save at the end of the post-match flow, not as a separate user action.
 6. WHEN no members have a `missing_next_game` injury, THE PostMatchSummaryPage SHALL complete the save normally with no change in behaviour.
+
+---
+
+### Requirement 30: StepMemberNames — Bottom Bar Overlap Fix (BUG-FIX)
+
+**User Story:** As a player, I want the member name text fields in the wizard to scroll correctly behind the bottom navigation bar, so that the placeholder text and input fields are never obscured by the bar.
+
+#### Acceptance Criteria
+
+1. WHEN the StepMemberNames step is rendered, THE Wizard SHALL ensure the scrollable content area has sufficient bottom padding so that the last TextField is not hidden behind the fixed bottom action bar.
+2. WHEN the user scrolls to the bottom of the member name list, THE StepMemberNames step SHALL display the last TextField fully visible above the bottom action bar.
+3. THE bottom padding applied to the scroll container SHALL be at least as tall as the bottom action bar so that no content is permanently obscured.
+4. THE fix SHALL NOT affect the layout or behaviour of any other wizard step.
+5. WHEN the member list is short enough to fit on screen without scrolling, THE StepMemberNames step SHALL display normally with no visual regression.
+
+---
+
+### Requirement 31: The Last Alliance — Variant Roster Selection for Gondor Faction (FEAT)
+
+**User Story:** As a player selecting The Last Alliance from the Gondor faction, I want to be asked whether I want the standard roster or the Númenórean variant roster, so that I can play the Gondor-only version of the company.
+
+#### Acceptance Criteria
+
+1. WHEN the user selects "The Last Alliance" company while `wizard.factionId === 'gondor'`, THE Wizard SHALL present a variant selection prompt asking the user to choose between the standard roster and the Númenórean variant roster before advancing.
+2. WHEN the user selects the Númenórean variant, THE Wizard SHALL use the `last_alliance_numenorean` variant's `startingRoster` and `reinforcementTable` for all subsequent wizard steps.
+3. WHEN the user selects the standard variant (or when The Last Alliance is selected from the Elven Realms faction), THE Wizard SHALL use the default `startingRoster` and `reinforcementTable` with no change to existing behaviour.
+4. THE WizardState SHALL include a `variantId` field (type `string | null`) to record the chosen variant.
+5. WHEN a variant is selected, THE `createCompany` factory function SHALL use the variant's `startingRoster` and `reinforcementTable` instead of the company-level defaults when building the company.
+6. WHEN the user selects "The Last Alliance" from the Elven Realms faction, THE Wizard SHALL NOT display a variant selection prompt and SHALL proceed as before.
+7. WHEN the expandable details panel for The Last Alliance is open in StepCompany and `factionId === 'gondor'`, THE StepCompany SHALL display the Númenórean variant's starting roster as an additional roster option alongside the standard roster.
+8. WHEN a variant with `visibleFromFactions` is defined, THE StepCompany SHALL only show that variant's roster in the expandable details when the current `factionId` is included in `visibleFromFactions`.
+
+---
+
+### Requirement 32: StepLeaderSelection — Enforce mustBeLeader / mustBeSergeant Constraints (FEAT)
+
+**User Story:** As a player, I want the leader and sergeant selection step to automatically pre-assign heroes whose roster entry has `mustBeLeader` or `mustBeSergeant` set, so that I cannot accidentally assign the wrong member to a locked role.
+
+#### Acceptance Criteria
+
+1. WHEN a starting roster entry has `mustBeLeader: true`, THE StepLeaderSelection SHALL automatically pre-assign the corresponding member as Leader and display that member's role as locked.
+2. WHEN a starting roster entry has `mustBeSergeant: true`, THE StepLeaderSelection SHALL automatically pre-assign the corresponding member as Sergeant and display that member's role as locked.
+3. WHEN a member's role is locked (pre-assigned via `mustBeLeader` or `mustBeSergeant`), THE StepLeaderSelection SHALL display a visual lock indicator (e.g. a lock icon or "Required" badge) on that member's card.
+4. WHEN a member's role is locked, THE StepLeaderSelection SHALL NOT allow the user to deselect or reassign that member's role by tapping their card.
+5. THE WizardState SHALL be pre-populated with the forced `leaderId` and `sergeantIds` before or when step 5 is first rendered, so that `canAdvance()` reflects the pre-assigned roles immediately.
+6. WHEN a member is pre-assigned as Leader via `mustBeLeader`, THE StepLeaderSelection SHALL still allow the user to freely assign the remaining Sergeant slots from the non-locked members.
+7. WHEN a member is pre-assigned as Sergeant via `mustBeSergeant`, THE StepLeaderSelection SHALL still allow the user to freely assign the Leader slot and any remaining Sergeant slots from the non-locked members (unless those are also locked).
+8. THE pre-assignment logic SHALL use the same index mapping as `generateTempMemberIds` to correctly identify which `tempId` corresponds to each roster entry with a `mustBeLeader` or `mustBeSergeant` flag.
+
+---
+
+### Requirement 33: Wizard — Skip StepLeaderSelection When All Roles Are Pre-Assigned (FEAT)
+
+**User Story:** As a player creating a company where all hero roles are determined by the roster (e.g. Helm's Deep), I want the wizard to skip the leader selection step entirely, so that I am not shown a step where there is nothing to choose.
+
+#### Acceptance Criteria
+
+1. WHEN all three hero roles (1 Leader + 2 Sergeants) are pre-determined by `mustBeLeader` and `mustBeSergeant` constraints in the starting roster, THE Wizard SHALL skip step 5 (StepLeaderSelection) and advance directly to step 6 (Hero Paths).
+2. WHEN the Wizard skips step 5, THE WizardState SHALL already contain the correct `leaderId` and `sergeantIds` values derived from the `mustBeLeader`/`mustBeSergeant` constraints, so that step 6 receives valid hero IDs.
+3. WHEN the user navigates back from step 6 while step 5 was skipped, THE Wizard SHALL skip step 5 again and return to step 4 (Member Names).
+4. THE skip logic SHALL only apply when ALL three hero slots are pre-assigned; if even one slot is free, THE Wizard SHALL show step 5 as normal.
+5. WHEN step 5 is skipped, THE Stepper indicator in the UI SHALL visually reflect that step 5 is complete (or bypassed), consistent with the existing stepper behaviour for other steps.
+
+---
+
+### Requirement 34: StepLeaderSelection — Next Button Stale State Fix (BUG-FIX)
+
+**User Story:** As a player, I want the Next button in the leader selection step to reliably enable as soon as I have selected a leader and two sergeants, so that I am never stuck unable to advance.
+
+#### Acceptance Criteria
+
+1. WHEN the user has selected a valid Leader and two Sergeants in StepLeaderSelection, THE Wizard SHALL enable the Next button immediately without requiring any additional interaction.
+2. WHEN `wizard.leaderId` is set and `wizard.sergeantIds.length === 2`, THE `canAdvance()` check for step 5 SHALL return `true` and the Next button SHALL be enabled.
+3. THE `canAdvance` function SHALL NOT capture stale wizard state due to closure issues; it SHALL always read the current `wizard` state when evaluated.
+4. THE Enter key shortcut for advancing the wizard SHALL also correctly reflect the current `canAdvance()` result without stale closure issues.
+5. WHEN a pre-assigned leader (via `mustBeLeader`) is combined with user-selected sergeants, THE `canAdvance()` check SHALL correctly return `true` once both sergeant slots are filled.
+6. WHEN the user deselects a sergeant and then reselects one, THE Next button SHALL update its enabled/disabled state reactively without requiring a page reload or re-render trigger.

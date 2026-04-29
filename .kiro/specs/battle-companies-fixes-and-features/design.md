@@ -1593,3 +1593,545 @@ This is a single-line change to the final save call. No new state, dialogs, or u
 **Property 29 — Auto-clear `missing_next_game`:**
 Generate company members with random injury arrays that may include `missing_next_game`. Simulate the post-match save transform. Assert `missing_next_game` is absent from every member's injuries in the saved company, and all other injury types are preserved.
 `// Feature: battle-companies-fixes-and-features, Property 29: auto-clear removes only missing_next_game injuries`
+
+
+---
+
+### Requirement 30: StepMemberNames — Bottom Bar Overlap Fix (BUG-FIX)
+
+**Affected files:** `src/pages/CreateCompanyPage.tsx` (the step content scroll container)
+
+**Current behaviour:** The wizard's step content area is rendered inside a `Box` with `flex: 1, overflowX: 'hidden'`. The navigation footer is `position: 'sticky', bottom: 0`, which means it overlays the bottom of the scroll area. `StepMemberNames` renders a variable-length list of `TextField` components with no bottom padding, so on companies with many members (e.g. 7+) the last field scrolls behind the sticky footer and is permanently obscured.
+
+**Fix:**
+
+The scroll container in `CreateCompanyPage` wraps all step content. The simplest fix is to add a bottom padding to the step content `Box` that is at least as tall as the navigation footer. The footer is `py: 2` (16 px top + 16 px bottom) plus a `Button` with `minHeight: 44`, giving a total footer height of approximately 76 px. A `pb: 10` (80 px) on the content container provides sufficient clearance.
+
+```tsx
+// In CreateCompanyPage, the step content Box:
+<Box
+  sx={{
+    flex: 1,
+    px: { xs: 2, sm: 3 },
+    py: 3,
+    pb: { xs: 10, sm: 10 },   // ← ADD: ensures last field clears the sticky footer
+    maxWidth: 600,
+    width: '100%',
+    mx: 'auto',
+    overflowX: 'hidden',
+  }}
+>
+```
+
+This padding applies to all wizard steps, but is only visually noticeable on `StepMemberNames` (the only step with a long scrollable list). All other steps have short content that does not reach the bottom of the viewport, so the extra padding is invisible to the user on those steps.
+
+**Scope:** Single-line `sx` change to the content `Box` in `CreateCompanyPage`. No changes to `StepMemberNames.tsx` itself.
+
+**Why not fix in `StepMemberNames` directly:** Adding padding inside the step component would require every step component to know about the footer height. Fixing it at the container level is the correct architectural choice — the container owns the layout relationship with the sticky footer.
+
+---
+
+### Requirement 31: The Last Alliance — Variant Roster Selection for Gondor Faction (FEAT)
+
+**Affected files:**
+- `src/models/index.ts` (`WizardState`, `StartingRosterEntry`)
+- `src/pages/CreateCompanyPage.tsx` (wizard navigation, `renderStep`, `canAdvance`, `createCompany` call)
+- `src/components/wizard/StepCompany.tsx` (expandable details panel)
+- `src/services/company/companyFactory.ts` (`createCompany`, `buildStartingMembers`)
+
+**Current behaviour:** `StepCompany` shows all companies for the selected faction. When "The Last Alliance" is selected, the wizard proceeds directly to step 3 (Name) using the company-level `startingRoster`. There is no variant selection step. The `WizardState` has no `variantId` field. `createCompany` always uses `companyDef.startingRoster` and `companyDef.reinforcementTable`.
+
+**Data shape:** `companies.json` already contains the variant definitions on `the_last_alliance`:
+
+```json
+"variants": [
+  { "id": "last_alliance_standard", "label": "The Last Alliance", "isDefault": true },
+  {
+    "id": "last_alliance_numenorean",
+    "label": "The Last Alliance (Númenórean)",
+    "isDefault": false,
+    "visibleFromFactions": ["gondor"],
+    "startingRoster": [ { "baseUnitId": "warrior_of_numenor", "count": 6, "equipment": ["shield"] } ],
+    "reinforcementTable": [ ... ]
+  }
+]
+```
+
+The `CompanyDefinition.variants` type already exists in `src/models/index.ts` with `startingRoster` and `reinforcementTable` optional fields.
+
+**Model change — `WizardState`:**
+
+```typescript
+export interface WizardState {
+  // ... existing fields ...
+  variantId: string | null   // NEW: selected variant ID, or null for default
+}
+```
+
+Add `variantId: null` to `INITIAL_WIZARD` in `CreateCompanyPage`.
+
+**Model change — `StartingRosterEntry`:**
+
+The `mustBeSergeant` flag is referenced in Requirements 32–33 but is not yet in the model. Add it alongside the existing `mustBeLeader`:
+
+```typescript
+export interface StartingRosterEntry {
+  baseUnitId: string
+  count: number
+  equipment?: string[]
+  mustBeLeader?: boolean
+  mustBeSergeant?: boolean   // NEW
+}
+```
+
+**Wizard navigation — new variant step (step 2.5):**
+
+Rather than inserting a new numbered step into the `STEPS` array (which would shift all subsequent step indices and break `canAdvance`), the variant selection is implemented as a **sub-step within step 2** (Company selection). When the user selects a company that has variants visible from the current faction, the step 2 content transitions to a variant picker before the user can advance to step 3.
+
+Concretely:
+
+- `StepCompany` receives a new `variantId` prop and an `onVariantChange` callback.
+- When `wizard.companyTypeId` is set and the selected company has variants with `visibleFromFactions` matching `wizard.factionId`, `StepCompany` renders a second panel below the company list: "Choose your variant".
+- The variant picker is a simple radio-group list of variant cards (label + roster summary).
+- `canAdvance()` for step 2 is updated: if the selected company has faction-visible variants, `variantId` must also be set.
+
+```typescript
+// Updated canAdvance for step 2:
+case 2: {
+  if (!wizard.companyTypeId) return false
+  const company = COMPANIES.find(c => c.id === wizard.companyTypeId)
+  const factionVariants = (company?.variants ?? []).filter(
+    v => !v.isDefault && (v.visibleFromFactions ?? []).includes(wizard.factionId ?? '')
+  )
+  if (factionVariants.length > 0 && !wizard.variantId) return false
+  return true
+}
+```
+
+When `selectCompany` is called (company changes), `variantId` is reset to `null`.
+
+**`StepCompany` expandable details panel:**
+
+When `factionId === 'gondor'` and the company has a variant with `visibleFromFactions: ['gondor']`, the expandable details panel shows an additional "Númenórean Variant Roster" section below the standard "Starting Roster" section. This section lists the variant's `startingRoster` entries. It is only shown when `factionId` is in `visibleFromFactions`.
+
+```tsx
+// In StepCompany expandable details, after the standard roster:
+{(company.variants ?? [])
+  .filter(v => !v.isDefault && (v.visibleFromFactions ?? []).includes(factionId))
+  .map(variant => (
+    <Box key={variant.id} sx={{ mt: 2 }}>
+      <Typography sx={{ /* section header style */ }}>
+        {variant.label} — Starting Roster
+      </Typography>
+      {(variant.startingRoster ?? []).map((entry, ei) => (
+        <Typography key={ei} variant="body2" sx={{ opacity: 0.7, lineHeight: 1.8 }}>
+          ×{entry.count} {getUnitLabel(entry.baseUnitId)}
+          {entry.equipment?.length > 0 && ` (${formatEquipment(entry.equipment)})`}
+        </Typography>
+      ))}
+    </Box>
+  ))
+}
+```
+
+**`companyFactory.ts` — variant-aware roster resolution:**
+
+`createCompany` receives the `WizardState` which now includes `variantId`. A helper resolves the effective roster:
+
+```typescript
+function resolveEffectiveRoster(
+  companyDef: CompanyDefinition,
+  variantId: string | null
+): { startingRoster: StartingRosterEntry[]; reinforcementTable: ReinforcementEntry[] } {
+  if (!variantId) {
+    return {
+      startingRoster: companyDef.startingRoster,
+      reinforcementTable: companyDef.reinforcementTable,
+    }
+  }
+  const variant = (companyDef.variants ?? []).find(v => v.id === variantId)
+  return {
+    startingRoster: variant?.startingRoster ?? companyDef.startingRoster,
+    reinforcementTable: variant?.reinforcementTable ?? companyDef.reinforcementTable,
+  }
+}
+```
+
+`buildStartingMembers` is updated to accept the effective `startingRoster` directly (it already does — the roster is passed in). `createCompany` calls `resolveEffectiveRoster` and passes the result to `buildStartingMembers`:
+
+```typescript
+export function createCompany(
+  wizardState: WizardState,
+  companyDef: CompanyDefinition,
+  heroPaths: Record<string, string> = {},
+  heroSpellChoices: Record<string, string> = {}
+): Company {
+  const { startingRoster } = resolveEffectiveRoster(companyDef, wizardState.variantId ?? null)
+  const members = buildStartingMembers(
+    { ...companyDef, startingRoster },  // override startingRoster with variant's
+    wizardState.memberNames,
+    wizardState.leaderId!,
+    wizardState.sergeantIds,
+    heroPaths,
+    heroSpellChoices,
+    wizardState.goldPurchases ?? {}
+  )
+  // ... rest unchanged
+}
+```
+
+**`generateTempMemberIds` and downstream steps:** All subsequent wizard steps (member names, leader selection, paths, gold) derive their member list from `companyDef.startingRoster`. These steps must receive the effective roster (with variant applied) rather than the raw `companyDef`. In `CreateCompanyPage`, a derived `effectiveCompanyDef` is computed:
+
+```typescript
+const effectiveCompanyDef = useMemo(() => {
+  if (!selectedCompany || !wizard.variantId) return selectedCompany
+  const { startingRoster, reinforcementTable } = resolveEffectiveRoster(
+    selectedCompany, wizard.variantId
+  )
+  return { ...selectedCompany, startingRoster, reinforcementTable }
+}, [selectedCompany, wizard.variantId])
+```
+
+All step renders that currently use `selectedCompany!` are updated to use `effectiveCompanyDef!`.
+
+---
+
+### Requirement 32: StepLeaderSelection — Enforce mustBeLeader / mustBeSergeant Constraints (FEAT)
+
+**Affected files:**
+- `src/components/wizard/StepLeaderSelection.tsx`
+- `src/pages/CreateCompanyPage.tsx` (pre-population logic)
+- `src/models/index.ts` (`StartingRosterEntry.mustBeSergeant` — added in Req 31 above)
+
+**Current behaviour:** `StepLeaderSelection` renders all members as freely selectable. There is no concept of locked roles. The wizard's `leaderId` and `sergeantIds` start as `null` / `[]` when step 5 is first reached, regardless of whether the roster has `mustBeLeader` or `mustBeSergeant` entries.
+
+**Pre-population logic in `CreateCompanyPage`:**
+
+When the user advances to step 5 (or when the wizard is initialised with a company that has forced roles), the wizard state must be pre-populated with the forced assignments. This is done in the `selectCompany` handler and also when `effectiveCompanyDef` changes:
+
+```typescript
+function computeForcedRoles(companyDef: CompanyDefinition): {
+  leaderId: string | null
+  sergeantIds: string[]
+} {
+  let leaderId: string | null = null
+  const sergeantIds: string[] = []
+  let idx = 0
+  for (const entry of companyDef.startingRoster) {
+    for (let i = 0; i < entry.count; i++) {
+      const tempId = `member_${idx}`
+      if (entry.mustBeLeader) leaderId = tempId
+      if (entry.mustBeSergeant) sergeantIds.push(tempId)
+      idx++
+    }
+  }
+  return { leaderId, sergeantIds }
+}
+```
+
+This function is called whenever `effectiveCompanyDef` changes (i.e. when a company or variant is selected). The result is merged into `WizardState`:
+
+```typescript
+const selectCompany = (companyTypeId: string | null) => {
+  const newDef = COMPANIES.find(c => c.id === companyTypeId) ?? null
+  const forced = newDef ? computeForcedRoles(newDef) : { leaderId: null, sergeantIds: [] }
+  setWizard(w => ({
+    ...w,
+    companyTypeId,
+    variantId: null,
+    memberNames: {},
+    leaderId: forced.leaderId,
+    sergeantIds: forced.sergeantIds,
+    heroPaths: {},
+    heroSpellChoices: {},
+  }))
+}
+```
+
+When a variant is selected (and `effectiveCompanyDef` changes), the forced roles are recomputed from the variant's `startingRoster`.
+
+**`StepLeaderSelection` changes:**
+
+The component receives two new props:
+
+```typescript
+interface Props {
+  companyDef: CompanyDefinition
+  memberNames: Record<string, string>
+  leaderId: string | null
+  sergeantIds: string[]
+  onSelectLeader: (tempId: string) => void
+  onToggleSergeant: (tempId: string) => void
+  lockedLeaderId?: string | null      // NEW: tempId that must be leader
+  lockedSergeantIds?: string[]        // NEW: tempIds that must be sergeants
+}
+```
+
+The `lockedLeaderId` and `lockedSergeantIds` are derived from `computeForcedRoles(effectiveCompanyDef)` in `CreateCompanyPage` and passed down.
+
+**Lock detection in `handleClick`:**
+
+```typescript
+const isLocked = (tempId: string): boolean => {
+  if (lockedLeaderId && tempId === lockedLeaderId) return true
+  if (lockedSergeantIds?.includes(tempId)) return true
+  return false
+}
+
+const handleClick = (tempId: string) => {
+  if (isLocked(tempId)) return  // locked members cannot be interacted with
+  // ... existing click logic unchanged
+}
+```
+
+**Visual lock indicator:**
+
+Locked members display a `LockIcon` (MUI `@mui/icons-material/Lock`) in place of the role circle, and a "Required" `Chip` in place of the "Leader"/"Sergeant" chip. The card border and background use the same gold styling as a selected hero, but the hover state is suppressed (`cursor: 'default'`).
+
+```tsx
+{isLocked(member.tempId) ? (
+  <LockIcon sx={{ fontSize: '0.9rem', color: 'primary.main', opacity: 0.7 }} />
+) : (
+  // existing role icon
+)}
+
+{isLocked(member.tempId) && (
+  <Chip
+    label="Required"
+    size="small"
+    icon={<LockIcon sx={{ fontSize: '0.65rem !important' }} />}
+    sx={{
+      height: 22,
+      fontSize: '0.7rem',
+      fontFamily: '"Cinzel", serif',
+      bgcolor: 'rgba(200,164,90,0.1)',
+      borderColor: 'rgba(200,164,90,0.4)',
+      color: 'primary.main',
+    }}
+  />
+)}
+```
+
+**Progress indicator:** The `HeroSlot` components for locked slots show as filled immediately (since the roles are pre-assigned). The "X more to select" counter only counts unfilled, non-locked slots.
+
+---
+
+### Requirement 33: Wizard — Skip StepLeaderSelection When All Roles Are Pre-Assigned (FEAT)
+
+**Affected files:** `src/pages/CreateCompanyPage.tsx`
+
+**Current behaviour:** The wizard always navigates step 4 → step 5 → step 6 in sequence. There is no skip logic.
+
+**Design:**
+
+A helper function determines whether all three hero slots are pre-assigned:
+
+```typescript
+function allRolesPreAssigned(companyDef: CompanyDefinition): boolean {
+  const { leaderId, sergeantIds } = computeForcedRoles(companyDef)
+  return leaderId !== null && sergeantIds.length >= 2
+}
+```
+
+**Forward navigation (step 4 → Next):**
+
+In the Next button's `onClick` handler and in the Enter key `useEffect`, when `wizard.step === 4` and `effectiveCompanyDef` has all roles pre-assigned, skip step 5 and go directly to step 6:
+
+```typescript
+// In the Next button onClick:
+if (wizard.step === 4 && effectiveCompanyDef && allRolesPreAssigned(effectiveCompanyDef)) {
+  go(6)  // skip step 5
+  return
+}
+go(wizard.step + 1)
+```
+
+**Back navigation (step 6 → Back):**
+
+In the Back button's `onClick` handler, when `wizard.step === 6` and all roles are pre-assigned, skip step 5 and go back to step 4:
+
+```typescript
+// In the Back button onClick:
+const prevStep = wizard.step - 1
+if (prevStep === 5 && effectiveCompanyDef && allRolesPreAssigned(effectiveCompanyDef)) {
+  go(4)  // skip step 5 on back navigation too
+  return
+}
+go(prevStep)
+```
+
+**Stepper visual state:**
+
+The MUI `Stepper` uses `activeStep={wizard.step}`. When `wizard.step === 6` and step 5 was skipped, the stepper will show step 5 as "completed" (since `activeStep > 5`). This is the correct visual behaviour — no additional changes are needed to the stepper.
+
+**`canAdvance` for step 5:**
+
+When step 5 is skipped, `canAdvance()` for step 5 is never evaluated in the normal flow. However, if the user somehow reaches step 5 (e.g. via direct state manipulation), `canAdvance()` must still work correctly. Since the wizard state is pre-populated with `leaderId` and `sergeantIds` from `computeForcedRoles`, `canAdvance()` for step 5 (`wizard.leaderId !== null && wizard.sergeantIds.length === 2`) will return `true` immediately — no change needed.
+
+**Boundary condition:** The skip only fires when `allRolesPreAssigned` returns `true` (all 3 slots filled). If only 1 or 2 slots are pre-assigned, the wizard shows step 5 normally, with the pre-assigned members locked and the remaining slots free for the user to fill.
+
+---
+
+### Requirement 34: StepLeaderSelection — Next Button Stale State Fix (BUG-FIX)
+
+**Affected files:** `src/pages/CreateCompanyPage.tsx`
+
+**Current behaviour:** `canAdvance` is defined as a plain function inside the component body:
+
+```typescript
+const canAdvance = (): boolean => {
+  switch (wizard.step) {
+    // ...
+    case 5:
+      return wizard.leaderId !== null && wizard.sergeantIds.length === 2
+    // ...
+  }
+}
+```
+
+This function closes over `wizard` from the render scope. However, the Enter key `useEffect` captures `canAdvance` in its dependency array. If `canAdvance` is not stable (not wrapped in `useCallback`), the effect may hold a stale reference to the function that closed over an old `wizard` value. Similarly, the Next button's `disabled={!canAdvance()}` is evaluated at render time and is correct, but the Enter key handler may fire with a stale `canAdvance` that returns `false` even after the state has updated.
+
+**Root cause:** The `useEffect` for the Enter key shortcut lists `canAdvance` in its dependency array. Because `canAdvance` is recreated on every render (it's a plain function, not `useCallback`), the effect re-registers on every render — which is correct in principle. However, if `canAdvance` is called inside the effect closure and the effect was registered before the latest state update propagated, the closure may read stale `wizard` values.
+
+**Fix:**
+
+Wrap `canAdvance` in `useCallback` with `wizard` as a dependency. This ensures the function always reads the current `wizard` state and the effect always has a fresh reference:
+
+```typescript
+const canAdvance = useCallback((): boolean => {
+  switch (wizard.step) {
+    case 0: return wizard.alignment !== null
+    case 1: return wizard.factionId !== null
+    case 2: {
+      if (!wizard.companyTypeId) return false
+      const company = COMPANIES.find(c => c.id === wizard.companyTypeId)
+      const factionVariants = (company?.variants ?? []).filter(
+        v => !v.isDefault && (v.visibleFromFactions ?? []).includes(wizard.factionId ?? '')
+      )
+      if (factionVariants.length > 0 && !wizard.variantId) return false
+      return true
+    }
+    case 3: return wizard.companyName.trim().length > 0
+    case 4: return true
+    case 5: return wizard.leaderId !== null && wizard.sergeantIds.length === 2
+    case 6: {
+      const heroTempIds = [wizard.leaderId!, ...wizard.sergeantIds]
+      return heroTempIds.every(tid => {
+        const pathId = wizard.heroPaths[tid]
+        if (!pathId) return false
+        if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid]) return false
+        return true
+      })
+    }
+    case 7: return true
+    default: return false
+  }
+}, [wizard])
+```
+
+The Enter key `useEffect` already lists `canAdvance` in its dependency array. With `canAdvance` now stable per `wizard` value, the effect will always call the version of `canAdvance` that closes over the latest `wizard` state.
+
+**Next button:** The `disabled={!canAdvance()}` prop on the Next button is evaluated at render time and is already correct — it reads the current `wizard` via the render-scope closure. The `useCallback` fix primarily addresses the Enter key shortcut, but also makes the `canAdvance` reference stable for any future consumers.
+
+**Pre-assigned roles interaction (Req 32 + 34):** When `mustBeLeader`/`mustBeSergeant` pre-population sets `wizard.leaderId` and `wizard.sergeantIds` before step 5 is rendered, `canAdvance()` for step 5 returns `true` immediately. Combined with the skip logic from Req 33, this means the Next button is never shown for step 5 in the fully-pre-assigned case — but if it were, it would be enabled from the first render.
+
+---
+
+## Correctness Properties (continued — Requirements 30–34)
+
+### Property 30: Variant roster selection routes to correct startingRoster
+
+*For any* company definition with one or more variants, when a variant is selected in the wizard, `createCompany` SHALL produce members whose `baseUnitId` values match the variant's `startingRoster` entries, not the company-level `startingRoster`.
+
+**Validates: Requirements 31.2, 31.5**
+
+### Property 31: Variant visibility is faction-gated
+
+*For any* company variant with a non-empty `visibleFromFactions` array, the variant's roster SHALL only be displayed in `StepCompany`'s expandable details panel when `wizard.factionId` is included in `visibleFromFactions`.
+
+**Validates: Requirements 31.7, 31.8**
+
+### Property 32: Locked members cannot be deselected
+
+*For any* starting roster with one or more `mustBeLeader` or `mustBeSergeant` entries, clicking a locked member's card in `StepLeaderSelection` SHALL leave `wizard.leaderId` and `wizard.sergeantIds` unchanged.
+
+**Validates: Requirements 32.4**
+
+### Property 33: Pre-assignment tempIds are consistent with generateTempMemberIds
+
+*For any* company definition with `mustBeLeader` or `mustBeSergeant` entries, the `leaderId` and `sergeantIds` produced by `computeForcedRoles` SHALL reference `tempId` values that appear in the output of `generateTempMemberIds(companyDef)` at the correct positional indices.
+
+**Validates: Requirements 32.5, 32.8**
+
+### Property 34: Step 5 is skipped iff all three slots are pre-assigned
+
+*For any* company definition, the wizard SHALL skip step 5 (both forward and backward) if and only if `computeForcedRoles` returns a non-null `leaderId` and exactly 2 `sergeantIds`. If fewer than 3 slots are pre-assigned, step 5 SHALL be shown.
+
+**Validates: Requirements 33.1, 33.3, 33.4**
+
+### Property 35: canAdvance at step 5 always reads current wizard state
+
+*For any* sequence of `wizard.leaderId` and `wizard.sergeantIds` updates at step 5, `canAdvance()` SHALL return `true` if and only if `wizard.leaderId !== null && wizard.sergeantIds.length === 2`, evaluated against the most recently committed state — never a stale snapshot.
+
+**Validates: Requirements 34.2, 34.3, 34.6**
+
+---
+
+## Error Handling (additions for Requirements 30–34)
+
+**Req 30 (bottom padding):** No error conditions. The padding is a static CSS value. If the action bar height changes in future, the `pb: 10` constant should be updated to match.
+
+**Req 31 (variant selection):** If `wizard.variantId` references a variant ID that no longer exists in `companyDef.variants` (e.g. stale sessionStorage draft), `resolveEffectiveRoster` falls back to the company-level `startingRoster`. No error is thrown. The wizard draft is cleared on company selection change, so this scenario is unlikely in practice.
+
+**Req 31 (variant in factory):** If a variant's `startingRoster` is empty or undefined, `buildStartingMembers` receives an empty array and produces zero members. The wizard will show an empty member names step. This is a data authoring error and should be caught in data validation, not at runtime.
+
+**Req 32 (pre-population):** If a `mustBeLeader` entry appears more than once in the roster (data error), `computeForcedRoles` will overwrite `leaderId` with the last matching `tempId`. The first occurrence is silently ignored. This is a data authoring error.
+
+**Req 32 (locked click):** If `isLocked` returns `true` for a member and the user somehow triggers `handleClick` (e.g. via keyboard), the function returns early with no state change. No error is thrown.
+
+**Req 33 (skip logic):** If `effectiveCompanyDef` is null when the Next button is clicked at step 4, the skip check is skipped and the wizard advances to step 5 normally. This cannot occur in practice because step 4 is only reachable after a company has been selected (step 2 requires `companyTypeId !== null`).
+
+**Req 34 (stale closure):** The `useCallback` fix eliminates the stale closure risk. If `wizard` is somehow not in the dependency array (e.g. a future refactor removes it), the linter's `exhaustive-deps` rule will flag the omission.
+
+---
+
+## Testing Strategy (additions for Requirements 30–34)
+
+### Unit tests (example-based) — new items
+
+- `StepMemberNames` scroll container: verify the content `Box` has `pb` of at least 80 px (or equivalent `pb: 10` token) when rendered inside `CreateCompanyPage`
+- `StepCompany` variant panel: verify the Númenórean variant roster section appears in the expandable details when `factionId === 'gondor'` and is absent when `factionId === 'elven_realms'`
+- `canAdvance` step 2: verify it returns `false` when The Last Alliance is selected with `factionId === 'gondor'` and `variantId === null`, and `true` once a variant is selected
+- `computeForcedRoles`: verify it returns the correct `leaderId` and `sergeantIds` for the Helm's Deep roster (1 `mustBeLeader` + 2 `mustBeSergeant`)
+- `StepLeaderSelection` locked member: verify clicking a locked member does not change `leaderId` or `sergeantIds`
+- `StepLeaderSelection` lock indicator: verify `LockIcon` and "Required" chip are rendered for locked members
+- Wizard skip forward: verify advancing from step 4 with a fully-pre-assigned company goes to step 6
+- Wizard skip back: verify going back from step 6 with a fully-pre-assigned company goes to step 4
+- `canAdvance` step 5 with pre-assignment: verify it returns `true` immediately when `leaderId` and 2 `sergeantIds` are pre-populated
+- Enter key shortcut: verify pressing Enter at step 5 with valid state advances the wizard
+
+### Property-based tests — new items
+
+**Property 30 — Variant roster in createCompany:**
+Generate company definitions with variants that have non-empty `startingRoster` arrays. For each variant, call `createCompany` with `variantId` set to that variant's ID. Assert every member's `baseUnitId` matches an entry in the variant's `startingRoster`.
+`// Feature: battle-companies-fixes-and-features, Property 30: variant roster selection routes to correct startingRoster`
+
+**Property 31 — Variant visibility is faction-gated:**
+Generate company variants with random `visibleFromFactions` arrays and random `factionId` values. Assert the variant roster section is rendered if and only if `factionId` is in `visibleFromFactions`.
+`// Feature: battle-companies-fixes-and-features, Property 31: variant visibility is faction-gated`
+
+**Property 32 — Locked members cannot be deselected:**
+Generate starting rosters with random combinations of `mustBeLeader` and `mustBeSergeant` flags. Simulate click events on locked members. Assert `leaderId` and `sergeantIds` are unchanged after each click.
+`// Feature: battle-companies-fixes-and-features, Property 32: locked members cannot be deselected`
+
+**Property 33 — Pre-assignment tempIds consistent with generateTempMemberIds:**
+Generate company definitions with `mustBeLeader`/`mustBeSergeant` entries at random positions. Assert `computeForcedRoles` returns `tempId` values that are present in `generateTempMemberIds(companyDef)` at the correct indices.
+`// Feature: battle-companies-fixes-and-features, Property 33: pre-assignment tempIds are consistent with generateTempMemberIds`
+
+**Property 34 — Step 5 skip iff all three slots pre-assigned:**
+Generate company definitions with 0, 1, 2, or 3 pre-assigned slots. Assert the wizard skips step 5 (both forward and back) if and only if all 3 slots are pre-assigned.
+`// Feature: battle-companies-fixes-and-features, Property 34: step 5 is skipped iff all three slots are pre-assigned`
+
+**Property 35 — canAdvance reads current wizard state:**
+Generate sequences of wizard state updates at step 5 (setting/clearing `leaderId` and `sergeantIds`). After each update, call `canAdvance()`. Assert the result equals `leaderId !== null && sergeantIds.length === 2` for the current state, never a prior state.
+`// Feature: battle-companies-fixes-and-features, Property 35: canAdvance at step 5 always reads current wizard state`

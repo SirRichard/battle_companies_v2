@@ -1,4 +1,5 @@
 import { Box, Typography, Chip } from '@mui/material'
+import LockIcon from '@mui/icons-material/Lock'
 import { motion } from 'framer-motion'
 import { getUnitLabel, formatEquipment } from '../../utils/labels'
 import type { CompanyDefinition } from '../../models'
@@ -11,6 +12,8 @@ interface Props {
   sergeantIds: string[]
   onSelectLeader: (tempId: string) => void
   onToggleSergeant: (tempId: string) => void
+  forcedLeaderId?: string | null
+  forcedSergeantIds?: string[]
 }
 
 const MAX_SERGEANTS = 2
@@ -22,6 +25,8 @@ export default function StepLeaderSelection({
   sergeantIds,
   onSelectLeader,
   onToggleSergeant,
+  forcedLeaderId = null,
+  forcedSergeantIds = [],
 }: Props) {
   const tempIds = generateTempMemberIds(companyDef)
 
@@ -125,6 +130,10 @@ export default function StepLeaderSelection({
           const allFilled = !!leaderId && sergeantIds.length >= MAX_SERGEANTS
           const isDisabled = !isHero && allFilled
 
+          const isLockedLeader = member.tempId === forcedLeaderId
+          const isLockedSergeant = forcedSergeantIds.includes(member.tempId)
+          const isLocked = isLockedLeader || isLockedSergeant
+
           return (
             <motion.div
               key={member.tempId}
@@ -133,7 +142,7 @@ export default function StepLeaderSelection({
               transition={{ delay: i * 0.04, duration: 0.2 }}
             >
               <Box
-                onClick={() => !isDisabled && handleClick(member.tempId)}
+                onClick={() => !isDisabled && !isLocked && handleClick(member.tempId)}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -152,10 +161,10 @@ export default function StepLeaderSelection({
                     : isSergeant
                       ? 'rgba(200,164,90,0.07)'
                       : 'transparent',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  cursor: isLocked ? 'default' : isDisabled ? 'not-allowed' : 'pointer',
                   opacity: isDisabled ? 0.4 : 1,
                   transition: 'all 0.18s',
-                  '&:hover': isDisabled
+                  '&:hover': isDisabled || isLocked
                     ? {}
                     : {
                         borderColor: isHero
@@ -241,6 +250,18 @@ export default function StepLeaderSelection({
                         ? 'primary.main'
                         : 'rgba(200,164,90,0.4)',
                       color: 'primary.main',
+                    }}
+                  />
+                )}
+
+                {/* Lock indicator for forced roles */}
+                {isLocked && (
+                  <LockIcon
+                    sx={{
+                      fontSize: '0.95rem',
+                      color: 'primary.main',
+                      opacity: 0.7,
+                      flexShrink: 0,
                     }}
                   />
                 )}

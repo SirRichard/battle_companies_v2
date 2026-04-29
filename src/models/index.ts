@@ -78,6 +78,7 @@ export interface StartingRosterEntry {
   count: number
   equipment?: string[]
   mustBeLeader?: boolean
+  mustBeSergeant?: boolean
 }
 
 export interface SpecialTableEntry {
@@ -113,6 +114,7 @@ export interface CompanyDefinition {
     id: string
     label: string
     isDefault?: boolean
+    visibleFromFactions?: string[]
     startingRoster?: StartingRosterEntry[]
     reinforcementTable?: ReinforcementEntry[]
   }>
@@ -223,15 +225,20 @@ export interface StoredBaseUnitStats {
   baseUnitId: string
   stats: Required<MemberStats>
   isMountStats?: boolean
+  // warg_marauder-specific fields (Req 4.2, 4.3)
+  riderCount?: number
+  additionalRiders?: Array<{ equipment: string[] }>
 }
 
 // ─── Wizard State ──────────────────────────────────────────────────────────────
 
 export interface WizardState {
   step: number
+  visitedSteps: number[]
   alignment: Alignment | null
   factionId: string | null
   companyTypeId: string | null
+  variantId: string | null
   companyName: string
   memberNames: Record<string, string> // tempId -> name
   leaderId: string | null

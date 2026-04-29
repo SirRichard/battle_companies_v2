@@ -27,15 +27,10 @@ import type { CompanyDefinition } from '../models'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
+import { buildDerivedAwareQueue, buildDerivedUnitStats, QueueEntry, BaseUnitDef } from '../utils/derivedUnits'
 
 const COMPANIES = companiesData as CompanyDefinition[]
-const BASE_UNITS = baseUnitsData as Array<{
-  id: string
-  label: string
-  pointsCost: number
-  keywords: string[]
-  baseEquipment: string[]
-}>
+const BASE_UNITS = baseUnitsData as BaseUnitDef[]
 const WARGEAR = wargearData as Array<{
   id: string
   label: string
@@ -65,7 +60,7 @@ function getMountLabel(id: string): string {
 function getMountsForUnit(unitId: string): string[] {
   const unit = BASE_UNITS.find((u) => u.id === unitId)
   if (!unit) return []
-  return unit.baseEquipment.filter((eq) =>
+  return (unit.baseEquipment ?? []).filter((eq) =>
     WARGEAR.some((w) => w.id === eq && w.category === 'mount')
   )
 }
@@ -199,28 +194,39 @@ export default function EditStatsPage() {
   // We must NOT re-filter as statsLibrary updates mid-session — doing so
   // causes the queue to shrink beneath currentIndex, breaking the counter
   // and making currentId undefined before navigation fires.
-  const [queues] = useState<{ unitQueue: string[]; mountQueue: string[] }>(
+  const [queues] = useState<{ unitQueue: QueueEntry[]; mountQueue: QueueEntry[] }>(
     () => {
       if (wizardMode && wizardUnits.length > 0) {
-        const units = wizardUnits
-          .filter(
-            (id) => !WARGEAR.some((w) => w.id === id && w.category === 'mount')
-          )
-          .filter((id) => !getStatsForUnit(id))
-        const mounts = wizardUnits
+        const rawUnitIds = wizardUnits.filter(
+          (id) => !WARGEAR.some((w) => w.id === id && w.category === 'mount')
+        )
+        const unitEntries = buildDerivedAwareQueue(rawUnitIds, getStatsForUnit, BASE_UNITS)
+        const mountEntries = wizardUnits
           .filter((id) =>
             WARGEAR.some((w) => w.id === id && w.category === 'mount')
           )
           .filter((id) => !getStatsForUnit(id))
-        return { unitQueue: units, mountQueue: mounts }
+          .map((id) => ({
+            unitId: id,
+            isInjectedParent: false,
+            autoSaveFromParentId: null,
+            injectedForLabel: null,
+          }))
+        return { unitQueue: unitEntries, mountQueue: mountEntries }
       }
       if (companyTypeId) {
         const allUnits = getUnitsForCompany(companyTypeId)
         const allMounts = getMountsForUnits(allUnits)
-        return {
-          unitQueue: allUnits.filter((id) => !getStatsForUnit(id)),
-          mountQueue: allMounts.filter((id) => !getStatsForUnit(id)),
-        }
+        const unitEntries = buildDerivedAwareQueue(allUnits, getStatsForUnit, BASE_UNITS)
+        const mountEntries = allMounts
+          .filter((id) => !getStatsForUnit(id))
+          .map((id) => ({
+            unitId: id,
+            isInjectedParent: false,
+            autoSaveFromParentId: null,
+            injectedForLabel: null,
+          }))
+        return { unitQueue: unitEntries, mountQueue: mountEntries }
       }
       return { unitQueue: [], mountQueue: [] }
     }
@@ -240,7 +246,8 @@ export default function EditStatsPage() {
   const [savedIds, setSavedIds] = useState<string[]>([])
   const [confirmExit, setConfirmExit] = useState(false)
 
-  const currentId = activeQueue[currentIndex] ?? null
+  const currentEntry = activeQueue[currentIndex] ?? null
+  const currentId = currentEntry?.unitId ?? null
   const currentLabel = currentId
     ? isMount
       ? getMountLabel(currentId)
@@ -275,6 +282,47 @@ export default function EditStatsPage() {
       setCurrentIndex(0)
     }
   }, [phase, unitQueue.length, mountQueue.length])
+
+  // Auto-save derived units whose parent stats are already in the library
+  useEffect(() => {
+    const currentEntry = activeQueue[currentIndex]
+    if (!currentEntry?.autoSaveFromParentId) return
+
+    const parentStats = getStatsForUnit(currentEntry.autoSaveFromParentId)
+    if (!parentStats) return // parent not yet saved; fall back to normal form
+
+    const unitDef = BASE_UNITS.find((u) => u.id === currentEntry.unitId)
+    if (!unitDef) return
+
+    const derived = buildDerivedUnitStats(unitDef, parentStats.stats)
+
+    saveStats(derived).then(() => {
+      setSavedIds((prev) => [...prev, currentEntry.unitId])
+
+      const isLastInQueue = currentIndex >= activeQueue.length - 1
+
+      if (!isLastInQueue) {
+        setDirection(1)
+        setCurrentIndex((i) => i + 1)
+        return
+      }
+
+      // Finished units phase — transition to mounts if any
+      if (phase === 'units' && mountQueue.length > 0) {
+        setPhase('mounts')
+        setCurrentIndex(0)
+        setDirection(1)
+        return
+      }
+
+      // All done
+      if (wizardMode) {
+        navigate('/companies/new?from=stats')
+        return
+      }
+      navigate(companyIdParam ? `/companies/${companyIdParam}` : '/')
+    })
+  }, [currentIndex, phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Save handler ─────────────────────────────────────────────────────────
 
@@ -440,6 +488,10 @@ export default function EditStatsPage() {
   const hasWarnings = Object.keys(warnings).length > 0
   const hasErrors = Object.keys(errors).length > 0
 
+  const contextualNote = currentEntry?.isInjectedParent && currentEntry.injectedForLabel
+    ? `Required for ${currentEntry.injectedForLabel}`
+    : null
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PageHeader
@@ -519,6 +571,12 @@ export default function EditStatsPage() {
           Reference your official Battle Companies rulebook for these stats.
           This app does not include copyrighted game data.
         </Alert>
+
+        {contextualNote && (
+          <Alert severity="info" sx={{ mb: 2.5, fontSize: '0.82rem', py: 0.5 }}>
+            {contextualNote}
+          </Alert>
+        )}
 
         {isMount && (
           <Alert severity="info" sx={{ mb: 2.5, fontSize: '0.82rem', py: 0.5 }}>
@@ -674,7 +732,15 @@ export default function EditStatsPage() {
         cancelLabel="Keep Entering"
         onConfirm={() => {
           setConfirmExit(false)
-          if (companyIdParam) {
+          if (wizardMode) {
+            // Return to the wizard step the user came from
+            const fromStep = searchParams.get('fromStep')
+            navigate(
+              fromStep !== null
+                ? `/companies/new?from=stats&fromStep=${fromStep}`
+                : '/companies/new?from=stats'
+            )
+          } else if (companyIdParam) {
             navigate(isNewCompany ? '/' : `/companies/${companyIdParam}`)
           } else {
             navigate('/')

@@ -42,7 +42,7 @@ import wanderersData from '../data/wanderers.json'
 const COMPANIES_DEF = companiesData as CompanyDefinition[]
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment: string[]
+  baseEquipment?: string[]
 }>
 const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
 
@@ -63,7 +63,7 @@ function getRequiredUnitIds(companyTypeId: string): string[] {
   for (const uid of Array.from(ids)) {
     const unit = BASE_UNITS_RAW.find((u) => u.id === uid)
     if (unit) {
-      for (const eq of unit.baseEquipment) {
+      for (const eq of (unit.baseEquipment ?? [])) {
         if (WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount'))
           ids.add(eq)
       }

@@ -53,6 +53,7 @@ function heroicActionLabel(actionId: string): string {
  *
  * @param heroPaths        tempId → pathId for each hero
  * @param heroSpellChoices tempId → magicalPowerId for Channeling heroes
+ * @param rosterOverride   optional roster to use instead of companyDef.startingRoster
  */
 export function buildStartingMembers(
   companyDef: CompanyDefinition,
@@ -61,12 +62,15 @@ export function buildStartingMembers(
   sergeantIds: string[],
   heroPaths: Record<string, string> = {},
   heroSpellChoices: Record<string, string> = {},
-  goldPurchases: Record<string, string[]> = {}
+  goldPurchases: Record<string, string[]> = {},
+  rosterOverride?: CompanyDefinition['startingRoster']
 ): Member[] {
   const members: Member[] = []
   let memberIndex = 0
 
-  for (const entry of companyDef.startingRoster) {
+  const roster = rosterOverride ?? companyDef.startingRoster
+
+  for (const entry of roster) {
     for (let i = 0; i < entry.count; i++) {
       const tempId = `member_${memberIndex}`
       const name = memberNames[tempId]?.trim() || `Warrior #${memberIndex + 1}`
@@ -131,14 +135,36 @@ export function buildStartingMembers(
 // ─── createCompany ────────────────────────────────────────────────────────────
 
 /**
+ * Resolves the active variant for a company definition given a variantId.
+ * Returns the variant only when it is a non-default variant that matches the id.
+ */
+function resolveVariant(
+  companyDef: CompanyDefinition,
+  variantId?: string | null
+) {
+  if (!variantId) return null
+  const variant = companyDef.variants?.find((v) => v.id === variantId)
+  if (!variant || variant.isDefault) return null
+  return variant
+}
+
+/**
  * Creates a new Company from the completed wizard state.
+ *
+ * @param variantId  optional variant id; when it matches a non-default variant,
+ *                   that variant's startingRoster (and reinforcementTable if
+ *                   present) are used instead of the company-level defaults.
  */
 export function createCompany(
   wizardState: WizardState,
   companyDef: CompanyDefinition,
   heroPaths: Record<string, string> = {},
-  heroSpellChoices: Record<string, string> = {}
+  heroSpellChoices: Record<string, string> = {},
+  variantId?: string | null
 ): Company {
+  const variant = resolveVariant(companyDef, variantId ?? wizardState.variantId)
+  const rosterOverride = variant?.startingRoster
+
   const members = buildStartingMembers(
     companyDef,
     wizardState.memberNames,
@@ -146,7 +172,8 @@ export function createCompany(
     wizardState.sergeantIds,
     heroPaths,
     heroSpellChoices,
-    wizardState.goldPurchases ?? {}
+    wizardState.goldPurchases ?? {},
+    rosterOverride
   )
 
   const now = new Date().toISOString()
@@ -175,11 +202,16 @@ export function createCompany(
 
 /**
  * Generates the list of temp member IDs in wizard order — used to map names.
+ * When rosterOverride is provided it is used instead of companyDef.startingRoster.
  */
-export function generateTempMemberIds(companyDef: CompanyDefinition): string[] {
+export function generateTempMemberIds(
+  companyDef: CompanyDefinition,
+  rosterOverride?: CompanyDefinition['startingRoster']
+): string[] {
   const ids: string[] = []
   let i = 0
-  for (const entry of companyDef.startingRoster) {
+  const roster = rosterOverride ?? companyDef.startingRoster
+  for (const entry of roster) {
     for (let j = 0; j < entry.count; j++) {
       ids.push(`member_${i}`)
       i++

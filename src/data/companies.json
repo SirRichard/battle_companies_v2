@@ -539,111 +539,6 @@
     ]
   },
   {
-    "id": "the_last_alliance",
-    "label": "The Last Alliance",
-    "factionId": ["gondor", "elven_realms"],
-    "reinforcementCost": 4,
-    "maxCompanySize": 12,
-    "gold": 1,
-
-    "flavorTexts": [
-      "In the closing years of the Second Age, the armies of Gil-galad and Elendil formed a compact that would become known as the Last Alliance of Men and Elves, to combat the ever-growing threat of Sauron. Marching to war upon the black lands of Mordor, they fought for many years against the hordes of Orcs that Sauron sent to oppose them. During these blighted years, it was not unusual for Gil-galad and Elendil to send small bands of their warriors to venture into Mordor to undermine the armies of the Dark Lord.",
-      "These companies would be tasked with dealing with enemy scouts before they could give away their army’s position, capturing small Orc outposts, or even assassinating leaders of the Orcish armies. As these companies of Men and Elves fought together, the bonds between them grew to a point where they would fight better when alongside their allies than even when alongside those of their own race."
-    ],
-
-    "companySpecialRules": [
-      {
-        "id": "numenor_stands_alone",
-        "title": "Numenor Stands Alone!",
-        "description": "If you wish to represent Númenór by themselves, you may choose to create a company of Warriors of Númenór exclusively."
-      },
-      { "id": "elite_company" }
-    ],
-
-    "startingRoster": [
-      {
-        "baseUnitId": "rivendell_warrior",
-        "count": 2
-      },
-      {
-        "baseUnitId": "rivendell_warrior",
-        "count": 1,
-        "equipment": ["elf_bow"]
-      },
-      {
-        "baseUnitId": "warrior_of_numenor",
-        "count": 3,
-        "equipment": ["shield"]
-      }
-    ],
-    "reinforcementTable": [
-      {
-        "roll": [1],
-        "result": "none",
-        "label": "none"
-      },
-      {
-        "roll": [2, 3],
-        "result": "choice",
-        "baseUnitId": "warrior_of_numenor"
-      },
-      {
-        "roll": [4, 5],
-        "result": "choice",
-        "baseUnitId": "rivendell_warrior"
-      },
-      {
-        "roll": [6],
-        "result": "choiceFromTable",
-        "includeRolls": [2, 4]
-      }
-    ],
-
-    "variants": [
-      {
-        "id": "last_alliance_standard",
-        "label": "The Last Alliance",
-        "isDefault": true
-      },
-      {
-        "id": "last_alliance_numenorean",
-        "label": "The Last Alliance (Númenórean)",
-        "isDefault": false,
-        "visibleFromFactions": ["gondor"],
-        "startingRoster": [
-          {
-            "baseUnitId": "warrior_of_numenor",
-            "count": 6,
-            "equipment": ["shield"]
-          }
-        ],
-        "reinforcementTable": [
-          {
-            "roll": [1],
-            "result": "none",
-            "label": "none"
-          },
-          {
-            "roll": [2, 3, 4, 5, 6],
-            "result": "choice",
-            "baseUnitId": "warrior_of_numenor"
-          }
-        ]
-      }
-    ],
-
-    "advancements": [],
-
-    "heroUpgrade": [
-      {
-        "id": "there_were_some_who_resisted",
-        "label": "There Were Some Who Resisted",
-        "flavor": "The alliance forged between Men and Elves has brought out the best in both races as they fight against the Dark Lord.",
-        "description": "The Hero may re-roll any dice that roll a 1 when making Courage Tests."
-      }
-    ]
-  },
-  {
     "id": "helms_deep",
     "label": "Helm's Deep",
     "factionId": "rohan",
@@ -1323,6 +1218,111 @@
         "label": "Veteran of the Old Wars",
         "flavor": "A skilled warrior that has fought in many wars across the ages, this hero strikes fear into the hearts of their foes.",
         "description": "This Hero gains the Terror special rule."
+      }
+    ]
+  },
+  {
+    "id": "the_last_alliance",
+    "label": "The Last Alliance",
+    "factionId": ["gondor", "elven_realms"],
+    "reinforcementCost": 4,
+    "maxCompanySize": 12,
+    "gold": 1,
+
+    "flavorTexts": [
+      "In the closing years of the Second Age, the armies of Gil-galad and Elendil formed a compact that would become known as the Last Alliance of Men and Elves, to combat the ever-growing threat of Sauron. Marching to war upon the black lands of Mordor, they fought for many years against the hordes of Orcs that Sauron sent to oppose them. During these blighted years, it was not unusual for Gil-galad and Elendil to send small bands of their warriors to venture into Mordor to undermine the armies of the Dark Lord.",
+      "These companies would be tasked with dealing with enemy scouts before they could give away their army’s position, capturing small Orc outposts, or even assassinating leaders of the Orcish armies. As these companies of Men and Elves fought together, the bonds between them grew to a point where they would fight better when alongside their allies than even when alongside those of their own race."
+    ],
+
+    "companySpecialRules": [
+      {
+        "id": "numenor_stands_alone",
+        "title": "Numenor Stands Alone!",
+        "description": "If you wish to represent Númenór by themselves, you may choose to create a company of Warriors of Númenór exclusively."
+      },
+      { "id": "elite_company" }
+    ],
+
+    "startingRoster": [
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 2
+      },
+      {
+        "baseUnitId": "rivendell_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
+        "baseUnitId": "warrior_of_numenor",
+        "count": 3,
+        "equipment": ["shield"]
+      }
+    ],
+    "reinforcementTable": [
+      {
+        "roll": [1],
+        "result": "none",
+        "label": "none"
+      },
+      {
+        "roll": [2, 3],
+        "result": "choice",
+        "baseUnitId": "warrior_of_numenor"
+      },
+      {
+        "roll": [4, 5],
+        "result": "choice",
+        "baseUnitId": "rivendell_warrior"
+      },
+      {
+        "roll": [6],
+        "result": "choiceFromTable",
+        "includeRolls": [2, 4]
+      }
+    ],
+
+    "variants": [
+      {
+        "id": "last_alliance_standard",
+        "label": "The Last Alliance",
+        "isDefault": true
+      },
+      {
+        "id": "last_alliance_numenorean",
+        "label": "The Last Alliance (Númenórean)",
+        "isDefault": false,
+        "visibleFromFactions": ["gondor"],
+        "startingRoster": [
+          {
+            "baseUnitId": "warrior_of_numenor",
+            "count": 6,
+            "equipment": ["shield"]
+          }
+        ],
+        "reinforcementTable": [
+          {
+            "roll": [1],
+            "result": "none",
+            "label": "none"
+          },
+          {
+            "roll": [2, 3, 4, 5, 6],
+            "result": "choice",
+            "baseUnitId": "warrior_of_numenor"
+          }
+        ]
+      }
+    ],
+
+    "advancements": [],
+
+    "heroUpgrade": [
+      {
+        "id": "there_were_some_who_resisted",
+        "label": "There Were Some Who Resisted",
+        "flavor": "The alliance forged between Men and Elves has brought out the best in both races as they fight against the Dark Lord.",
+        "description": "The Hero may re-roll any dice that roll a 1 when making Courage Tests."
       }
     ]
   },

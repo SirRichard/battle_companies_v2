@@ -233,21 +233,107 @@ export default function StepCompany({ factionId, value, onChange }: Props) {
                     >
                       Starting Roster
                     </Typography>
-                    {company.startingRoster.map((entry, ei) => (
-                      <Typography
-                        key={ei}
-                        variant="body2"
-                        sx={{ opacity: 0.7, lineHeight: 1.8 }}
-                      >
-                        ×{entry.count} {getUnitLabel(entry.baseUnitId)}
-                        {entry.equipment && entry.equipment.length > 0 && (
-                          <Box component="span" sx={{ opacity: 0.6 }}>
-                            {' '}
-                            ({formatEquipment(entry.equipment)})
-                          </Box>
-                        )}
-                      </Typography>
-                    ))}
+                    {(() => {
+                      const visibleVariants =
+                        company.variants?.filter(
+                          (v) =>
+                            !v.isDefault &&
+                            (!v.visibleFromFactions ||
+                              v.visibleFromFactions.includes(factionId))
+                        ) ?? []
+
+                      if (visibleVariants.length > 0) {
+                        return (
+                          <>
+                            {/* Standard Roster sub-heading */}
+                            <Typography
+                              sx={{
+                                fontFamily: '"Cinzel", serif',
+                                fontSize: '0.72rem',
+                                letterSpacing: '0.06em',
+                                color: 'text.secondary',
+                                opacity: 0.7,
+                                mb: 0.5,
+                                mt: 0.5,
+                              }}
+                            >
+                              Standard Roster
+                            </Typography>
+                            {company.startingRoster.map((entry, ei) => (
+                              <Typography
+                                key={ei}
+                                variant="body2"
+                                sx={{ opacity: 0.7, lineHeight: 1.8 }}
+                              >
+                                ×{entry.count} {getUnitLabel(entry.baseUnitId)}
+                                {entry.equipment && entry.equipment.length > 0 && (
+                                  <Box component="span" sx={{ opacity: 0.6 }}>
+                                    {' '}
+                                    ({formatEquipment(entry.equipment)})
+                                  </Box>
+                                )}
+                              </Typography>
+                            ))}
+
+                            {/* Variant rosters */}
+                            {visibleVariants.map((variant) => (
+                              <Box key={variant.id}>
+                                <Typography
+                                  sx={{
+                                    fontFamily: '"Cinzel", serif',
+                                    fontSize: '0.72rem',
+                                    letterSpacing: '0.06em',
+                                    color: 'text.secondary',
+                                    opacity: 0.7,
+                                    mb: 0.5,
+                                    mt: 1,
+                                  }}
+                                >
+                                  {variant.label}
+                                </Typography>
+                                {variant.startingRoster?.map((entry, ei) => (
+                                  <Typography
+                                    key={ei}
+                                    variant="body2"
+                                    sx={{ opacity: 0.7, lineHeight: 1.8 }}
+                                  >
+                                    ×{entry.count}{' '}
+                                    {getUnitLabel(entry.baseUnitId)}
+                                    {entry.equipment &&
+                                      entry.equipment.length > 0 && (
+                                        <Box
+                                          component="span"
+                                          sx={{ opacity: 0.6 }}
+                                        >
+                                          {' '}
+                                          ({formatEquipment(entry.equipment)})
+                                        </Box>
+                                      )}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            ))}
+                          </>
+                        )
+                      }
+
+                      // No visible variants — render roster as before
+                      return company.startingRoster.map((entry, ei) => (
+                        <Typography
+                          key={ei}
+                          variant="body2"
+                          sx={{ opacity: 0.7, lineHeight: 1.8 }}
+                        >
+                          ×{entry.count} {getUnitLabel(entry.baseUnitId)}
+                          {entry.equipment && entry.equipment.length > 0 && (
+                            <Box component="span" sx={{ opacity: 0.6 }}>
+                              {' '}
+                              ({formatEquipment(entry.equipment)})
+                            </Box>
+                          )}
+                        </Typography>
+                      ))
+                    })()}
                   </Box>
                 </Box>
               </Collapse>

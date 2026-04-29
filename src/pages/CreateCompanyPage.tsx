@@ -7,6 +7,8 @@ import {
   Stepper,
   Step,
   StepLabel,
+  StepButton,
+  Divider,
 } from '@mui/material'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -46,7 +48,7 @@ const WIZARD_DRAFT_KEY = 'bc_wizard_draft'
 /** Returns mount IDs embedded in a unit's baseEquipment list. */
 function getMountsForUnit(unitId: string): string[] {
   const unit = BASE_UNITS_RAW.find((u) => u.id === unitId)
-  if (!unit) return []
+  if (!unit || !unit.baseEquipment) return []
   return unit.baseEquipment.filter((eq) =>
     WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount')
   )
@@ -164,9 +166,11 @@ const slideVariants = {
 
 const INITIAL_WIZARD: WizardState = {
   step: 0,
+  visitedSteps: [0],
   alignment: null,
   factionId: null,
   companyTypeId: null,
+  variantId: null,
   companyName: '',
   memberNames: {},
   leaderId: null,
@@ -184,7 +188,13 @@ export default function CreateCompanyPage() {
   const [wizard, setWizard] = useState<WizardState>(() => {
     try {
       const draft = sessionStorage.getItem(WIZARD_DRAFT_KEY)
-      if (draft) return JSON.parse(draft) as WizardState
+      if (draft) {
+        const parsed = JSON.parse(draft) as WizardState
+        if (!parsed.visitedSteps) {
+          parsed.visitedSteps = [0]
+        }
+        return parsed
+      }
     } catch {
       /* ignore malformed draft */
     }
@@ -212,8 +222,11 @@ export default function CreateCompanyPage() {
         const draft = sessionStorage.getItem(WIZARD_DRAFT_KEY)
         if (draft) {
           const parsed = JSON.parse(draft) as WizardState
-          // Advance straight to path selection — stats are now all entered
-          setWizard({ ...parsed, step: 6 })
+          // fromStep tells us which wizard step sent the user to stats entry.
+          // If present, return to that step; otherwise default to step 6 (paths).
+          const fromStepParam = searchParams.get('fromStep')
+          const returnStep = fromStepParam !== null ? parseInt(fromStepParam, 10) : 6
+          setWizard({ ...parsed, step: isNaN(returnStep) ? 6 : returnStep })
         }
       } catch {
         /* ignore */
@@ -231,26 +244,193 @@ export default function CreateCompanyPage() {
     [wizard.companyTypeId]
   )
 
-  const tempMemberIds = useMemo(
-    () => (selectedCompany ? generateTempMemberIds(selectedCompany) : []),
-    [selectedCompany]
+  const tempMemberIds = useMemo(() => {
+    if (!selectedCompany) return []
+    // When a non-default variant is active, use its startingRoster for temp IDs
+    const activeVariant = wizard.variantId
+      ? selectedCompany.variants?.find(
+          (v) => v.id === wizard.variantId && !v.isDefault
+        )
+      : undefined
+    const rosterOverride = activeVariant ? activeVariant.startingRoster : undefined
+    return generateTempMemberIds(selectedCompany, rosterOverride)
+  }, [selectedCompany, wizard.variantId])
+
+  const forcedLeaderId = useMemo(() => {
+    if (!selectedCompany) return null
+    // Use variant roster if a non-default variant is active
+    const activeVariant = wizard.variantId
+      ? selectedCompany.variants?.find(
+          (v) => v.id === wizard.variantId && !v.isDefault
+        )
+      : undefined
+    const roster = activeVariant?.startingRoster ?? selectedCompany.startingRoster
+    
+    let idx = 0
+    for (const entry of roster) {
+      for (let i = 0; i < entry.count; i++) {
+        if (entry.mustBeLeader) return `member_${idx}`
+        idx++
+      }
+    }
+    return null
+  }, [selectedCompany, wizard.variantId])
+
+  const forcedSergeantIds = useMemo(() => {
+    if (!selectedCompany) return []
+    // Use variant roster if a non-default variant is active
+    const activeVariant = wizard.variantId
+      ? selectedCompany.variants?.find(
+          (v) => v.id === wizard.variantId && !v.isDefault
+        )
+      : undefined
+    const roster = activeVariant?.startingRoster ?? selectedCompany.startingRoster
+    
+    const ids: string[] = []
+    let idx = 0
+    for (const entry of roster) {
+      for (let i = 0; i < entry.count; i++) {
+        if (entry.mustBeSergeant) ids.push(`member_${idx}`)
+        idx++
+      }
+    }
+    return ids
+  }, [selectedCompany, wizard.variantId])
+
+  const allRolesForced = useMemo(
+    () => !!forcedLeaderId && forcedSergeantIds.length >= 2,
+    [forcedLeaderId, forcedSergeantIds]
   )
+
+  // Auto-set variantId when the selected company has no eligible variants.
+  // This ensures canAdvance() for step 2 returns true without requiring user
+  // interaction for companies that don't have faction-specific variants.
+  useEffect(() => {
+    if (!selectedCompany || wizard.step !== 2) return
+    const eligibleVariants =
+      selectedCompany.variants?.filter(
+        (v) =>
+          !v.isDefault &&
+          v.visibleFromFactions?.includes(wizard.factionId ?? '')
+      ) ?? []
+    if (eligibleVariants.length === 0 && wizard.variantId === null) {
+      // No eligible variants — auto-set to the default variant id or 'default'
+      const defaultVariant = selectedCompany.variants?.find((v) => v.isDefault)
+      const autoId = defaultVariant?.id ?? 'default'
+      setWizard((w) => ({ ...w, variantId: autoId }))
+    }
+  }, [selectedCompany, wizard.factionId, wizard.step, wizard.variantId])
+
+  // Pre-populate wizard state with forced assignments when entering step 5.
+  // This ensures canAdvance() for step 5 is immediately true when all roles
+  // are pre-assigned by the company definition (mustBeLeader / mustBeSergeant).
+  useEffect(() => {
+    if (wizard.step !== 5 || !selectedCompany) return
+    if (forcedLeaderId && wizard.leaderId !== forcedLeaderId) {
+      setWizard((w) => ({ ...w, leaderId: forcedLeaderId }))
+    }
+    if (forcedSergeantIds.length > 0) {
+      const missing = forcedSergeantIds.filter(
+        (id) => !wizard.sergeantIds.includes(id)
+      )
+      if (missing.length > 0) {
+        setWizard((w) => ({
+          ...w,
+          sergeantIds: [
+            ...new Set([
+              ...forcedSergeantIds,
+              ...w.sergeantIds.filter((id) => !forcedSergeantIds.includes(id)),
+            ]),
+          ],
+        }))
+      }
+    }
+  }, [wizard.step, selectedCompany, forcedLeaderId, forcedSergeantIds])
+
+  // When returning from stats page with forced roles, ensure they're set.
+  // This handles the case where we skip step 5 (step 4 → stats → step 6).
+  useEffect(() => {
+    if (wizard.step === 6 && allRolesForced) {
+      let needsUpdate = false
+      const updates: Partial<WizardState> = {}
+      
+      if (forcedLeaderId && !wizard.leaderId) {
+        updates.leaderId = forcedLeaderId
+        needsUpdate = true
+      }
+      
+      if (forcedSergeantIds.length > 0) {
+        const missing = forcedSergeantIds.filter(
+          (id) => !wizard.sergeantIds.includes(id)
+        )
+        if (missing.length > 0) {
+          updates.sergeantIds = [
+            ...new Set([
+              ...forcedSergeantIds,
+              ...wizard.sergeantIds.filter((id) => !forcedSergeantIds.includes(id)),
+            ]),
+          ]
+          needsUpdate = true
+        }
+      }
+      
+      if (needsUpdate) {
+        setWizard((w) => ({ ...w, ...updates }))
+      }
+    }
+  }, [wizard.step, wizard.leaderId, wizard.sergeantIds, allRolesForced, forcedLeaderId, forcedSergeantIds])
 
   // ─── Navigation ──────────────────────────────────────────────────────────
 
-  const go = (nextStep: number) => {
+  const go = useCallback((nextStep: number) => {
     setDirection(nextStep > wizard.step ? 1 : -1)
-    setWizard((w) => ({ ...w, step: nextStep }))
-  }
+    setWizard((w) => {
+      const next = { ...w, step: nextStep }
 
-  const canAdvance = (): boolean => {
+      // Record the destination as visited (deduplicated)
+      if (!next.visitedSteps.includes(nextStep)) {
+        next.visitedSteps = [...next.visitedSteps, nextStep]
+      }
+
+      // When entering step 5, synchronously apply forced role assignments so
+      // the UI renders with the correct state on the very first frame.
+      if (nextStep === 5) {
+        if (forcedLeaderId && next.leaderId !== forcedLeaderId) {
+          next.leaderId = forcedLeaderId
+        }
+        if (forcedSergeantIds.length > 0) {
+          next.sergeantIds = [
+            ...new Set([
+              ...forcedSergeantIds,
+              ...next.sergeantIds.filter((id) => !forcedSergeantIds.includes(id)),
+            ]),
+          ]
+        }
+      }
+      return next
+    })
+  }, [wizard.step, forcedLeaderId, forcedSergeantIds])
+
+  const canAdvance = useCallback((): boolean => {
     switch (wizard.step) {
       case 0:
         return wizard.alignment !== null
       case 1:
         return wizard.factionId !== null
-      case 2:
-        return wizard.companyTypeId !== null
+      case 2: {
+        if (wizard.companyTypeId === null) return false
+        // If the selected company has eligible variants, require a variant choice
+        const eligibleVariants =
+          selectedCompany?.variants?.filter(
+            (v) =>
+              !v.isDefault &&
+              v.visibleFromFactions?.includes(wizard.factionId ?? '')
+          ) ?? []
+        if (eligibleVariants.length > 0) {
+          return wizard.variantId !== null
+        }
+        return true
+      }
       case 3:
         return wizard.companyName.trim().length > 0
       case 4:
@@ -273,7 +453,7 @@ export default function CreateCompanyPage() {
       default:
         return false
     }
-  }
+  }, [wizard, selectedCompany])
 
   // ─── Step actions ────────────────────────────────────────────────────────
 
@@ -294,6 +474,7 @@ export default function CreateCompanyPage() {
     setWizard((w) => ({
       ...w,
       companyTypeId,
+      variantId: null,
       memberNames: {},
       leaderId: null,
       sergeantIds: [],
@@ -309,7 +490,7 @@ export default function CreateCompanyPage() {
     }))
   }
 
-  const toggleSergeant = (tempId: string) => {
+  const toggleSergeant = useCallback((tempId: string) => {
     setWizard((w) => {
       if (w.leaderId === tempId) return w
       const already = w.sergeantIds.includes(tempId)
@@ -322,7 +503,63 @@ export default function CreateCompanyPage() {
       if (w.sergeantIds.length >= 2) return w
       return { ...w, sergeantIds: [...w.sergeantIds, tempId] }
     })
-  }
+  }, [])
+
+  const handleSelectLeader = useCallback((tempId: string) => {
+    setWizard((w) => ({
+      ...w,
+      leaderId: w.leaderId === tempId ? null : tempId,
+      sergeantIds: w.sergeantIds.filter((id) => id !== tempId),
+    }))
+  }, [])
+
+  const handleProgressBarClick = useCallback(
+    (targetStep: number) => {
+      // Guard: only allow backward navigation to actually-visited steps
+      if (targetStep >= wizard.step) return
+      if (!wizard.visitedSteps.includes(targetStep)) return
+
+      // Apply the same downstream resets as the existing step-change handlers
+      setWizard((w) => {
+        const next = { ...w }
+
+        if (targetStep <= 0) {
+          // Jumping to Alignment: reset everything downstream of step 0
+          next.factionId = null
+          next.companyTypeId = null
+          next.variantId = null
+          next.memberNames = {}
+          next.leaderId = null
+          next.sergeantIds = []
+          next.heroPaths = {}
+          next.heroSpellChoices = {}
+        } else if (targetStep <= 1) {
+          // Jumping to Faction: reset everything downstream of step 1
+          next.companyTypeId = null
+          next.variantId = null
+          next.memberNames = {}
+          next.leaderId = null
+          next.sergeantIds = []
+          next.heroPaths = {}
+          next.heroSpellChoices = {}
+        } else if (targetStep <= 2) {
+          // Jumping to Company: reset everything downstream of step 2
+          next.variantId = null
+          next.memberNames = {}
+          next.leaderId = null
+          next.sergeantIds = []
+          next.heroPaths = {}
+          next.heroSpellChoices = {}
+        }
+        // Steps 3–6: no downstream resets needed (state is additive / independent)
+
+        return next
+      })
+
+      go(targetStep)
+    },
+    [wizard.step, wizard.visitedSteps, go]
+  )
 
   // ─── Final save ──────────────────────────────────────────────────────────
 
@@ -344,7 +581,7 @@ export default function CreateCompanyPage() {
     return (selectedCompany.gold ?? 0) - spent
   }
 
-  const doFinish = async () => {
+  const doFinish = useCallback(async () => {
     if (!selectedCompany || saving) return
     setSaving(true)
     try {
@@ -352,7 +589,8 @@ export default function CreateCompanyPage() {
         wizard,
         selectedCompany,
         wizard.heroPaths,
-        wizard.heroSpellChoices
+        wizard.heroSpellChoices,
+        wizard.variantId
       )
       await saveCompany(company)
       sessionStorage.removeItem(WIZARD_DRAFT_KEY)
@@ -360,16 +598,16 @@ export default function CreateCompanyPage() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [selectedCompany, saving, wizard, saveCompany, navigate])
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     // If company has gold and we're on the gold step, confirm before saving
     if ((selectedCompany?.gold ?? 0) > 0 && wizard.step === STEPS.length - 1) {
       setShowGoldConfirm(true)
     } else {
       void doFinish()
     }
-  }
+  }, [selectedCompany, wizard.step, doFinish])
 
   // Enter key shortcut for Next / Form Company (only when canAdvance() is true and step > 1)
   useEffect(() => {
@@ -383,17 +621,31 @@ export default function CreateCompanyPage() {
       if (wizard.step === STEPS.length - 1) {
         handleFinish()
       } else {
-        if (wizard.step === 5 && selectedCompany) {
+        // Check for missing stats before advancing to step 6 (from step 4 or 5)
+        if ((wizard.step === 5 || (wizard.step === 4 && allRolesForced)) && selectedCompany) {
           const allIds = getAllUnitIdsForRoster(selectedCompany)
           const missing = allIds.filter((id) => !getStatsForUnit(id))
           if (missing.length > 0) {
-            navigate(`/stats?wizard=1&units=${missing.join(',')}`)
+            navigate(`/stats?wizard=1&units=${missing.join(',')}&fromStep=${wizard.step}`)
             return
           }
         }
         // Skip gold step if no gold
         if (wizard.step === 6 && (selectedCompany?.gold ?? 0) === 0) {
           handleFinish()
+          return
+        }
+        // Skip step 5 (leader/sergeant selection) when all roles are forced
+        if (wizard.step === 4 && allRolesForced) {
+          setWizard((w) => ({
+            ...w,
+            step: 6,
+            leaderId: forcedLeaderId ?? w.leaderId,
+            sergeantIds: forcedSergeantIds.length > 0
+              ? [...new Set([...forcedSergeantIds, ...w.sergeantIds.filter(id => !forcedSergeantIds.includes(id))])]
+              : w.sergeantIds,
+          }))
+          setDirection(1)
           return
         }
         go(wizard.step + 1)
@@ -409,10 +661,14 @@ export default function CreateCompanyPage() {
     go,
     navigate,
     getStatsForUnit,
+    allRolesForced,
+    forcedLeaderId,
+    forcedSergeantIds,
   ])
 
   const handleAbort = useCallback(() => {
     sessionStorage.removeItem(WIZARD_DRAFT_KEY)
+    setWizard(INITIAL_WIZARD)
     navigate('/')
   }, [navigate])
 
@@ -442,14 +698,197 @@ export default function CreateCompanyPage() {
         )
 
       // ── Step 2: Company type ─────────────────────────────────────────────
-      case 2:
-        return (
-          <StepCompany
-            factionId={wizard.factionId!}
-            value={wizard.companyTypeId}
-            onChange={selectCompany}
-          />
+      case 2: {
+        // Compute eligible variants for the selected company
+        const eligibleVariants =
+          selectedCompany?.variants?.filter(
+            (v) =>
+              !v.isDefault &&
+              v.visibleFromFactions?.includes(wizard.factionId ?? '')
+          ) ?? []
+
+        // Default variant (isDefault: true, or the sentinel 'default')
+        const defaultVariant = selectedCompany?.variants?.find(
+          (v) => v.isDefault
         )
+
+        // Auto-set variantId when no eligible variants exist and a company is selected
+        // (handled via useEffect below; here we just render the company selector)
+
+        return (
+          <>
+            <StepCompany
+              factionId={wizard.factionId!}
+              value={wizard.companyTypeId}
+              onChange={selectCompany}
+            />
+
+            {/* Variant picker — only shown when a company with eligible variants is selected */}
+            {wizard.companyTypeId !== null && eligibleVariants.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Divider sx={{ mb: 2.5, opacity: 0.3 }} />
+                <Typography
+                  sx={{
+                    fontFamily: '"Cinzel", serif',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'primary.main',
+                    opacity: 0.85,
+                    mb: 1.5,
+                  }}
+                >
+                  Choose Your Roster
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontStyle: 'italic', opacity: 0.65, mb: 2 }}
+                >
+                  This company has multiple roster options. Select which variant
+                  you wish to play.
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {/* Standard / default option */}
+                  {(() => {
+                    const standardId = defaultVariant?.id ?? 'default'
+                    const isSelected = wizard.variantId === standardId
+                    return (
+                      <Box
+                        key="standard"
+                        onClick={() =>
+                          setWizard((w) => ({ ...w, variantId: standardId }))
+                        }
+                        sx={{
+                          border: '1px solid',
+                          borderColor: isSelected
+                            ? 'primary.main'
+                            : 'rgba(200,164,90,0.18)',
+                          borderRadius: 1,
+                          background: isSelected
+                            ? 'rgba(200,164,90,0.08)'
+                            : 'transparent',
+                          px: 2.5,
+                          py: 1.75,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          transition: 'border-color 0.18s, background 0.18s',
+                          '&:hover': {
+                            borderColor: isSelected
+                              ? 'primary.main'
+                              : 'rgba(200,164,90,0.4)',
+                          },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            border: '2px solid',
+                            borderColor: isSelected
+                              ? 'primary.main'
+                              : 'rgba(200,164,90,0.3)',
+                            background: isSelected
+                              ? 'primary.main'
+                              : 'transparent',
+                            transition: 'all 0.18s',
+                          }}
+                        />
+                        <Box>
+                          <Typography
+                            sx={{
+                              fontFamily: '"Cinzel", serif',
+                              fontSize: '0.9rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              color: isSelected ? 'primary.main' : 'text.primary',
+                            }}
+                          >
+                            {defaultVariant?.label ?? 'Standard Roster'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                            Standard starting roster
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )
+                  })()}
+
+                  {/* Each eligible variant */}
+                  {eligibleVariants.map((variant) => {
+                    const isSelected = wizard.variantId === variant.id
+                    return (
+                      <Box
+                        key={variant.id}
+                        onClick={() =>
+                          setWizard((w) => ({ ...w, variantId: variant.id }))
+                        }
+                        sx={{
+                          border: '1px solid',
+                          borderColor: isSelected
+                            ? 'primary.main'
+                            : 'rgba(200,164,90,0.18)',
+                          borderRadius: 1,
+                          background: isSelected
+                            ? 'rgba(200,164,90,0.08)'
+                            : 'transparent',
+                          px: 2.5,
+                          py: 1.75,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          transition: 'border-color 0.18s, background 0.18s',
+                          '&:hover': {
+                            borderColor: isSelected
+                              ? 'primary.main'
+                              : 'rgba(200,164,90,0.4)',
+                          },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            border: '2px solid',
+                            borderColor: isSelected
+                              ? 'primary.main'
+                              : 'rgba(200,164,90,0.3)',
+                            background: isSelected
+                              ? 'primary.main'
+                              : 'transparent',
+                            transition: 'all 0.18s',
+                          }}
+                        />
+                        <Box>
+                          <Typography
+                            sx={{
+                              fontFamily: '"Cinzel", serif',
+                              fontSize: '0.9rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              color: isSelected ? 'primary.main' : 'text.primary',
+                            }}
+                          >
+                            {variant.label}
+                          </Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                            Variant roster
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              </Box>
+            )}
+          </>
+        )
+      }
 
       // ── Step 3: Company name ─────────────────────────────────────────────
       case 3:
@@ -479,13 +918,9 @@ export default function CreateCompanyPage() {
             memberNames={wizard.memberNames}
             leaderId={wizard.leaderId}
             sergeantIds={wizard.sergeantIds}
-            onSelectLeader={(tempId) =>
-              setWizard((w) => ({
-                ...w,
-                leaderId: w.leaderId === tempId ? null : tempId,
-                sergeantIds: w.sergeantIds.filter((id) => id !== tempId),
-              }))
-            }
+            forcedLeaderId={forcedLeaderId}
+            forcedSergeantIds={forcedSergeantIds}
+            onSelectLeader={handleSelectLeader}
             onToggleSergeant={toggleSergeant}
           />
         )
@@ -788,6 +1223,14 @@ export default function CreateCompanyPage() {
       // ── Step 7: Gold Equipment ──────────────────────────────────────────
       case 7: {
         if (!selectedCompany) return null
+        // Resolve the active roster (variant or default)
+        const activeVariantForGold =
+          wizard.variantId
+            ? selectedCompany.variants?.find(
+                (v) => v.id === wizard.variantId && !v.isDefault
+              )
+            : undefined
+        const goldRoster = activeVariantForGold?.startingRoster ?? selectedCompany.startingRoster
         // Build the roster member list with names + hero status
         const goldMembers: Array<{
           tempId: string
@@ -797,7 +1240,7 @@ export default function CreateCompanyPage() {
           isHero: boolean
         }> = []
         let mi = 0
-        for (const entry of selectedCompany.startingRoster) {
+        for (const entry of goldRoster) {
           for (let i = 0; i < entry.count; i++) {
             const tid = `member_${mi}`
             const name = wizard.memberNames[tid]?.trim() || `Warrior #${mi + 1}`
@@ -856,11 +1299,53 @@ export default function CreateCompanyPage() {
         }}
       >
         <Stepper activeStep={wizard.step} alternativeLabel>
-          {STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
+          {STEPS.map((label, index) => {
+            const isCompleted =
+              label === 'Command'
+                ? allRolesForced && wizard.step > 5
+                : index < wizard.step
+            const isVisited = wizard.visitedSteps.includes(index)
+            const isClickable = isCompleted && isVisited
+
+            return (
+              <Step
+                key={label}
+                completed={label === 'Command' ? (allRolesForced && wizard.step > 5) : undefined}
+              >
+                {isClickable ? (
+                  <StepButton
+                    onClick={() => handleProgressBarClick(index)}
+                    aria-label={`Go back to ${label} step`}
+                    sx={{
+                      cursor: 'pointer',
+                      '& .MuiStepLabel-label': {
+                        textDecoration: 'none',
+                        transition: 'text-decoration 0.15s',
+                      },
+                      '&:hover .MuiStepLabel-label': {
+                        textDecoration: 'underline',
+                      },
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: 'primary.main',
+                        outlineOffset: '2px',
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    {label}
+                  </StepButton>
+                ) : (
+                  <StepLabel
+                    sx={{ cursor: 'default', pointerEvents: 'none' }}
+                    aria-disabled={index !== wizard.step ? true : undefined}
+                  >
+                    {label}
+                  </StepLabel>
+                )}
+              </Step>
+            )
+          })}
         </Stepper>
       </Box>
 
@@ -869,7 +1354,8 @@ export default function CreateCompanyPage() {
         sx={{
           flex: 1,
           px: { xs: 2, sm: 3 },
-          py: 3,
+          pt: 3,
+          pb: { xs: 14, sm: 12 },
           maxWidth: 600,
           width: '100%',
           mx: 'auto',
@@ -904,12 +1390,17 @@ export default function CreateCompanyPage() {
             'linear-gradient(0deg, rgba(26,15,5,0.98) 0%, rgba(42,26,10,0.95) 100%)',
           position: 'sticky',
           bottom: 0,
+          zIndex: 10,
         }}
       >
         <Button
           variant="outlined"
           onClick={() =>
-            wizard.step === 0 ? setShowAbortConfirm(true) : go(wizard.step - 1)
+            wizard.step === 0
+              ? setShowAbortConfirm(true)
+              : wizard.step === 6 && allRolesForced
+                ? go(4)
+                : go(wizard.step - 1)
           }
           sx={{ minWidth: 100, minHeight: 44 }}
         >
@@ -924,12 +1415,15 @@ export default function CreateCompanyPage() {
             <Button
               variant="contained"
               onClick={() => {
-                // Between step 5 and 6: check for missing stats
-                if (wizard.step === 5 && selectedCompany) {
+                console.log('Next button clicked at step', wizard.step, 'allRolesForced:', allRolesForced)
+                // Check for missing stats before advancing to step 6 (from step 4 or 5)
+                if ((wizard.step === 5 || (wizard.step === 4 && allRolesForced)) && selectedCompany) {
                   const allIds = getAllUnitIdsForRoster(selectedCompany)
                   const missing = allIds.filter((id) => !getStatsForUnit(id))
+                  console.log('Stats check - allIds:', allIds.length, 'missing:', missing.length)
                   if (missing.length > 0) {
-                    navigate(`/stats?wizard=1&units=${missing.join(',')}`)
+                    console.log('Navigating to stats page with missing units:', missing)
+                    navigate(`/stats?wizard=1&units=${missing.join(',')}&fromStep=${wizard.step}`)
                     return
                   }
                 }
@@ -938,6 +1432,21 @@ export default function CreateCompanyPage() {
                   handleFinish()
                   return
                 }
+                // Skip step 5 (leader/sergeant selection) when all roles are forced
+                if (wizard.step === 4 && allRolesForced) {
+                  console.log('Skipping step 5, jumping to step 6 with forced roles')
+                  setWizard((w) => ({
+                    ...w,
+                    step: 6,
+                    leaderId: forcedLeaderId ?? w.leaderId,
+                    sergeantIds: forcedSergeantIds.length > 0
+                      ? [...new Set([...forcedSergeantIds, ...w.sergeantIds.filter(id => !forcedSergeantIds.includes(id))])]
+                      : w.sergeantIds,
+                  }))
+                  setDirection(1)
+                  return
+                }
+                console.log('Normal advance to step', wizard.step + 1)
                 go(wizard.step + 1)
               }}
               disabled={!canAdvance()}
