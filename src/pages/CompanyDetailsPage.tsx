@@ -28,6 +28,7 @@ import type {
   Company,
   CompanyDefinition,
   Member,
+  SpecialTableEntry,
   StoredBaseUnitStats,
 } from '../models'
 import { getCompanyLabel, getUnitLabel, getWargearLabel } from '../utils/labels'
@@ -113,6 +114,24 @@ function sortMembersForStore<T extends { role: string; name: string }>(
     if (roleDiff !== 0) return roleDiff
     return a.name.localeCompare(b.name)
   })
+}
+
+/**
+ * Produces the human-readable description string for a single SpecialTableEntry,
+ * applying the same formatting rules as the standard reinforcement chart rows.
+ */
+export function formatSpecialTableRow(row: SpecialTableEntry): string {
+  let label = row.baseUnitId ? getUnitLabel(row.baseUnitId) : '—'
+  if (row.result === 'choice') {
+    label += ' with choice of option'
+  }
+  if (row.rare) {
+    label += ` (Rare ${row.rare})`
+  }
+  if (row.count && row.count > 1) {
+    label += ` ×${row.count}`
+  }
+  return label
 }
 
 export default function CompanyDetailsPage() {
@@ -2777,6 +2796,51 @@ function StoreTab({
               </Box>
             ))}
           </Box>
+
+          {/* Special Reinforcement table reference */}
+          {companyDef.specialTable && companyDef.specialTable.length > 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontSize: '0.58rem',
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
+                Special Table Reference
+              </Typography>
+              {companyDef.specialTable.map((row, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex',
+                    gap: 1.5,
+                    mb: 0.5,
+                    opacity: 0.6,
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: '"Cinzel Decorative", serif',
+                      minWidth: 32,
+                      color: 'primary.light',
+                    }}
+                  >
+                    {row.roll.join('-')}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                    {formatSpecialTableRow(row)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
       )}
 

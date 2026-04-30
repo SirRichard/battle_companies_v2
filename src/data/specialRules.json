@@ -42,7 +42,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 10 of the Armies of the Hobbit. Select a friendly Hero to be X when this rule is gained.",
-    "minor": true
+    "minor": true,
+	"parameter_type": "friendly_hero"
   },
   {
     "id": "command_support",
@@ -78,7 +79,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 125 of the Middle-Earth Strategy Battle Game Rules Manual.",
-    "minor": false
+    "minor": false,
+	"parameter_type": "integer"
   },
   {
     "id": "expert_rider",
@@ -159,7 +161,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
-    "minor": false
+    "minor": false,
+	"parameter_type": "distance"
   },
   {
     "id": "hatred",
@@ -168,7 +171,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual.",
-    "minor": false
+    "minor": false,
+	"parameter_type": "target_keyword"
   },
   {
     "id": "horse_lord",
@@ -213,7 +217,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 127 of the Middle-Earth Strategy Battle Game Rules Manual.",
-    "minor": false
+    "minor": false,
+	"parameter_type": "target_integer"
   },
   {
     "id": "master_of_reserves",
@@ -267,7 +272,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 128 of the Middle-Earth Strategy Battle Game Rules Manual. X denotes the specific weapon that benefits from this rule, if applicable.",
-    "minor": true
+    "minor": true,
+	"parameter_type": "weapon"
   },
   {
     "id": "resistant_to_magic",
@@ -346,7 +352,7 @@
     "label": "Terror",
     "activationType": "passive",
     "source": "external",
-    "parameterised": true,
+    "parameterised": false,
     "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual.",
     "minor": false
   },
@@ -357,7 +363,8 @@
     "source": "external",
     "parameterised": true,
     "description": "See page 130 of the Middle-Earth Strategy Battle Game Rules Manual. X denotes a specific keyword if the Terror only applies to certain models.",
-    "minor": false
+    "minor": false,
+	"parameter_type": "target_keyword"
   },
   {
     "id": "throw_stones",
