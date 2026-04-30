@@ -32,6 +32,7 @@ import {
   generateTempMemberIds,
 } from '../services/company/companyFactory'
 import { getUnitLabel } from '../utils/labels'
+import { getHeroAllowedBaseUnitIds } from '../utils/companyRules'
 
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
@@ -300,6 +301,11 @@ export default function CreateCompanyPage() {
   const allRolesForced = useMemo(
     () => !!forcedLeaderId && forcedSergeantIds.length >= 2,
     [forcedLeaderId, forcedSergeantIds]
+  )
+
+  const heroAllowedBaseUnitIds = useMemo(
+    () => (selectedCompany ? getHeroAllowedBaseUnitIds(selectedCompany) : null),
+    [selectedCompany]
   )
 
   // Auto-set variantId when the selected company has no eligible variants.
@@ -920,6 +926,7 @@ export default function CreateCompanyPage() {
             sergeantIds={wizard.sergeantIds}
             forcedLeaderId={forcedLeaderId}
             forcedSergeantIds={forcedSergeantIds}
+            heroAllowedBaseUnitIds={heroAllowedBaseUnitIds}
             onSelectLeader={handleSelectLeader}
             onToggleSergeant={toggleSergeant}
           />

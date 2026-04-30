@@ -38,12 +38,14 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel } from '../utils/labels'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
-import type { Company } from '../models'
+import { calcBreakPoint, isCompanyBroken } from '../utils/companyRules'
+import type { Company, CompanyDefinition } from '../models'
 import type { ActiveMatchState, MemberMatchState, ToolkitItem } from '../models/match'
 import type { PostMatchData } from '../models/postmatch'
 import wanderersData from '../data/wanderers.json'
 import wargearData from '../data/wargear.json'
 import equipmentData from '../data/equipment.json'
+import companiesData from '../data/companies.json'
 
 // ─── Toolkit helpers ──────────────────────────────────────────────────────────
 
@@ -260,6 +262,16 @@ export default function MatchTrackingPage() {
 
   const sorted = sortMembers(match.members)
 
+  // ── Break point calculation ────────────────────────────────────────────────
+  const COMPANIES_DEF = companiesData as CompanyDefinition[]
+  const companyDef = COMPANIES_DEF.find((c) => c.id === company.companyTypeId)
+  const startingMemberCount = match.members.length
+  const breakPoint = companyDef
+    ? calcBreakPoint(companyDef, startingMemberCount)
+    : Math.floor(startingMemberCount / 2)
+  const activeMemberCount = match.members.filter((m) => !m.isCasualty).length
+  const isBroken = isCompanyBroken(breakPoint, activeMemberCount)
+
   // Build a lookup for wanderer stats from wanderers.json
   const wanderersTyped = wanderersData as Array<{
     id: string
@@ -340,6 +352,54 @@ export default function MatchTrackingPage() {
           </Box>
         </Box>
       )}
+
+      {/* ── Break point banner ─────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1,
+          background: isBroken
+            ? 'rgba(192,57,43,0.12)'
+            : 'rgba(255,255,255,0.03)',
+          borderBottom: '1px solid',
+          borderColor: isBroken ? 'error.main' : 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: isBroken ? 'error.main' : 'text.secondary',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+          }}
+        >
+          BREAK POINT
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '1rem',
+              color: isBroken ? 'error.main' : 'text.primary',
+            }}
+          >
+            {activeMemberCount} / {startingMemberCount}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: isBroken ? 'error.main' : 'text.secondary',
+              fontWeight: isBroken ? 700 : 400,
+            }}
+          >
+            {isBroken ? 'BROKEN' : `(threshold: ${breakPoint})`}
+          </Typography>
+        </Box>
+      </Box>
 
       {/* ── Member list ────────────────────────────────────────────────────── */}
       <Box

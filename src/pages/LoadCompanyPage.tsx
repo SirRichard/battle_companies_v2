@@ -46,7 +46,7 @@ function companyHasMissingStats(
   }
   for (const uid of Array.from(ids)) {
     const unit = BASE_UNITS_RAW.find((u) => u.id === uid)
-    if (unit) {
+    if (unit?.baseEquipment) {
       for (const eq of unit.baseEquipment) {
         if (WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount'))
           ids.add(eq)

@@ -32,6 +32,7 @@ import type {
 } from '../models'
 import { getCompanyLabel, getUnitLabel, getWargearLabel } from '../utils/labels'
 import { calcCompanyRating, calcMemberRating } from '../utils/rating'
+import { getEligibleUniqueWargear, getApplicableSubstitution } from '../utils/companyRules'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
@@ -1460,6 +1461,7 @@ function StoreTab({
   const [onSpecialTable, setOnSpecialTable] = useState(false) // currently on special table
   const [specialBaseRoll, setSpecialBaseRoll] = useState<number | null>(null)
   const [specialAdjust, setSpecialAdjust] = useState(0) // adjust spent on special table
+  const [substitutionDeclined, setSubstitutionDeclined] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
   // Wargear purchase state
@@ -1495,6 +1497,7 @@ function StoreTab({
         baseUnitId: row.baseUnitId!,
         equipment: row.equipment ?? [],
         rare: row.rare,
+        count: row.count ?? 1,
       }
     }
     if (row.result === 'choice') {
@@ -1589,6 +1592,7 @@ function StoreTab({
     setIsRolling(true)
     setAdjustAmount(0)
     setSpecialPending(false)
+    setSubstitutionDeclined(false)
     setOnSpecialTable(false)
     setSpecialBaseRoll(null)
     setSpecialAdjust(0)
@@ -1603,6 +1607,7 @@ function StoreTab({
     setAdjustAmount(0)
     setBaseRollValue(null)
     setSpecialPending(false)
+    setSubstitutionDeclined(false)
     setOnSpecialTable(false)
     setSpecialBaseRoll(null)
     setSpecialAdjust(0)
@@ -1759,6 +1764,12 @@ function StoreTab({
     return throwing / total > 1 / 3 + 0.001
   }
 
+  const handleAcceptSubstitution = (baseUnitId: string) => {
+    if (!rollResult) return
+    setRollResult({ type: 'unit', roll: rollResult.roll, baseUnitId, equipment: [] })
+    setSubstitutionDeclined(false)
+  }
+
   const isRareLimitReached = (result: ReinforcementResult) => {
     if (result.type === 'unit' || result.type === 'choice') {
       if (result.rare && countOfUnit(result.baseUnitId!) >= result.rare)
@@ -1781,10 +1792,13 @@ function StoreTab({
     // Build the candidate new members (equipment only, no id/name yet)
     const candidates: Array<{ baseUnitId: string; equipment: string[] }> = []
     if (finalResult.type === 'unit') {
-      candidates.push({
-        baseUnitId: finalResult.baseUnitId!,
-        equipment: finalResult.equipment ?? [],
-      })
+      const count = Math.max(1, finalResult.count ?? 1)
+      for (let i = 0; i < count; i++) {
+        candidates.push({
+          baseUnitId: finalResult.baseUnitId!,
+          equipment: finalResult.equipment ?? [],
+        })
+      }
     } else if (finalResult.type === 'choice') {
       candidates.push({
         baseUnitId: finalResult.baseUnitId!,
@@ -1796,6 +1810,12 @@ function StoreTab({
     }
 
     // Check limits
+    if (company.members.length + candidates.length > maxCompanySize) {
+      setLimitWarning(
+        `Adding ${candidates.length > 1 ? `${candidates.length} units` : 'this unit'} would exceed the maximum company size (${maxCompanySize}).`
+      )
+      return
+    }
     if (wouldExceedBowLimit(candidates)) {
       setLimitWarning(
         'Adding this unit would exceed the bow limit (max 1/3 of company).'
@@ -2054,6 +2074,12 @@ function StoreTab({
 
   const selectedMember = company.members.find((m) => m.id === selectedMemberId)
 
+  // Derive substitution: only when there's a roll result and no special pending
+  const substitution =
+    rollResult && !specialPending
+      ? getApplicableSubstitution(companyDef, rollResult.roll)
+      : null
+
   return (
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
       {/* Section toggle */}
@@ -2301,15 +2327,90 @@ function StoreTab({
 
               {/* ── Normal result card (hidden while awaiting special confirmation) ── */}
               {!specialPending && (
-                <ReinforcementResultCard
-                  result={rollResult}
-                  company={company}
-                  companyDef={companyDef}
-                  countOfUnit={countOfUnit}
-                  isRareLimitReached={isRareLimitReached}
-                  onConfirm={confirmRecruitment}
-                  onDismiss={handleDismissRoll}
-                />
+                <>
+                  {/* ── Substitution prompt (shown when applicable and not declined) ── */}
+                  {substitution && !substitutionDeclined && (() => {
+                    const subCandidate = [{ baseUnitId: substitution.baseUnitId, equipment: [] as string[] }]
+                    const subAtMax = company.members.length >= maxCompanySize
+                    const subBowBlocked = wouldExceedBowLimit(subCandidate)
+                    const subThrowingBlocked = wouldExceedThrowingLimit(subCandidate)
+                    const subCavalryBlocked = wouldExceedCavalryLimit(subCandidate)
+                    const subDisabled = subAtMax || subBowBlocked || subThrowingBlocked || subCavalryBlocked
+                    const subDisabledMsg = subAtMax
+                      ? 'Company is at maximum size.'
+                      : subBowBlocked
+                        ? 'Would exceed bow limit (max 1/3 of company).'
+                        : subThrowingBlocked
+                          ? 'Would exceed throwing weapon limit (max 1/3 of company).'
+                          : subCavalryBlocked
+                            ? 'Would exceed cavalry limit (max 1/3 of company).'
+                            : null
+                    return (
+                      <Box
+                        sx={{
+                          mb: 1.5,
+                          p: 1.5,
+                          border: '1px solid',
+                          borderColor: 'primary.dark',
+                          borderRadius: 1,
+                          background: 'rgba(201,168,76,0.06)',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 0.5, fontWeight: 600, color: 'primary.main' }}
+                        >
+                          Substitution Available
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
+                        >
+                          {substitution.prompt}
+                        </Typography>
+                        {subDisabled && subDisabledMsg && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: 'warning.light', display: 'block', mb: 1 }}
+                          >
+                            {subDisabledMsg}
+                          </Typography>
+                        )}
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={subDisabled}
+                            onClick={() => handleAcceptSubstitution(substitution.baseUnitId)}
+                            sx={{
+                              fontFamily: '"Cinzel Decorative", serif',
+                              fontSize: '0.6rem',
+                            }}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setSubstitutionDeclined(true)}
+                            sx={{ fontSize: '0.6rem', opacity: 0.7 }}
+                          >
+                            Decline
+                          </Button>
+                        </Box>
+                      </Box>
+                    )
+                  })()}
+                  <ReinforcementResultCard
+                    result={rollResult}
+                    company={company}
+                    companyDef={companyDef}
+                    countOfUnit={countOfUnit}
+                    isRareLimitReached={isRareLimitReached}
+                    onConfirm={confirmRecruitment}
+                    onDismiss={handleDismissRoll}
+                  />
+                </>
               )}
 
               {/* ── Standard table adjuster (only when NOT yet on special table) ── */}
@@ -2846,7 +2947,12 @@ function StoreTab({
                     return true
                   })
 
-                  if (filtered.length === 0) {
+                  // Unique wargear entries eligible for this member
+                  const eligibleUnique = companyDef
+                    ? getEligibleUniqueWargear(companyDef, selectedMember, company.members)
+                    : []
+
+                  if (filtered.length === 0 && eligibleUnique.length === 0) {
                     return (
                       <Typography
                         variant="body2"
@@ -2857,86 +2963,126 @@ function StoreTab({
                     )
                   }
 
-                  return filtered.map((w) => {
-                    const cost = w.influenceCost!
-                    const canAfford = company.influence >= cost
-                    const wouldViolateBow =
-                      w.category === 'bow' &&
-                      wouldExceedBowLimit([
-                        {
-                          baseUnitId: selectedMember.baseUnitId,
-                          equipment: [w.id],
-                        },
-                      ])
-                    const wouldViolateThrowing =
-                      w.category === 'throwing' &&
-                      wouldExceedThrowingLimit([
-                        {
-                          baseUnitId: selectedMember.baseUnitId,
-                          equipment: [w.id],
-                        },
-                      ])
-                    const wouldViolateCavalry =
-                      w.category === 'mount' &&
-                      wouldExceedCavalryLimit([
-                        {
-                          baseUnitId: selectedMember.baseUnitId,
-                          equipment: [...selectedMember.equipment, w.id],
-                        },
-                      ])
-                    const limitViolation = wouldViolateBow
-                      ? 'Bow limit'
-                      : wouldViolateThrowing
-                        ? 'Throwing limit'
-                        : wouldViolateCavalry
-                          ? 'Cavalry limit'
-                          : null
-                    const blocked = !canAfford || !!limitViolation
-                    const isArmourUpgrade = ARMOUR_TIER[w.id] !== undefined
-                    return (
-                      <Box
-                        key={w.id}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          px: 1.5,
-                          py: 1,
-                          border: '1px solid',
-                          borderColor: limitViolation
-                            ? 'warning.dark'
-                            : 'divider',
-                          borderRadius: 1,
-                          background: 'rgba(0,0,0,0.15)',
-                          opacity: blocked ? 0.45 : 1,
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body2">
-                            {isArmourUpgrade
-                              ? `Upgrade to ${w.label}`
-                              : w.label}
-                          </Typography>
-                          {limitViolation && (
-                            <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                              {`${limitViolation} reached`}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={blocked}
-                          onClick={() =>
-                            handleBuyWargear(selectedMember.id, w.id, cost)
-                          }
-                          sx={{ minWidth: 70, fontSize: '0.62rem' }}
+                  return [
+                    ...filtered.map((w) => {
+                      const cost = w.influenceCost!
+                      const canAfford = company.influence >= cost
+                      const wouldViolateBow =
+                        w.category === 'bow' &&
+                        wouldExceedBowLimit([
+                          {
+                            baseUnitId: selectedMember.baseUnitId,
+                            equipment: [w.id],
+                          },
+                        ])
+                      const wouldViolateThrowing =
+                        w.category === 'throwing' &&
+                        wouldExceedThrowingLimit([
+                          {
+                            baseUnitId: selectedMember.baseUnitId,
+                            equipment: [w.id],
+                          },
+                        ])
+                      const wouldViolateCavalry =
+                        w.category === 'mount' &&
+                        wouldExceedCavalryLimit([
+                          {
+                            baseUnitId: selectedMember.baseUnitId,
+                            equipment: [...selectedMember.equipment, w.id],
+                          },
+                        ])
+                      const limitViolation = wouldViolateBow
+                        ? 'Bow limit'
+                        : wouldViolateThrowing
+                          ? 'Throwing limit'
+                          : wouldViolateCavalry
+                            ? 'Cavalry limit'
+                            : null
+                      const blocked = !canAfford || !!limitViolation
+                      const isArmourUpgrade = ARMOUR_TIER[w.id] !== undefined
+                      return (
+                        <Box
+                          key={w.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 1.5,
+                            py: 1,
+                            border: '1px solid',
+                            borderColor: limitViolation
+                              ? 'warning.dark'
+                              : 'divider',
+                            borderRadius: 1,
+                            background: 'rgba(0,0,0,0.15)',
+                            opacity: blocked ? 0.45 : 1,
+                          }}
                         >
-                          {cost} IP
-                        </Button>
-                      </Box>
-                    )
-                  })
+                          <Box>
+                            <Typography variant="body2">
+                              {isArmourUpgrade
+                                ? `Upgrade to ${w.label}`
+                                : w.label}
+                            </Typography>
+                            {limitViolation && (
+                              <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                                {`${limitViolation} reached`}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={blocked}
+                            onClick={() =>
+                              handleBuyWargear(selectedMember.id, w.id, cost)
+                            }
+                            sx={{ minWidth: 70, fontSize: '0.62rem' }}
+                          >
+                            {cost} IP
+                          </Button>
+                        </Box>
+                      )
+                    }),
+                    ...eligibleUnique.map((entry) => {
+                      const cost = entry.influenceCost
+                      const canAfford = company.influence >= cost
+                      return (
+                        <Box
+                          key={`unique-${entry.equipmentId}`}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 1.5,
+                            py: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            background: 'rgba(0,0,0,0.15)',
+                            opacity: canAfford ? 1 : 0.45,
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2">
+                              {entry.label}
+                            </Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={!canAfford}
+                            onClick={() =>
+                              handleBuyWargear(selectedMember.id, entry.equipmentId, cost)
+                            }
+                            sx={{ minWidth: 70, fontSize: '0.62rem' }}
+                          >
+                            {cost} IP
+                          </Button>
+                        </Box>
+                      )
+                    }),
+                  ]
                 })()}
               </Box>
               <Box
@@ -3507,6 +3653,7 @@ interface ReinforcementResult {
   baseUnitId?: string
   equipment?: string[]
   rare?: number
+  count?: number
   units?: string[]
   options?: ReinforcementResult[]
   fromSpecial?: boolean
@@ -3632,6 +3779,15 @@ function ReinforcementResultCard({
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
             {getUnitLabel(result.baseUnitId!)}
+            {result.type === 'unit' && result.count != null && result.count > 1 && (
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ color: 'primary.main', ml: 0.75, fontWeight: 700 }}
+              >
+                ×{result.count}
+              </Typography>
+            )}
             {result.equipment && result.equipment.length > 0 && (
               <Typography
                 component="span"

@@ -14,6 +14,7 @@ interface Props {
   onToggleSergeant: (tempId: string) => void
   forcedLeaderId?: string | null
   forcedSergeantIds?: string[]
+  heroAllowedBaseUnitIds?: string[] | null
 }
 
 const MAX_SERGEANTS = 2
@@ -27,6 +28,7 @@ export default function StepLeaderSelection({
   onToggleSergeant,
   forcedLeaderId = null,
   forcedSergeantIds = [],
+  heroAllowedBaseUnitIds = null,
 }: Props) {
   const tempIds = generateTempMemberIds(companyDef)
 
@@ -37,6 +39,7 @@ export default function StepLeaderSelection({
     displayName: string
     unitLabel: string
     equipment: string[]
+    baseUnitId: string
   }> = []
 
   for (const entry of companyDef.startingRoster) {
@@ -51,6 +54,7 @@ export default function StepLeaderSelection({
         displayName,
         unitLabel,
         equipment: entry.equipment ?? [],
+        baseUnitId: entry.baseUnitId,
       })
       idx++
     }
@@ -134,6 +138,10 @@ export default function StepLeaderSelection({
           const isLockedSergeant = forcedSergeantIds.includes(member.tempId)
           const isLocked = isLockedLeader || isLockedSergeant
 
+          const isRestricted =
+            heroAllowedBaseUnitIds != null &&
+            !heroAllowedBaseUnitIds.includes(member.baseUnitId)
+
           return (
             <motion.div
               key={member.tempId}
@@ -142,7 +150,7 @@ export default function StepLeaderSelection({
               transition={{ delay: i * 0.04, duration: 0.2 }}
             >
               <Box
-                onClick={() => !isDisabled && !isLocked && handleClick(member.tempId)}
+                onClick={() => !isDisabled && !isLocked && !isRestricted && handleClick(member.tempId)}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -161,10 +169,10 @@ export default function StepLeaderSelection({
                     : isSergeant
                       ? 'rgba(200,164,90,0.07)'
                       : 'transparent',
-                  cursor: isLocked ? 'default' : isDisabled ? 'not-allowed' : 'pointer',
-                  opacity: isDisabled ? 0.4 : 1,
+                  cursor: isLocked || isRestricted ? 'default' : isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled || isRestricted ? 0.4 : 1,
                   transition: 'all 0.18s',
-                  '&:hover': isDisabled || isLocked
+                  '&:hover': isDisabled || isLocked || isRestricted
                     ? {}
                     : {
                         borderColor: isHero
@@ -260,6 +268,19 @@ export default function StepLeaderSelection({
                     sx={{
                       fontSize: '0.95rem',
                       color: 'primary.main',
+                      opacity: 0.7,
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+
+                {/* Lock indicator for hero-restricted members */}
+                {isRestricted && (
+                  <LockIcon
+                    aria-label="Not eligible for hero role"
+                    sx={{
+                      fontSize: '0.95rem',
+                      color: 'text.disabled',
                       opacity: 0.7,
                       flexShrink: 0,
                     }}

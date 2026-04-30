@@ -64,6 +64,7 @@ import wanderersData from '../data/wanderers.json'
 import { v4 as uuidv4 } from 'uuid'
 import { CHANNELING_SPELLS } from '../components/wizard/StepSpellSelection'
 import PathCardSelector from '../components/common/PathCardSelector'
+import { getEligibleHeroUpgrades } from '../utils/companyRules'
 
 const MotionBox = motion(Box)
 const COMPANIES = companiesData as CompanyDefinition[]
@@ -1292,6 +1293,26 @@ export default function PostMatchSummaryPage() {
     advanceProgression('heroes', record.memberId)
   }
 
+  // Apply hero upgrade swap — adds upgradeId to member.equipment (idempotent)
+  // and marks the hero's advancement record as done, same pattern as applyHeroAdv
+  const applyHeroUpgradeSwap = (memberId: string, upgradeId: string) => {
+    setWorkingCompany((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        members: prev.members.map((m) => {
+          if (m.id !== memberId) return m
+          if (m.equipment.includes(upgradeId)) return subtractAdvancementXp(m)
+          return subtractAdvancementXp({ ...m, equipment: [...m.equipment, upgradeId] })
+        }),
+      }
+    })
+    setHeroAdvRecords((prev) =>
+      prev.map((r) => (r.memberId === memberId ? { ...r, done: true } : r))
+    )
+    advanceProgression('heroes', memberId)
+  }
+
   const completeProgression = () => {
     setCompletedSteps((prev) => new Set([...prev, 'Progression']))
     setCurrentStep('Influence')
@@ -1777,6 +1798,19 @@ export default function PostMatchSummaryPage() {
                     )!
                   }
                   getStatsForUnit={getStatsForUnit}
+                  eligibleHeroUpgrades={
+                    companyDef
+                      ? getEligibleHeroUpgrades(
+                          companyDef,
+                          workingCompany.members.find(
+                            (m) => m.id === currentHero.memberId
+                          )!
+                        )
+                      : []
+                  }
+                  onApplyHeroUpgrade={(upgradeId) =>
+                    applyHeroUpgradeSwap(currentHero.memberId, upgradeId)
+                  }
                   onApply={(chosen, statIdx, optIdx, minorRule, heroicAction, spell, improveSpell, statIdxB, optIdxB, minorRuleB, heroicActionB, spellB, improveSpellB) =>
                     applyHeroAdv(
                       currentHero,
@@ -2642,6 +2676,8 @@ interface HACardProps {
     spellB?: string,
     improveSpellB?: string
   ) => void
+  eligibleHeroUpgrades: import('../models').HeroUpgrade[]
+  onApplyHeroUpgrade: (upgradeId: string) => void
 }
 
 function HeroAdvancementCard({
@@ -2649,8 +2685,10 @@ function HeroAdvancementCard({
   member,
   getStatsForUnit,
   onApply,
+  eligibleHeroUpgrades,
+  onApplyHeroUpgrade,
 }: HACardProps) {
-  const [chosen, setChosen] = useState<'A' | 'B' | null>(null)
+  const [chosen, setChosen] = useState<'A' | 'B' | 'upgrade' | null>(null)
   const [statChoice, setStatChoice] = useState<number>(0)
   const [optionChoice, setOptionChoice] = useState<number>(0)
   const [minorRule, setMinorRule] = useState<string>('')
@@ -2665,6 +2703,9 @@ function HeroAdvancementCard({
   const [heroicActionB, setHeroicActionB] = useState<string>('')
   const [spellChoiceB, setSpellChoiceB] = useState<string>('')
   const [improveSpellChoiceB, setImproveSpellChoiceB] = useState<string>('')
+
+  // Hero upgrade swap selection
+  const [selectedUpgradeId, setSelectedUpgradeId] = useState<string | null>(null)
 
   const path = getPath(record.pathId)
 
@@ -2684,6 +2725,7 @@ function HeroAdvancementCard({
   const canConfirmNormal =
     !isRoll5 &&
     chosen !== null &&
+    chosen !== 'upgrade' &&
     needsExtraChoice(
       chosenResult?.entry,
       statChoice,
@@ -2693,6 +2735,9 @@ function HeroAdvancementCard({
       spellChoice,
       improveSpellChoice
     )
+
+  // canConfirm for upgrade swap flow
+  const canConfirmUpgrade = !isRoll5 && chosen === 'upgrade' && selectedUpgradeId !== null
 
   // canConfirm for roll-5 flow: both results must have their sub-choices satisfied
   const canConfirmRoll5 =
@@ -2716,7 +2761,7 @@ function HeroAdvancementCard({
       improveSpellChoiceB
     )
 
-  const canConfirm = isRoll5 ? canConfirmRoll5 : canConfirmNormal
+  const canConfirm = isRoll5 ? canConfirmRoll5 : (canConfirmNormal || canConfirmUpgrade)
 
   return (
     <MotionBox
@@ -2961,7 +3006,7 @@ function HeroAdvancementCard({
           </Box>
 
           {/* Extra choice UI when a result is selected and needs sub-choice */}
-          {chosenResult && chosen && (
+          {chosenResult && chosen && chosen !== 'upgrade' && (
             <ExtraChoiceUI
               entry={chosenResult.entry}
               path={path}
@@ -2979,6 +3024,99 @@ function HeroAdvancementCard({
               onImproveSpellChoice={setImproveSpellChoice}
               member={member}
             />
+          )}
+
+          {/* Swap for Company Hero Upgrade option */}
+          {eligibleHeroUpgrades.length > 0 && (
+            <Box sx={{ mt: 0.75 }}>
+              <Box
+                onClick={() => {
+                  setChosen('upgrade')
+                  setSelectedUpgradeId(null)
+                }}
+                sx={{
+                  p: 1.25,
+                  border: '1px solid',
+                  borderColor: chosen === 'upgrade' ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  background:
+                    chosen === 'upgrade'
+                      ? 'rgba(201,168,76,0.08)'
+                      : 'rgba(0,0,0,0.15)',
+                  transition: 'all 0.15s',
+                  '&:hover': { borderColor: 'primary.dark' },
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: chosen === 'upgrade' ? 'primary.main' : 'text.secondary',
+                    display: 'block',
+                    mb: 0.25,
+                  }}
+                >
+                  Swap for Company Hero Upgrade
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ opacity: 0.6 }}
+                >
+                  Replace your rolled result with a Company-Specific Hero Upgrade
+                </Typography>
+              </Box>
+
+              {/* Upgrade list — shown when swap option is selected */}
+              {chosen === 'upgrade' && (
+                <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {eligibleHeroUpgrades.map((upgrade) => (
+                    <Box
+                      key={upgrade.id}
+                      onClick={() => setSelectedUpgradeId(upgrade.id)}
+                      sx={{
+                        px: 1.25,
+                        py: 0.75,
+                        border: '1px solid',
+                        borderColor:
+                          selectedUpgradeId === upgrade.id
+                            ? 'primary.main'
+                            : 'divider',
+                        borderRadius: 0.75,
+                        cursor: 'pointer',
+                        background:
+                          selectedUpgradeId === upgrade.id
+                            ? 'rgba(201,168,76,0.08)'
+                            : 'rgba(0,0,0,0.15)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: '0.75rem',
+                          color:
+                            selectedUpgradeId === upgrade.id
+                              ? 'primary.main'
+                              : 'text.secondary',
+                          fontWeight: selectedUpgradeId === upgrade.id ? 600 : 400,
+                        }}
+                      >
+                        {upgrade.label}
+                      </Typography>
+                      {upgrade.description && (
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.55, display: 'block', mt: 0.25 }}
+                        >
+                          {upgrade.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
           )}
         </>
       )}
@@ -3007,6 +3145,8 @@ function HeroAdvancementCard({
               spellChoiceB || undefined,
               improveSpellChoiceB || undefined
             )
+          } else if (chosen === 'upgrade' && selectedUpgradeId) {
+            onApplyHeroUpgrade(selectedUpgradeId)
           } else {
             onApply(
               chosen!,

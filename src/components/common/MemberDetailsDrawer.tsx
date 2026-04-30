@@ -28,7 +28,7 @@ import { DieFace } from './AnimatedDice'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
-import type { Member, StoredBaseUnitStats, Company } from '../../models'
+import type { Member, StoredBaseUnitStats, Company, CompanyDefinition } from '../../models'
 import { getUnitLabel, getWargearLabel } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
 import pathsData from '../../data/paths.json'
@@ -38,6 +38,12 @@ import heroicActionsData from '../../data/heroicActions.json'
 import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
 import { CHANNELING_SPELLS } from '../wizard/StepSpellSelection'
 import wargearData from '../../data/wargear.json'
+import companiesData from '../../data/companies.json'
+
+
+// ─── Company definition lookup ────────────────────────────────────────────────
+
+const ALL_COMPANIES = companiesData as CompanyDefinition[]
 
 // ─── Wargear category lookup ──────────────────────────────────────────────────
 
@@ -1051,6 +1057,55 @@ export default function MemberDetailsDrawer({
             </Box>
           )}
         </Box>
+
+        {/* ── Hero Upgrades ─────────────────────────────────────────────────── */}
+        {isHero && company && (() => {
+          const companyDef = ALL_COMPANIES.find((c) => c.id === company.companyTypeId)
+          if (!companyDef || companyDef.heroUpgrade.length === 0) return null
+          const ownedUpgrades = companyDef.heroUpgrade.filter((u) =>
+            member.equipment.includes(u.id)
+          )
+          if (ownedUpgrades.length === 0) return null
+          return (
+            <Box sx={{ mb: 2.5 }}>
+              <SectionLabel>Company Hero Upgrades</SectionLabel>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                {ownedUpgrades.map((upgrade) => (
+                  <Box
+                    key={upgrade.id}
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      border: '1px solid',
+                      borderColor: 'primary.dark',
+                      borderRadius: 1,
+                      background: 'rgba(201,168,76,0.04)',
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontFamily: '"Cinzel Decorative", serif',
+                        fontSize: '0.75rem',
+                        color: 'primary.main',
+                        mb: 0.25,
+                      }}
+                    >
+                      {upgrade.label}
+                    </Typography>
+                    {upgrade.description && (
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.7, display: 'block' }}
+                      >
+                        {upgrade.description}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )
+        })()}
 
         {/* ── Heroic Actions ───────────────────────────────────────────────── */}
         {(() => {

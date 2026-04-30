@@ -2728,7 +2728,10 @@
       {
         "id": "breaking_point",
         "title": "Breaking Point",
-        "description": "Unlike other Battle Companies, the Break Point for a Muster of Isengard Battle Company is 66% rather than 50%."
+        "description": "Unlike other Battle Companies, the Break Point for a Muster of Isengard Battle Company is 66% rather than 50%.",
+        "parameters": {
+          "breakPointPercentage": 0.66
+        }
       }
     ],
 

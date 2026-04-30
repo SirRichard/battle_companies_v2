@@ -49,11 +49,22 @@ export interface ReinforcementEntry {
   pool?: Array<{ baseUnitId: string; rare?: number }>
 }
 
+export interface UniqueWargearEntry {
+  equipmentId: string
+  label: string
+  influenceCost: number
+  rating: [number, number]
+  allowedKeywords?: string[]
+  heroOnly?: boolean
+  limit?: number
+}
+
 export interface HeroUpgrade {
   id: string
   label: string
   description: string
   baseUnitIds?: string[]
+  allowedKeywords?: string[]
 }
 
 export interface CompanySpecialRule {
@@ -70,6 +81,7 @@ export interface CompanySpecialRule {
     appliesTo: number[]
     prompt: string
   }>
+  heroRestrictions?: Array<{ allowedBaseUnitIds: string[] }>
   parameters?: Record<string, unknown>
 }
 
@@ -110,6 +122,7 @@ export interface CompanyDefinition {
   specialTable?: SpecialTableEntry[]
   specialUnits?: SpecialUnitEntry[]
   heroUpgrade: HeroUpgrade[]
+  uniqueWargear?: UniqueWargearEntry[]
   variants?: Array<{
     id: string
     label: string
