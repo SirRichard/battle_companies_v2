@@ -144,17 +144,20 @@ function getBestArmourUpgrade(
     (b, e) => Math.max(b, ARMOUR_TIER[e] ?? 0),
     0
   )
-  if (currentTier === 0) return null
-  let best: string | null = null
-  let bestTier = currentTier
+  // Find the lowest accessible armour tier above current — only show if it's
+  // exactly one step up (no skipping tiers)
+  let nextUpgrade: string | null = null
+  let nextTier = Infinity
   for (const wId of accessible) {
     const tier = ARMOUR_TIER[wId]
-    if (tier !== undefined && tier > bestTier) {
-      best = wId
-      bestTier = tier
+    if (tier !== undefined && tier > currentTier && tier < nextTier) {
+      nextUpgrade = wId
+      nextTier = tier
     }
   }
-  return best
+  // Only offer the upgrade if it's a single step up
+  if (nextTier !== currentTier + 1) return null
+  return nextUpgrade
 }
 
 function wargearLabel(id: string): string {
