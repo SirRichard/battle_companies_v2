@@ -176,7 +176,7 @@ export interface Member {
   experience: number
   lifetimeExperience: number
   injuries: Injury[]
-  specialRules: string[]
+  specialRules: Array<string | { id: string; parameter: string | number }>
   heroStats?: {
     might: number
     will: number

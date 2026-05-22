@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest'
 import * as fc from 'fast-check'
 import { getEligibleHeroUpgrades } from '../../../utils/companyRules'
 import companiesData from '../../../data/companies.json'
-import type { CompanyDefinition, Member, MemberRole } from '../../../models'
+import type { CompanyDefinition, Injury, Member, MemberRole } from '../../../models'
 
 const ALL_COMPANIES = companiesData as CompanyDefinition[]
 
@@ -105,8 +105,8 @@ const arbitraryWarriorMember = fc.record({
   equipment: fc.array(fc.string(), { minLength: 0, maxLength: 5 }),
   experience: fc.nat({ max: 50 }),
   lifetimeExperience: fc.nat({ max: 50 }),
-  injuries: fc.constant([]),
-  specialRules: fc.constant([]),
+  injuries: fc.constant([] as Injury[]),
+  specialRules: fc.constant([] as string[]),
   statIncreases: fc.constant({}),
   statDecreases: fc.constant({}),
 })
@@ -118,11 +118,11 @@ const arbitraryHeroWithAllShireUpgrades = fc.record({
   name: fc.constant('Bilbo'),
   baseUnitId: fc.constant('hobbit_militia'),
   role: fc.constantFrom<MemberRole>(...HERO_ROLES),
-  equipment: fc.constant([...SHIRE_UPGRADE_IDS]),
+  equipment: fc.constant([...SHIRE_UPGRADE_IDS] as string[]),
   experience: fc.nat({ max: 50 }),
   lifetimeExperience: fc.nat({ max: 50 }),
-  injuries: fc.constant([]),
-  specialRules: fc.constant([]),
+  injuries: fc.constant([] as Injury[]),
+  specialRules: fc.constant([] as string[]),
   heroStats: fc.constant({ might: 1, will: 1, fate: 1 }),
   statIncreases: fc.constant({}),
   statDecreases: fc.constant({}),
@@ -134,11 +134,11 @@ const arbitraryHeroMemberForCompanyWithUpgrades = fc.record({
   name: fc.constant('Test Hero'),
   baseUnitId: fc.constant('hobbit_militia'),
   role: fc.constantFrom<MemberRole>(...HERO_ROLES),
-  equipment: fc.constant([]),
+  equipment: fc.constant([] as string[]),
   experience: fc.nat({ max: 50 }),
   lifetimeExperience: fc.nat({ max: 50 }),
-  injuries: fc.constant([]),
-  specialRules: fc.constant([]),
+  injuries: fc.constant([] as Injury[]),
+  specialRules: fc.constant([] as string[]),
   heroStats: fc.constant({ might: 1, will: 1, fate: 1 }),
   statIncreases: fc.constant({}),
   statDecreases: fc.constant({}),

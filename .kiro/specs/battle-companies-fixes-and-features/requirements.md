@@ -558,3 +558,57 @@ This spec covers a set of bug fixes and missing features for the Battle Companie
 4. THE Enter key shortcut for advancing the wizard SHALL also correctly reflect the current `canAdvance()` result without stale closure issues.
 5. WHEN a pre-assigned leader (via `mustBeLeader`) is combined with user-selected sergeants, THE `canAdvance()` check SHALL correctly return `true` once both sergeant slots are filled.
 6. WHEN the user deselects a sergeant and then reselects one, THE Next button SHALL update its enabled/disabled state reactively without requiring a page reload or re-render trigger.
+
+---
+
+### Requirement 35: Parameterised Special Rules — Storage and Display (NEW-8)
+
+**User Story:** As a player, I want special rules that require a parameter (such as "Dominant (3)" or "Hatred (Orcs)") to be stored with their parameter value and displayed correctly throughout the app, so that I can see the full meaning of each special rule at a glance.
+
+#### Acceptance Criteria
+
+1. THE Member model SHALL support parameterised special rules by allowing entries in `member.specialRules` to be either a plain string ID (for non-parameterised rules) or an object of the form `{ id: string; parameter: string | number }` (for parameterised rules).
+2. WHEN a parameterised special rule is stored on a member, THE Member model SHALL preserve the `parameter` value through serialisation and deserialisation (round-trip via IndexedDB).
+3. WHEN displaying a special rule that has `parameterised: true` in `specialRules.json` and a stored `parameter` value, THE app SHALL render the rule label with the parameter in parentheses — e.g. "Dominant (3)" or "Hatred (Orcs)".
+4. WHEN displaying a special rule that has `parameterised: true` but no stored `parameter` value, THE app SHALL render the rule label with "(X)" as a placeholder — e.g. "Dominant (X)".
+5. WHEN displaying a special rule that has `parameterised: false`, THE app SHALL render the rule label without any parenthetical suffix, unchanged from current behaviour.
+6. THE parameterised display format SHALL be applied consistently wherever special rules are shown: in MemberDetailsDrawer, on the MatchTrackingPage member card, and in any other location that renders a member's special rules list.
+7. THE `specialRules` field on the Member interface SHALL remain backward-compatible: existing persisted data that stores plain string IDs SHALL continue to be read and displayed correctly.
+8. WHEN a wanderer's special rules are displayed (sourced from `wanderers.json`, which already uses `{ id, parameter }` objects), THE app SHALL apply the same parameterised display format as for member special rules.
+
+---
+
+### Requirement 36: Envenom Weapon — Restriction to Carried Weapons and Duplicate Prevention (NEW-9)
+
+**User Story:** As a player, I want the Envenom Weapon toolkit item to only offer weapons that the target member actually carries, and to prevent the same weapon from being envenomed twice on the same member, so that the assignment is always valid and meaningful.
+
+#### Acceptance Criteria
+
+1. WHEN the ToolkitAssignmentPage presents the weapon selection dialog for an Envenom Weapon item, THE ToolkitAssignmentPage SHALL restrict the weapon options to only the weapons present in the target member's equipment (the union of their `baseEquipment` from `baseUnits.json` and their `member.equipment` array), filtered to items whose `category` in `wargear.json` is a weapon type (i.e. not `armour_*`, `mount`, or `shield`).
+2. WHEN a member has no eligible weapons (no weapon-category items in their equipment), THE ToolkitAssignmentPage SHALL disable the Envenom Weapon assignment for that member and display a message explaining that the member carries no eligible weapons.
+3. WHEN a member has already been assigned an Envenom Weapon for a specific weapon in the current toolkit assignment, THE ToolkitAssignmentPage SHALL exclude that weapon from the options for any subsequent Envenom Weapon assignment to the same member.
+4. WHEN all of a member's weapons have already been assigned an Envenom Weapon in the current toolkit assignment, THE ToolkitAssignmentPage SHALL disable further Envenom Weapon assignments to that member and display a message indicating all weapons are already envenomed.
+5. THE weapon options presented in the Envenom Weapon dialog SHALL display each weapon's human-readable label (from `wargear.json` or the label utility), not the raw ID.
+6. WHEN the ToolkitAssignmentPage displays the Envenom Weapon item on the MatchTrackingPage, THE MatchTrackingPage SHALL render the item label as "Envenom Weapon (WeaponName)" — e.g. "Envenom Weapon (Spear)" — using the stored `parameter` value from the `ToolkitItem`.
+7. THE restriction logic SHALL derive the member's weapon list at the time the assignment dialog is opened, using the same member data available to the ToolkitAssignmentPage (active company members from `company.members`).
+
+---
+
+### Requirement 37: Against the Odds — Wanderer Selection Page (NEW-10)
+
+**User Story:** As a player, I want to be directed to a wanderer selection page when I choose the "Wanderer" Against the Odds bonus during match setup, so that I can pick which wanderer joins my company temporarily for the match.
+
+#### Acceptance Criteria
+
+1. WHEN the user selects the "wanderer" ATO bonus in MatchSetupPage and taps the start/next button, THE MatchSetupPage SHALL navigate to a WandererSelectionPage before proceeding to MatchTrackingPage.
+2. WHEN both the "toolkit" and "wanderer" ATO bonuses are selected, THE MatchSetupPage SHALL navigate to ToolkitAssignmentPage first, and THE ToolkitAssignmentPage SHALL navigate to WandererSelectionPage after toolkit assignment is complete, before proceeding to MatchTrackingPage.
+3. WHEN only the "wanderer" ATO bonus is selected (without "toolkit"), THE MatchSetupPage SHALL navigate directly to WandererSelectionPage, bypassing ToolkitAssignmentPage.
+4. THE WandererSelectionPage SHALL display all available wanderers from `wanderers.json`, showing each wanderer's name, point cost, and a summary of their key stats.
+5. THE WandererSelectionPage SHALL allow the user to select exactly one wanderer from the list.
+6. WHEN the user confirms a wanderer selection on WandererSelectionPage, THE WandererSelectionPage SHALL add the selected wanderer as a synthetic member entry in `ActiveMatchState.members` (with `role: 'wanderer'`) and navigate to MatchTrackingPage.
+7. THE ATO wanderer added via WandererSelectionPage SHALL NOT be persisted to `company.wandererId`; it is a temporary match-only addition and SHALL NOT affect the company's permanent wanderer hire.
+8. WHEN the match ends, THE MatchTrackingPage SHALL NOT include the ATO wanderer's XP gains in the post-match XP data passed to PostMatchSummaryPage; ATO wanderers do not earn experience.
+9. THE WandererSelectionPage SHALL display a back button that returns the user to ToolkitAssignmentPage (if toolkit was also selected) or to MatchSetupPage (if toolkit was not selected), without discarding the active match state.
+10. WHEN the user navigates back from WandererSelectionPage to MatchSetupPage, THE MatchSetupPage SHALL not re-trigger the wanderer navigation on the next start attempt unless the user taps the start button again.
+11. THE WandererSelectionPage SHALL be accessible at the route `/companies/:companyId/match/wanderer` and SHALL be registered in the app router.
+12. WHEN the ATO wanderer is displayed on the MatchTrackingPage, THE MatchTrackingPage SHALL render the wanderer card with a visual indicator (e.g. a "Temporary" or "ATO" badge) distinguishing it from a permanently hired wanderer.

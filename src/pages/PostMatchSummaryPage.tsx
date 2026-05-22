@@ -1104,7 +1104,7 @@ export default function PostMatchSummaryPage() {
                 pathId,
                 heroStats: m.heroStats ?? { might: 1, will: 1, fate: 1 },
                 specialRules:
-                  actionLabel && !m.specialRules.includes(actionLabel)
+                  actionLabel && !m.specialRules.some((r) => r === actionLabel)
                     ? [...m.specialRules, actionLabel]
                     : m.specialRules,
               }
@@ -3147,9 +3147,9 @@ function HeroAdvancementCard({
             )
           } else if (chosen === 'upgrade' && selectedUpgradeId) {
             onApplyHeroUpgrade(selectedUpgradeId)
-          } else {
+          } else if (chosen === 'A' || chosen === 'B') {
             onApply(
-              chosen!,
+              chosen,
               statChoice,
               optionChoice,
               minorRule || undefined,
@@ -3474,7 +3474,7 @@ function ExtraChoiceUI({
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {SPECIAL_RULES.filter(
-                (r) => r.minor && !member.specialRules.includes(r.label)
+                (r) => r.minor && !member.specialRules.some((sr) => sr === r.label)
               )
                 .slice(0, 14)
                 .map((r) => (
@@ -3513,7 +3513,7 @@ function ExtraChoiceUI({
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {HEROIC_ACTIONS.filter(
-                (h) => !h.universal && !member.specialRules.includes(h.label)
+                (h) => !h.universal && !member.specialRules.some((sr) => sr === h.label)
               ).map((h) => (
                 <Chip
                   key={h.id}

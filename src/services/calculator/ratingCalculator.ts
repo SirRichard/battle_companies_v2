@@ -91,8 +91,8 @@ export function calcMemberRating(
       'Heroic Combat',
     ])
     const countableSpecialRules = member.specialRules.filter(
-      (r) => !HEROIC_ACTION_LABELS.has(r)
-    )
+      (r) => typeof r === 'string' && !HEROIC_ACTION_LABELS.has(r)
+    ) as string[]
     const minorRules = countableSpecialRules.filter((r) =>
       MINOR_RULE_LABELS.has(r)
     )

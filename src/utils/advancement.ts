@@ -249,7 +249,7 @@ export function applyStatIncrease(member: Member, stat: string): Member {
  * Subtracts 5 XP.
  */
 export function applySpecialRule(member: Member, ruleLabel: string): Member {
-  if (member.specialRules.includes(ruleLabel)) return member // already has it
+  if (member.specialRules.some((r) => r === ruleLabel)) return member // already has it
   return {
     ...member,
     specialRules: [...member.specialRules, ruleLabel],
@@ -370,7 +370,7 @@ export function applyInjuryOutcome(
       ]
       // Add Fearful on second broken honour
       const specialRules =
-        newCount >= 2 && !member.specialRules.includes('Fearful')
+        newCount >= 2 && !member.specialRules.some((r) => r === 'Fearful')
           ? [...member.specialRules, 'Fearful']
           : member.specialRules
       return { member: { ...member, injuries, specialRules }, isDead: false }

@@ -1,8 +1,8 @@
-# Design Document — Battle Companies Fixes and Features
+﻿# Design Document — Battle Companies Fixes and Features
 
 ## Overview
 
-This document covers the technical design for all 29 items in the Battle Companies companion app spec. The app is a React + TypeScript + MUI + Dexie.js PWA that manages MESBG Battle Companies campaigns with all data stored locally via IndexedDB.
+This document covers the technical design for all 37 items in the Battle Companies companion app spec. The app is a React + TypeScript + MUI + Dexie.js PWA that manages MESBG Battle Companies campaigns with all data stored locally via IndexedDB.
 
 The changes span the rating calculator, post-match flow, match tracking, company roster display, member details drawer, stats entry form, store/armoury tab, company creation wizard, and toolkit assignment. Each item is self-contained and can be implemented independently.
 
@@ -17,7 +17,7 @@ The changes span the rating calculator, post-match flow, match tracking, company
 - Req 20 (BUG-FIX): Hero advancement card state not reset between heroes
 - Req 29 (BUG-FIX): "Missing Next Game" injury not auto-cleared after a completed match
 
-**Features addressed (Requirements 5–12, 15, 17–19, 21–28):**
+**Features addressed (Requirements 5–12, 15, 17–19, 21–28, 30–37):**
 - Req 5 (FEAT-1): Company size counter on the Roster tab
 - Req 6 (FEAT-2): Promotion eligibility indicator in MemberDetailsDrawer
 - Req 7 (FEAT-3): Leader/Sergeant death cascade in PostMatchSummaryPage
@@ -38,6 +38,14 @@ The changes span the rating calculator, post-match flow, match tracking, company
 - Req 26 (NEW-5): Store tab — capitalize Leader/Sergeant titles and fix "Hero in the Making" label
 - Req 27 (NEW-6): Roster tab — warriors show only loadout choices
 - Req 28 (NEW-7): Store > Wargear tab — hide wargear type label, keep bow limit
+- Req 30 (BUG-FIX): StepMemberNames — bottom bar overlap fix
+- Req 31 (FEAT): The Last Alliance — variant roster selection for Gondor faction
+- Req 32 (FEAT): StepLeaderSelection — enforce mustBeLeader / mustBeSergeant constraints
+- Req 33 (FEAT): Wizard — skip StepLeaderSelection when all roles are pre-assigned
+- Req 34 (BUG-FIX): StepLeaderSelection — Next button stale state fix
+- Req 35 (NEW-8): Parameterised special rules — storage and display
+- Req 36 (NEW-9): Envenom Weapon — restriction to carried weapons and duplicate prevention
+- Req 37 (NEW-10): Against the Odds — Wanderer Selection Page (pre-match flow)
 
 ---
 
@@ -2135,3 +2143,567 @@ Generate company definitions with 0, 1, 2, or 3 pre-assigned slots. Assert the w
 **Property 35 — canAdvance reads current wizard state:**
 Generate sequences of wizard state updates at step 5 (setting/clearing `leaderId` and `sergeantIds`). After each update, call `canAdvance()`. Assert the result equals `leaderId !== null && sergeantIds.length === 2` for the current state, never a prior state.
 `// Feature: battle-companies-fixes-and-features, Property 35: canAdvance at step 5 always reads current wizard state`
+
+---
+
+### Requirement 35: Parameterised Special Rules — Storage and Display (NEW-8)
+
+**Affected files:**
+- `src/models/index.ts` (`Member.specialRules` type)
+- `src/utils/labels.ts` (new `getSpecialRuleLabel` helper)
+- `src/components/common/MemberDetailsDrawer.tsx` (special rules display)
+- `src/pages/MatchTrackingPage.tsx` (special rules display on match card, if rendered)
+
+**Current behaviour:** `Member.specialRules` is typed as `string[]` — a flat array of rule label strings (e.g. `["Backstabbers", "Fearless"]`). The display code renders each entry directly as a string. There is no concept of a parameterised rule on the member model. `wanderers.json` already stores some special rules as `{ id, parameter }` objects, but the member model does not support this shape.
+
+**Design:**
+
+**Model change — `Member.specialRules`:**
+
+Extend the type to a union that supports both the legacy plain-string form and the new parameterised-object form:
+
+```typescript
+export type SpecialRuleEntry =
+  | string                                     // legacy: plain rule ID or label
+  | { id: string; parameter: string | number } // parameterised rule
+
+export interface Member {
+  // ... existing fields ...
+  specialRules: SpecialRuleEntry[]  // was: string[]
+}
+```
+
+Both forms are valid. Existing persisted data (plain strings) continues to deserialise correctly because Dexie.js stores the raw JSON — no migration is needed.
+
+**New utility — `getSpecialRuleLabel`:**
+
+Add a `getSpecialRuleLabel` function to `src/utils/labels.ts` that accepts a `SpecialRuleEntry` and returns the human-readable display string:
+
+```typescript
+import specialRulesData from '../data/specialRules.json'
+
+interface SpecialRuleDef {
+  id: string
+  label: string
+  parameterised: boolean
+}
+
+const SPECIAL_RULES_MAP = new Map<string, SpecialRuleDef>(
+  (specialRulesData as SpecialRuleDef[]).map(r => [r.id, r])
+)
+
+export function getSpecialRuleLabel(entry: SpecialRuleEntry): string {
+  if (typeof entry === 'string') {
+    // Legacy: entry is a plain string (either an ID or a label stored directly)
+    const def = SPECIAL_RULES_MAP.get(entry)
+    if (def) {
+      // It's a known ID — use the def's label
+      return def.parameterised
+        ? `${def.label.replace(/\s*\([^)]*\)\s*$/, '')} (X)`
+        : def.label
+    }
+    // Unknown string — return as-is (backward compat for labels stored directly)
+    return entry
+  }
+  // Parameterised object form: { id, parameter }
+  const def = SPECIAL_RULES_MAP.get(entry.id)
+  const baseLabel = def
+    ? def.label.replace(/\s*\([^)]*\)\s*$/, '')  // strip template suffix e.g. "(X)"
+    : entry.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return `${baseLabel} (${entry.parameter})`
+}
+```
+
+**Display sites:**
+
+Every location that renders a member's `specialRules` array must be updated to call `getSpecialRuleLabel(entry)` instead of rendering the entry directly as a string:
+
+1. **`MemberDetailsDrawer`** — the special rules section iterates `member.specialRules` and renders each entry as a `Chip`. Replace the raw entry string with `getSpecialRuleLabel(entry)`.
+2. **`MatchTrackingPage` / `MemberMatchCard`** — if special rules are rendered on the match card, apply the same substitution.
+3. **Wanderer display** — `wanderers.json` entries already use `{ id, parameter }` objects in their `specialRules` arrays. When a wanderer's special rules are displayed (e.g. in the wanderer selection dialog from Req 22 or the new `WandererSelectionPage` from Req 37), the same `getSpecialRuleLabel` function handles them correctly because it accepts the `{ id, parameter }` shape.
+
+**Backward compatibility:**
+
+- Existing members with `specialRules: ["Backstabbers", "Fearless"]` (plain strings) continue to work — `getSpecialRuleLabel("Backstabbers")` looks up the ID in `SPECIAL_RULES_MAP` and returns the label.
+- The `Member.specialRules` type change from `string[]` to `SpecialRuleEntry[]` is backward-compatible at the TypeScript level because `string` is a member of the `SpecialRuleEntry` union.
+- The rating calculator in `src/utils/rating.ts` and `src/services/calculator/ratingCalculator.ts` currently reads `member.specialRules` as strings. These must be updated to extract the `id` from each entry before performing the minor/major rule lookup:
+
+```typescript
+function resolveRuleId(entry: SpecialRuleEntry): string {
+  return typeof entry === 'string' ? entry : entry.id
+}
+
+const countableRules = member.specialRules
+  .map(resolveRuleId)
+  .filter(id => !HEROIC_ACTION_IDS.has(id))
+```
+
+**`specialRules.json` already has `parameterised` field:** The data file already contains `"parameterised": true` on entries like `dominant`, `hatred`, `poisoned_attacks`, `harbinger_of_evil`, `master_of_battle`, `terror_x`, and `combat_synergy`. The `getSpecialRuleLabel` function uses this field to determine whether to append a parameter suffix.
+
+---
+
+### Requirement 36: Envenom Weapon — Restriction to Carried Weapons and Duplicate Prevention (NEW-9)
+
+**Affected files:**
+- `src/pages/ToolkitAssignmentPage.tsx` (weapon selection dialog for Envenom Weapon)
+- `src/pages/MatchTrackingPage.tsx` (Envenom Weapon label display)
+
+**Current behaviour:** The `PARAMETERISED_ITEMS` constant in `ToolkitAssignmentPage.tsx` hard-codes a fixed list of weapon options for `envenom_weapon`:
+
+```typescript
+const PARAMETERISED_ITEMS: Record<string, { prompt: string; options: string[] }> = {
+  envenom_weapon: {
+    prompt: 'Which weapon gains Poisoned Attacks?',
+    options: ['hand_weapon', 'spear', 'two_handed_weapon', 'bow', 'throwing_weapon'],
+  },
+}
+```
+
+This list is static and does not reflect the actual weapons carried by the target member. It also allows the same weapon to be envenomed twice on the same member.
+
+**Design:**
+
+**Step 1 — Derive member weapon list dynamically:**
+
+Replace the static `options` array with a function that computes the eligible weapons for a specific member at dialog-open time. Weapon-category items are those whose `category` in `wargear.json` is NOT one of the non-weapon categories:
+
+```typescript
+const NON_WEAPON_CATEGORIES = new Set([
+  'armour_1', 'armour_2', 'armour_3', 'armour_4',
+  'mount', 'shield', 'special',
+])
+
+function getMemberWeapons(member: Member): string[] {
+  const baseUnit = BASE_UNITS_RAW.find(u => u.id === member.baseUnitId)
+  const baseEquipment = baseUnit?.baseEquipment ?? []
+  const allEquipment = Array.from(new Set([...baseEquipment, ...member.equipment]))
+  return allEquipment.filter(itemId => {
+    const wgEntry = WARGEAR_RAW.find(w => w.id === itemId)
+    if (!wgEntry) return false
+    return !NON_WEAPON_CATEGORIES.has(wgEntry.category ?? '')
+  })
+}
+```
+
+This function is called when the Envenom Weapon assignment dialog opens for a specific member.
+
+**Step 2 — Exclude already-envenomed weapons:**
+
+When computing the options for a new Envenom Weapon assignment to a member, exclude any weapon that has already been assigned an Envenom Weapon to that same member in the current `assignments` array:
+
+```typescript
+function getAvailableEnvenomOptions(
+  member: Member,
+  assignments: Array<{ memberId: string; parameter?: string }>,
+  kitItems: string[]
+): string[] {
+  const allWeapons = getMemberWeapons(member)
+  const alreadyEnvenomed = new Set(
+    assignments
+      .map((a, i) => ({ a, itemId: kitItems[i] }))
+      .filter(({ a, itemId }) =>
+        a.memberId === member.id && itemId === 'envenom_weapon' && a.parameter
+      )
+      .map(({ a }) => a.parameter!)
+  )
+  return allWeapons.filter(w => !alreadyEnvenomed.has(w))
+}
+```
+
+**Step 3 — Disable assignment when no eligible weapons:**
+
+Before opening the parameter dialog, check if `getMemberWeapons(member).length === 0`. If so, disable the member selector entry for Envenom Weapon items and display a message: "This member carries no eligible weapons."
+
+If `getAvailableEnvenomOptions(member, assignments, kitItems).length === 0` (all weapons already envenomed), disable the assignment and display: "All weapons already envenomed."
+
+**Step 4 — Update `handleAssign` to use dynamic options:**
+
+The `handleAssign` function currently opens the param dialog with `PARAMETERISED_ITEMS[itemId].options`. For `envenom_weapon`, replace this with the dynamically computed options:
+
+```typescript
+const [dynamicParamOptions, setDynamicParamOptions] = useState<string[] | null>(null)
+
+const handleAssign = (itemIndex: number, memberId: string) => {
+  const itemId = kit?.items[itemIndex] ?? ''
+  if (itemId === 'envenom_weapon' && memberId) {
+    const member = activeMembers.find(m => m.id === memberId)
+    if (!member) return
+    const options = getAvailableEnvenomOptions(member, assignments, kit!.items)
+    if (options.length === 0) return  // disabled — no eligible weapons
+    setParamDialog({ itemIndex, memberId })
+    setParamValue(options[0])
+    setDynamicParamOptions(options)
+  } else if (PARAMETERISED_ITEMS[itemId] && memberId) {
+    setParamDialog({ itemIndex, memberId })
+    setParamValue(PARAMETERISED_ITEMS[itemId].options[0])
+    setDynamicParamOptions(null)
+  } else {
+    setAssignments(prev => {
+      const next = [...prev]
+      next[itemIndex] = { memberId, parameter: undefined }
+      return next
+    })
+  }
+}
+```
+
+The parameter dialog uses `dynamicParamOptions ?? PARAMETERISED_ITEMS[itemId]?.options ?? []` as its option list.
+
+**Step 5 — Human-readable weapon labels in the dialog:**
+
+The `Select` options in the parameter dialog must display human-readable labels. Replace the raw `getParamLabel` call with `getWargearLabel(opt)` (already imported from `src/utils/labels.ts`):
+
+```tsx
+{options.map(opt => (
+  <MenuItem key={opt} value={opt}>
+    {getWargearLabel(opt)}
+  </MenuItem>
+))}
+```
+
+**Step 6 — Envenom Weapon label on MatchTrackingPage:**
+
+In `MemberMatchCard`, toolkit items are rendered as chips. For `envenom_weapon` items that have a `parameter` value, the chip label should be `"Envenom Weapon (WeaponName)"` rather than just `"Envenom Weapon"`. The `ToolkitItem` model already has a `parameter?: string` field:
+
+```typescript
+function getToolkitItemLabel(item: ToolkitItem): string {
+  const baseLabel = getItemLabel(item.itemId)
+  if (item.parameter) {
+    return `${baseLabel} (${getWargearLabel(item.parameter)})`
+  }
+  return baseLabel
+}
+```
+
+This function is used wherever toolkit item chips are rendered in `MemberMatchCard`.
+
+---
+
+### Requirement 37: Against the Odds — Wanderer Selection Page (NEW-10)
+
+**Affected files:**
+- `src/pages/MatchSetupPage.tsx` (navigation logic)
+- `src/pages/ToolkitAssignmentPage.tsx` (navigation logic — proceed to wanderer page)
+- `src/pages/MatchTrackingPage.tsx` (ATO wanderer badge, XP exclusion)
+- `src/models/match.ts` (`ActiveMatchState` — ATO wanderer flag)
+- `src/router/index.tsx` (new route registration)
+- `src/pages/WandererSelectionPage.tsx` (new file)
+
+**Distinction from Requirement 22:** Requirement 22 covers the *post-match* wanderer ATO flow — after a match ends, the user selects a wanderer to *permanently hire* (written to `company.wandererId`). Requirement 37 covers the *pre-match* wanderer ATO flow — before a match starts, the user selects a wanderer to *temporarily join* for that match only (written to `ActiveMatchState.members` as a synthetic entry, never to `company.wandererId`). These are two separate features with different persistence semantics.
+
+**Model change — `ActiveMatchState`:**
+
+Add a flag to distinguish ATO wanderers from permanently hired wanderers in the match state:
+
+```typescript
+// In src/models/match.ts
+export interface ActiveMatchState {
+  // ... existing fields ...
+  atoWandererId?: string  // ID of the ATO-selected wanderer (if wanderer ATO bonus active)
+}
+```
+
+This field is optional for backward compatibility. It is set by `WandererSelectionPage` when the user confirms their selection.
+
+**Navigation flow changes:**
+
+The current navigation from `MatchSetupPage` is:
+- toolkit selected → `/match/toolkit` → `/match`
+- toolkit not selected → `/match`
+
+The new navigation is:
+- toolkit + wanderer → `/match/toolkit` → `/match/wanderer` → `/match`
+- wanderer only → `/match/wanderer` → `/match`
+- toolkit only → `/match/toolkit` → `/match` (unchanged)
+- neither → `/match` (unchanged)
+
+**`MatchSetupPage` changes:**
+
+In `handleStart`, after saving the match state, update the navigation decision:
+
+```typescript
+await saveActiveMatch(match)
+
+if (atoBonuses.includes('toolkit')) {
+  navigate(`/companies/${company.id}/match/toolkit`)
+} else if (atoBonuses.includes('wanderer')) {
+  navigate(`/companies/${company.id}/match/wanderer`)
+} else {
+  navigate(`/companies/${company.id}/match`)
+}
+```
+
+The Start button label is also updated:
+
+```typescript
+const startLabel =
+  atoBonuses.includes('toolkit')
+    ? 'Next: Assign Kit Items →'
+    : atoBonuses.includes('wanderer')
+      ? 'Next: Select Wanderer →'
+      : 'Begin Battle'
+```
+
+**`ToolkitAssignmentPage` changes:**
+
+In `handleProceed`, after saving the toolkit items to the match state, update the navigation decision:
+
+```typescript
+await saveActiveMatch({ ...match, toolkitItems })
+
+if (match.atoBonuses.includes('wanderer')) {
+  navigate(`/companies/${companyId}/match/wanderer`)
+} else {
+  navigate(`/companies/${companyId}/match`)
+}
+```
+
+**New page — `WandererSelectionPage`:**
+
+Route: `/companies/:companyId/match/wanderer`
+
+The page loads the active match state from IndexedDB (via `loadActiveMatch`). It displays all wanderers from `wanderers.json` as selectable cards. Each card shows:
+- Wanderer name (label)
+- Point cost
+- M/W/F values
+- Key combat stats (Fight, Strength, Defence, Attacks, Wounds)
+- Equipment summary
+- Special rules summary (using `getSpecialRuleLabel` from Req 35)
+
+The user selects exactly one wanderer. A "Confirm" button is enabled once a selection is made.
+
+```typescript
+export default function WandererSelectionPage() {
+  const { companyId } = useParams<{ companyId: string }>()
+  const navigate = useNavigate()
+  const { loadActiveMatch, saveActiveMatch } = useAppContext()
+
+  const [match, setMatch] = useState<ActiveMatchState | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!companyId) return
+    loadActiveMatch(companyId).then(m => {
+      if (!m) navigate(`/companies/${companyId}/match/setup`, { replace: true })
+      else setMatch(m)
+    })
+  }, [companyId, loadActiveMatch, navigate])
+
+  const handleConfirm = async () => {
+    if (!match || !selectedId) return
+    const wandererProfile = (wanderersData as WandererProfile[]).find(w => w.id === selectedId)
+    if (!wandererProfile) return
+
+    // Build synthetic MemberMatchState for the ATO wanderer
+    const atoMember: MemberMatchState = {
+      memberId: selectedId,
+      memberName: wandererProfile.label,
+      baseUnitId: selectedId,
+      role: 'wanderer',
+      equipment: wandererProfile.equipment,
+      xpCounterGains: 0,
+      isCasualty: false,
+      mightMax: wandererProfile.stats.might ?? null,
+      willMax: wandererProfile.stats.will ?? null,
+      fateMax: wandererProfile.stats.fate ?? null,
+      mightCurrent: wandererProfile.stats.might ?? null,
+      willCurrent: wandererProfile.stats.will ?? null,
+      fateCurrent: wandererProfile.stats.fate ?? null,
+    }
+
+    const updatedMatch: ActiveMatchState = {
+      ...match,
+      atoWandererId: selectedId,
+      members: [...match.members, atoMember],
+    }
+
+    await saveActiveMatch(updatedMatch)
+    navigate(`/companies/${companyId}/match`)
+  }
+
+  const handleBack = () => {
+    if (!match) return
+    if (match.atoBonuses.includes('toolkit')) {
+      navigate(`/companies/${companyId}/match/toolkit`)
+    } else {
+      navigate(`/companies/${companyId}/match/setup`)
+    }
+  }
+
+  // ... render wanderer selection cards ...
+}
+```
+
+**Back navigation and state preservation:**
+
+The back button navigates to `ToolkitAssignmentPage` (if toolkit was selected) or `MatchSetupPage` (if not). The active match state is preserved in IndexedDB throughout — navigating back does not discard it. `MatchSetupPage` detects an existing active match on mount and shows the "Resume" prompt, which prevents re-triggering the wanderer navigation automatically (the user must tap "Start New" and then tap the start button again to re-enter the flow).
+
+**ATO wanderer XP exclusion in `MatchTrackingPage`:**
+
+In `handleEndMatch`, the `xpGained` array is built from `match.members`. The ATO wanderer must be excluded:
+
+```typescript
+const xpGained = match.members
+  .filter(mm => mm.memberId !== match.atoWandererId)  // exclude ATO wanderer
+  .map(mm => ({
+    memberId: mm.memberId,
+    memberName: mm.memberName,
+    xp: 1 + mm.xpCounterGains + xpBonus,
+  }))
+```
+
+The ATO wanderer is not in `company.members` (it was never added there), so the existing XP application loop (`company.members.map(m => { const gain = xpGained.find(...) })`) already handles this correctly — no match will be found for the ATO wanderer ID.
+
+**ATO wanderer badge in `MemberMatchCard`:**
+
+The `MemberMatchCard` receives a new optional prop `isAtoWanderer?: boolean`. When `true`, an additional `Chip` is rendered alongside the role chip:
+
+```tsx
+{isAtoWanderer && (
+  <Chip
+    label="ATO"
+    size="small"
+    sx={{
+      fontSize: '0.6rem',
+      height: 18,
+      background: 'rgba(52,152,219,0.15)',
+      color: '#3498db',
+      border: '1px solid rgba(52,152,219,0.4)',
+    }}
+  />
+)}
+```
+
+In `MatchTrackingPage`, the prop is passed as `isAtoWanderer={mm.memberId === match.atoWandererId}`.
+
+**Router registration:**
+
+Add the new route to `src/router/index.tsx`:
+
+```typescript
+import WandererSelectionPage from '../pages/WandererSelectionPage'
+
+// In the router children array, after the toolkit route:
+{
+  path: 'companies/:companyId/match/wanderer',
+  element: <WandererSelectionPage />,
+},
+```
+
+---
+
+## Correctness Properties (continued — Requirements 35–37)
+
+### Property 36: Parameterised special rule label includes parameter
+
+*For any* `SpecialRuleEntry` of the form `{ id, parameter }` where the rule's `parameterised` field is `true` in `specialRules.json`, `getSpecialRuleLabel` SHALL return a string that ends with `(parameter)` — e.g. `"Dominant (3)"` or `"Hatred (Orcs)"`.
+
+**Validates: Requirements 35.3**
+
+### Property 37: Non-parameterised special rule label is unchanged
+
+*For any* `SpecialRuleEntry` that is either a plain string ID or an object whose rule has `parameterised: false` in `specialRules.json`, `getSpecialRuleLabel` SHALL return the base label string with no parenthetical suffix.
+
+**Validates: Requirements 35.5**
+
+### Property 38: Special rule round-trip preserves parameterised entries
+
+*For any* `Member` whose `specialRules` array contains a mix of plain strings and `{ id, parameter }` objects, saving and reloading the member from IndexedDB SHALL produce a `specialRules` array that is deeply equal to the original — both the plain strings and the parameterised objects are preserved.
+
+**Validates: Requirements 35.2, 35.7**
+
+### Property 39: Envenom Weapon options are a subset of member's carried weapons
+
+*For any* member, the weapon options presented in the Envenom Weapon dialog SHALL be a subset of the union of `baseEquipment` (from `baseUnits.json`) and `member.equipment`, filtered to items whose `category` in `wargear.json` is not `armour_*`, `mount`, `shield`, or `special`.
+
+**Validates: Requirements 36.1, 36.7**
+
+### Property 40: Already-envenomed weapons are excluded from subsequent options
+
+*For any* member and any set of existing Envenom Weapon assignments to that member, the weapon options for a new Envenom Weapon assignment SHALL not include any weapon that already has an Envenom Weapon assigned to it for that member in the current assignment state.
+
+**Validates: Requirements 36.3**
+
+### Property 41: Envenom Weapon chip label includes weapon name
+
+*For any* `ToolkitItem` with `itemId === 'envenom_weapon'` and a non-empty `parameter` value, the rendered chip label SHALL equal `"Envenom Weapon (" + getWargearLabel(parameter) + ")"`.
+
+**Validates: Requirements 36.6**
+
+### Property 42: ATO wanderer is added to match members on confirmation
+
+*For any* wanderer ID selected on `WandererSelectionPage`, after confirmation `ActiveMatchState.members` SHALL contain exactly one entry with `memberId === selectedId` and `role === 'wanderer'`, and `ActiveMatchState.atoWandererId` SHALL equal `selectedId`.
+
+**Validates: Requirements 37.6**
+
+### Property 43: ATO wanderer does not modify company.wandererId
+
+*For any* ATO wanderer selection, `company.wandererId` SHALL remain unchanged after the selection is confirmed — the ATO wanderer is never written to the permanent company record.
+
+**Validates: Requirements 37.7**
+
+### Property 44: ATO wanderer XP excluded from post-match data
+
+*For any* match state containing an ATO wanderer (identified by `atoWandererId`), the `xpGained` array built in `handleEndMatch` SHALL NOT contain an entry whose `memberId` equals `atoWandererId`.
+
+**Validates: Requirements 37.8**
+
+---
+
+## Testing Strategy (additions for Requirements 35–37)
+
+### Unit tests (example-based) — new items
+
+- `getSpecialRuleLabel` with plain string ID: verify it returns the rule's label from `specialRules.json`
+- `getSpecialRuleLabel` with `{ id, parameter }` object: verify it returns `"BaseLabel (parameter)"`
+- `getSpecialRuleLabel` with a parameterised rule ID stored as a plain string (no parameter): verify it returns `"BaseLabel (X)"`
+- `getSpecialRuleLabel` with an unknown string: verify it returns the string as-is
+- `getMemberWeapons`: verify it returns only weapon-category items from the member's combined equipment
+- `getMemberWeapons` with no weapon-category items: verify it returns an empty array
+- `getAvailableEnvenomOptions`: verify already-envenomed weapons are excluded from the result
+- `getAvailableEnvenomOptions` with all weapons envenomed: verify it returns an empty array
+- `getToolkitItemLabel` for `envenom_weapon` with a parameter: verify label is `"Envenom Weapon (WeaponName)"`
+- `WandererSelectionPage` back navigation with toolkit bonus: verify navigate is called with `/match/toolkit`
+- `WandererSelectionPage` back navigation without toolkit bonus: verify navigate is called with `/match/setup`
+- `MatchSetupPage` navigation with wanderer-only ATO: verify navigate is called with `/match/wanderer`
+- `MatchSetupPage` navigation with toolkit + wanderer ATO: verify navigate is called with `/match/toolkit`
+- `ToolkitAssignmentPage` proceed with wanderer ATO active: verify navigate is called with `/match/wanderer`
+- `handleEndMatch` XP exclusion: verify ATO wanderer ID is absent from `xpGained`
+
+### Property-based tests — new items
+
+**Property 36 — Parameterised rule label includes parameter:**
+Generate `{ id, parameter }` pairs where the rule has `parameterised: true` in `specialRules.json`. Call `getSpecialRuleLabel`. Assert the result ends with `(${parameter})`.
+`// Feature: battle-companies-fixes-and-features, Property 36: parameterised special rule label includes parameter`
+
+**Property 37 — Non-parameterised rule label is unchanged:**
+Generate rule IDs where `parameterised: false`. Call `getSpecialRuleLabel` with the plain string ID. Assert the result equals the rule's base label with no parenthetical suffix.
+`// Feature: battle-companies-fixes-and-features, Property 37: non-parameterised special rule label is unchanged`
+
+**Property 38 — Special rule round-trip:**
+Generate `Member` objects with mixed `specialRules` arrays (strings and `{ id, parameter }` objects). Save to mock IndexedDB, reload. Assert the `specialRules` array is deeply equal to the original.
+`// Feature: battle-companies-fixes-and-features, Property 38: special rule round-trip preserves parameterised entries`
+
+**Property 39 — Envenom Weapon options subset of carried weapons:**
+Generate members with random equipment arrays. Compute `getMemberWeapons`. Assert every returned ID is in the member's combined equipment and has a weapon-type category in `wargear.json`.
+`// Feature: battle-companies-fixes-and-features, Property 39: envenom weapon options are a subset of member's carried weapons`
+
+**Property 40 — Already-envenomed weapons excluded:**
+Generate members with random weapon sets and random subsets of already-envenomed weapons. Compute `getAvailableEnvenomOptions`. Assert no already-envenomed weapon appears in the result.
+`// Feature: battle-companies-fixes-and-features, Property 40: already-envenomed weapons are excluded from subsequent options`
+
+**Property 41 — Envenom Weapon chip label:**
+Generate `ToolkitItem` objects with `itemId = 'envenom_weapon'` and random `parameter` values from `wargear.json`. Call `getToolkitItemLabel`. Assert the result equals `"Envenom Weapon (" + getWargearLabel(parameter) + ")"`.
+`// Feature: battle-companies-fixes-and-features, Property 41: envenom weapon chip label includes weapon name`
+
+**Property 42 — ATO wanderer added to match members:**
+Generate wanderer IDs from `wanderers.json`. Simulate `WandererSelectionPage` confirmation. Assert `ActiveMatchState.members` contains the wanderer entry with the correct `memberId` and `role`, and `atoWandererId` is set.
+`// Feature: battle-companies-fixes-and-features, Property 42: ATO wanderer is added to match members on confirmation`
+
+**Property 43 — ATO wanderer does not modify company.wandererId:**
+Generate companies with various `wandererId` values (including null). Simulate ATO wanderer selection. Assert `company.wandererId` is unchanged after the selection.
+`// Feature: battle-companies-fixes-and-features, Property 43: ATO wanderer does not modify company.wandererId`
+
+**Property 44 — ATO wanderer XP excluded:**
+Generate `ActiveMatchState` objects with an `atoWandererId` set. Simulate `handleEndMatch`. Assert the `xpGained` array does not contain an entry with `memberId === atoWandererId`.
+`// Feature: battle-companies-fixes-and-features, Property 44: ATO wanderer XP excluded from post-match data`

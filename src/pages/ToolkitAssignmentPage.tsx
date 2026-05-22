@@ -25,6 +25,7 @@ import {
   DialogActions,
 } from '@mui/material'
 import PageHeader from '../components/common/PageHeader'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { TOOLKIT_KITS } from './MatchSetupPage'
 import type { ToolkitItem } from '../models/match'
@@ -70,25 +71,64 @@ function memberWargear(member: Member): string {
   return allIds.map(getWargearLabel).join(', ')
 }
 
+// ─── Envenom Weapon helpers ────────────────────────────────────────────────────
+
+/**
+ * Categories that are NOT weapons — items in these categories are excluded
+ * from the Envenom Weapon weapon selection dialog.
+ */
+const NON_WEAPON_CATEGORIES = new Set([
+  'armour_1', 'armour_2', 'armour_3', 'armour_4',
+  'mount', 'shield', 'special',
+])
+
+/**
+ * Returns all weapon-category items carried by a member (union of baseEquipment
+ * and member.equipment, filtered to weapon categories from wargear.json).
+ */
+function getMemberWeapons(member: Member): string[] {
+  const baseUnit = BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+  const baseEquipment = baseUnit?.baseEquipment ?? []
+  const allEquipment = Array.from(new Set([...baseEquipment, ...member.equipment]))
+  return allEquipment.filter((itemId) => {
+    const wgEntry = WARGEAR_RAW.find((w) => w.id === itemId)
+    if (!wgEntry) return false
+    return !NON_WEAPON_CATEGORIES.has(wgEntry.category ?? '')
+  })
+}
+
+/**
+ * Returns the weapon options available for a new Envenom Weapon assignment to
+ * a member, excluding weapons already envenomed for that member in the current
+ * assignments array.
+ */
+function getAvailableEnvenomOptions(
+  member: Member,
+  assignments: Array<{ memberId: string; parameter?: string }>,
+  kitItems: string[]
+): string[] {
+  const allWeapons = getMemberWeapons(member)
+  const alreadyEnvenomed = new Set(
+    assignments
+      .map((a, i) => ({ a, itemId: kitItems[i] }))
+      .filter(
+        ({ a, itemId }) =>
+          a.memberId === member.id && itemId === 'envenom_weapon' && a.parameter
+      )
+      .map(({ a }) => a.parameter!)
+  )
+  return allWeapons.filter((w) => !alreadyEnvenomed.has(w))
+}
+
 // Items that need a parameter (weapon selection for Envenom Weapon etc.)
+// Note: envenom_weapon now uses dynamic options derived from the member's equipment.
 const PARAMETERISED_ITEMS: Record<
   string,
   { prompt: string; options: string[] }
-> = {
-  envenom_weapon: {
-    prompt: 'Which weapon gains Poisoned Attacks?',
-    options: [
-      'hand_weapon',
-      'spear',
-      'two_handed_weapon',
-      'bow',
-      'throwing_weapon',
-    ],
-  },
-}
+> = {}
 
-function getParamLabel(itemId: string, paramValue: string): string {
-  return paramValue.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+function getParamLabel(_itemId: string, paramValue: string): string {
+  return getWargearLabel(paramValue)
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -109,12 +149,16 @@ export default function ToolkitAssignmentPage() {
     Array<{ memberId: string; parameter?: string }>
   >([])
 
+  // Partial-assignment confirmation dialog state
+  const [confirmPartialOpen, setConfirmPartialOpen] = useState(false)
+
   // Param dialog state
   const [paramDialog, setParamDialog] = useState<{
     itemIndex: number
     memberId: string
   } | null>(null)
   const [paramValue, setParamValue] = useState('')
+  const [dynamicParamOptions, setDynamicParamOptions] = useState<string[] | null>(null)
 
   // Initialise assignments array when kit changes
   useEffect(() => {
@@ -141,11 +185,19 @@ export default function ToolkitAssignmentPage() {
 
   const handleAssign = (itemIndex: number, memberId: string) => {
     const itemId = kit?.items[itemIndex] ?? ''
-    const paramSpec = PARAMETERISED_ITEMS[itemId]
-    if (paramSpec && memberId) {
+    if (itemId === 'envenom_weapon' && memberId) {
+      const member = activeMembers.find((m) => m.id === memberId)
+      if (!member) return
+      const options = getAvailableEnvenomOptions(member, assignments, kit!.items)
+      if (options.length === 0) return // disabled — no eligible weapons
+      setParamDialog({ itemIndex, memberId })
+      setParamValue(options[0])
+      setDynamicParamOptions(options)
+    } else if (PARAMETERISED_ITEMS[itemId] && memberId) {
       // Need parameter — open dialog
       setParamDialog({ itemIndex, memberId })
-      setParamValue(paramSpec.options[0])
+      setParamValue(PARAMETERISED_ITEMS[itemId].options[0])
+      setDynamicParamOptions(null)
     } else {
       setAssignments((prev) => {
         const next = [...prev]
@@ -166,21 +218,64 @@ export default function ToolkitAssignmentPage() {
       return next
     })
     setParamDialog(null)
+    setDynamicParamOptions(null)
   }
 
   const handleProceed = async () => {
-    if (!kit || !allAssigned) return
+    if (!kit) return
+
+    if (!allAssigned) {
+      setConfirmPartialOpen(true)
+      return
+    }
+
     const match = await loadActiveMatch(companyId!)
     if (!match) return
 
-    const toolkitItems: ToolkitItem[] = assignments.map((a, i) => ({
+    const toolkitItems: ToolkitItem[] = assignments
+      .filter((a) => a.memberId !== '')
+      .map((a, i) => ({
+        memberId: a.memberId,
+        itemId: kit.items[i],
+        parameter: a.parameter,
+      }))
+
+    const updatedMatch = { ...match, toolkitItems }
+    await saveActiveMatch(updatedMatch)
+
+    // If wanderer ATO bonus is also selected, go to wanderer selection next
+    if (updatedMatch.atoBonuses.includes('wanderer')) {
+      navigate(`/companies/${companyId}/match/wanderer`)
+    } else {
+      navigate(`/companies/${companyId}/match`)
+    }
+  }
+
+  const handleConfirmPartial = async () => {
+    if (!kit) return
+    setConfirmPartialOpen(false)
+
+    const match = await loadActiveMatch(companyId!)
+    if (!match) return
+
+    const assignedItems = assignments
+      .map((a, i) => ({ a, itemId: kit.items[i] }))
+      .filter(({ a }) => a.memberId !== '')
+
+    const toolkitItems: ToolkitItem[] = assignedItems.map(({ a, itemId }) => ({
       memberId: a.memberId,
-      itemId: kit.items[i],
+      itemId,
       parameter: a.parameter,
     }))
 
-    await saveActiveMatch({ ...match, toolkitItems })
-    navigate(`/companies/${companyId}/match`)
+    const updatedMatch = { ...match, toolkitItems }
+    await saveActiveMatch(updatedMatch)
+
+    if (updatedMatch.atoBonuses.includes('wanderer')) {
+      navigate(`/companies/${companyId}/match/wanderer`)
+    } else {
+      navigate(`/companies/${companyId}/match`)
+    }
   }
 
   return (
@@ -271,25 +366,24 @@ export default function ToolkitAssignmentPage() {
           <Box>
             <Divider sx={{ mb: 2, opacity: 0.3 }} />
             <SectionLabel>Assign Items to Members</SectionLabel>
-            <Typography
-              variant="caption"
-              sx={{
-                opacity: 0.55,
-                fontStyle: 'italic',
-                display: 'block',
-                mt: 0.5,
-                mb: 2,
-              }}
-            >
-              All items must be assigned. Items are lost when the match ends.
-            </Typography>
+            {!assignments.some((a) => a.memberId !== '') && (
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.55,
+                  fontStyle: 'italic',
+                  display: 'block',
+                  mt: 0.5,
+                  mb: 2,
+                }}
+              >
+                Assign items to members. Unassigned items will be lost.
+              </Typography>
+            )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {kit.items.map((itemId, i) => {
                 const a = assignments[i] ?? { memberId: '' }
-                const memberName = activeMembers.find(
-                  (m) => m.id === a.memberId
-                )?.name
-                const paramSpec = PARAMETERISED_ITEMS[itemId]
+                const isEnvenomWeapon = itemId === 'envenom_weapon'
                 return (
                   <Box
                     key={i}
@@ -337,35 +431,50 @@ export default function ToolkitAssignmentPage() {
                         <MenuItem value="">
                           <em>— unassigned —</em>
                         </MenuItem>
-                        {activeMembers.map((m) => (
-                          <MenuItem key={m.id} value={m.id}>
-                            <Box>
-                              <Typography variant="body2" sx={{ lineHeight: 1.3 }}>
-                                {m.name} · {rankLabel(m.role)}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: 'text.secondary', lineHeight: 1.2, display: 'block' }}
-                              >
-                                {memberWargear(m) || '—'}
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
+                        {activeMembers.map((m) => {
+                          // For envenom_weapon, check eligibility per member
+                          let disabledReason: string | null = null
+                          if (isEnvenomWeapon) {
+                            const memberWeapons = getMemberWeapons(m)
+                            if (memberWeapons.length === 0) {
+                              disabledReason = 'No eligible weapons'
+                            } else {
+                              const available = getAvailableEnvenomOptions(m, assignments, kit.items)
+                              if (available.length === 0) {
+                                disabledReason = 'All weapons already envenomed'
+                              }
+                            }
+                          }
+                          return (
+                            <MenuItem
+                              key={m.id}
+                              value={m.id}
+                              disabled={disabledReason !== null}
+                            >
+                              <Box>
+                                <Typography variant="body2" sx={{ lineHeight: 1.3 }}>
+                                  {m.name} · {rankLabel(m.role)}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: 'text.secondary', lineHeight: 1.2, display: 'block' }}
+                                >
+                                  {memberWargear(m) || '—'}
+                                </Typography>
+                                {disabledReason && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: 'warning.main', lineHeight: 1.2, display: 'block' }}
+                                  >
+                                    {disabledReason}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </MenuItem>
+                          )
+                        })}
                       </Select>
                     </FormControl>
-                    {paramSpec && a.memberId && !a.parameter && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'warning.main',
-                          display: 'block',
-                          mt: 0.5,
-                        }}
-                      >
-                        Tap member to configure parameter.
-                      </Typography>
-                    )}
                   </Box>
                 )
               })}
@@ -376,7 +485,7 @@ export default function ToolkitAssignmentPage() {
                 variant="contained"
                 fullWidth
                 size="large"
-                disabled={!allAssigned}
+                disabled={!kit}
                 onClick={handleProceed}
                 sx={{
                   fontFamily: '"Cinzel Decorative", serif',
@@ -387,27 +496,23 @@ export default function ToolkitAssignmentPage() {
               >
                 Begin Battle
               </Button>
-              {!allAssigned && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    textAlign: 'center',
-                    opacity: 0.5,
-                    mt: 0.75,
-                  }}
-                >
-                  Assign all items to proceed.
-                </Typography>
-              )}
             </Box>
           </Box>
         )}
       </Box>
 
+      {/* ── Partial-assignment confirmation dialog ── */}
+      <ConfirmDialog
+        open={confirmPartialOpen}
+        title="Unassigned Items"
+        message="Not all kit items have been assigned. Unassigned items will be lost and cannot be recovered. Do you want to proceed anyway?"
+        confirmLabel="Proceed Anyway"
+        onConfirm={handleConfirmPartial}
+        onCancel={() => setConfirmPartialOpen(false)}
+      />
+
       {/* ── Parameter dialog ── */}
-      {paramDialog && kit && (
-        <Dialog
+      {paramDialog && kit && (        <Dialog
           open
           PaperProps={{
             sx: {
@@ -431,7 +536,9 @@ export default function ToolkitAssignmentPage() {
               variant="caption"
               sx={{ display: 'block', opacity: 0.65, mb: 1.5 }}
             >
-              {PARAMETERISED_ITEMS[kit.items[paramDialog.itemIndex]]?.prompt}
+              {kit.items[paramDialog.itemIndex] === 'envenom_weapon'
+                ? 'Which weapon gains Poisoned Attacks?'
+                : PARAMETERISED_ITEMS[kit.items[paramDialog.itemIndex]]?.prompt}
             </Typography>
             <FormControl fullWidth size="small">
               <InputLabel>Weapon</InputLabel>
@@ -441,11 +548,12 @@ export default function ToolkitAssignmentPage() {
                 onChange={(e) => setParamValue(e.target.value)}
               >
                 {(
-                  PARAMETERISED_ITEMS[kit.items[paramDialog.itemIndex]]
-                    ?.options ?? []
+                  dynamicParamOptions ??
+                  PARAMETERISED_ITEMS[kit.items[paramDialog.itemIndex]]?.options ??
+                  []
                 ).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {getParamLabel('', opt)}
+                    {getWargearLabel(opt)}
                   </MenuItem>
                 ))}
               </Select>
@@ -457,6 +565,7 @@ export default function ToolkitAssignmentPage() {
               size="small"
               onClick={() => {
                 setParamDialog(null)
+                setDynamicParamOptions(null)
               }}
             >
               Cancel

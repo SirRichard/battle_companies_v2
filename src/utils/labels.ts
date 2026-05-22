@@ -6,12 +6,20 @@
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
+import specialRulesRaw from '../data/specialRules.json'
 
 import type { CompanyDefinition } from '../models'
 
 const COMPANIES = companiesData as CompanyDefinition[]
 const BASE_UNITS = baseUnitsData as Array<{ id: string; label: string }>
 const WARGEAR = wargearData as Array<{ id: string; label: string }>
+
+type SpecialRuleEntry = {
+  id: string
+  label: string
+  parameterised?: boolean
+}
+const SPECIAL_RULES_DATA = specialRulesRaw as SpecialRuleEntry[]
 
 function humanise(id: string): string {
   return id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
@@ -37,4 +45,29 @@ export function getWargearLabel(wargearId: string): string {
 /** Format a list of equipment IDs as a comma-separated label string. */
 export function formatEquipment(equipmentIds: string[]): string {
   return equipmentIds.map(getWargearLabel).join(', ')
+}
+
+/**
+ * Format a special rule entry for display.
+ *
+ * - Plain string ID with `parameterised: true` in specialRules.json → "Label (X)"
+ * - Plain string ID with `parameterised: false` → "Label"
+ * - Plain string ID not found in specialRules.json → raw ID string (fallback)
+ * - Object `{ id, parameter }` → "Label (parameter)"
+ */
+export function formatSpecialRule(
+  entry: string | { id: string; parameter: string | number }
+): string {
+  if (typeof entry === 'string') {
+    const rule = SPECIAL_RULES_DATA.find((r) => r.id === entry)
+    if (!rule) return entry
+    if (rule.parameterised) return `${rule.label} (X)`
+    return rule.label
+  }
+  // Object form: { id, parameter }
+  const rule = SPECIAL_RULES_DATA.find((r) => r.id === entry.id)
+  const label = rule ? rule.label : entry.id
+  // Strip any existing placeholder like " (X)" from the stored label before appending the real value
+  const baseLabel = rule ? label.replace(/\s*\([^)]*\)\s*$/, '').trim() : label
+  return `${baseLabel} (${entry.parameter})`
 }

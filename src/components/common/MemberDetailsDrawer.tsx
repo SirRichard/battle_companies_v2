@@ -29,7 +29,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
 import type { Member, StoredBaseUnitStats, Company, CompanyDefinition } from '../../models'
-import { getUnitLabel, getWargearLabel } from '../../utils/labels'
+import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
 import pathsData from '../../data/paths.json'
 import baseUnitsData from '../../data/baseUnits.json'
@@ -83,6 +83,13 @@ const SPECIAL_RULES_MAP = (
   specialRulesData as Array<{ id: string; label: string; description: string }>
 ).reduce<Record<string, string>>((acc, r) => {
   acc[r.label] = r.description
+  return acc
+}, {})
+// Also index by ID for parameterised rule description lookup
+const SPECIAL_RULES_BY_ID = (
+  specialRulesData as Array<{ id: string; label: string; description: string }>
+).reduce<Record<string, string>>((acc, r) => {
+  acc[r.id] = r.description
   return acc
 }, {})
 const HEROIC_ACTIONS_MAP = (
@@ -1110,8 +1117,8 @@ export default function MemberDetailsDrawer({
         {/* ── Heroic Actions ───────────────────────────────────────────────── */}
         {(() => {
           const heroicActions = member.specialRules.filter((r) =>
-            HEROIC_ACTION_LABELS.has(r)
-          )
+            typeof r === 'string' && HEROIC_ACTION_LABELS.has(r)
+          ) as string[]
           if (heroicActions.length === 0) return null
           return (
             <Box sx={{ mb: 2.5 }}>
@@ -1143,24 +1150,31 @@ export default function MemberDetailsDrawer({
 
         {/* ── Special Rules ─────────────────────────────────────────────────── */}
         {(() => {
+          // Include both plain string rules (non-heroic) and parameterised object rules
           const specialRules = member.specialRules.filter(
-            (r) => !HEROIC_ACTION_LABELS.has(r)
+            (r) => typeof r !== 'string' || !HEROIC_ACTION_LABELS.has(r)
           )
           if (specialRules.length === 0) return null
           return (
             <Box sx={{ mb: 2.5 }}>
               <SectionLabel>Special Rules</SectionLabel>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
-                {specialRules.map((r) => {
-                  const desc = SPECIAL_RULES_MAP[r] ?? HEROIC_ACTIONS_MAP[r]
+                {specialRules.map((r, idx) => {
+                  const displayLabel = formatSpecialRule(r)
+                  // For object entries, look up description by ID; for plain strings, by label
+                  const ruleId = typeof r === 'string' ? undefined : r.id
+                  const desc = ruleId
+                    ? SPECIAL_RULES_BY_ID[ruleId]
+                    : (SPECIAL_RULES_MAP[displayLabel] ?? HEROIC_ACTIONS_MAP[displayLabel])
+                  const key = typeof r === 'string' ? r : `${r.id}-${idx}`
                   return (
                     <Chip
-                      key={r}
-                      label={r}
+                      key={key}
+                      label={displayLabel}
                       size="small"
                       onClick={
                         desc
-                          ? () => setRulePopup({ label: r, description: desc })
+                          ? () => setRulePopup({ label: displayLabel, description: desc })
                           : undefined
                       }
                       sx={{

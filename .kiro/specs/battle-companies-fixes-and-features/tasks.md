@@ -661,3 +661,125 @@ Implement four bug fixes and eight features across the Battle Companies PWA. Eac
     - Generate arbitrary `leaderId` values (`string | null`) and `sergeantIds` arrays of length 0–3
     - Assert `canAdvance()` returns `true` if and only if `leaderId !== null && sergeantIds.length === 2`
     - Include cases where `leaderId` is a forced pre-assigned value to confirm the check is agnostic to how the ID was set
+
+- [x] 41. NEW-8 — Parameterised special rules: storage and display
+  - [x] 41.1 Update `Member` interface to support parameterised special rule entries
+    - In `src/models/index.ts`, change the `specialRules` field type from `string[]` to `Array<string | { id: string; parameter: string | number }>`
+    - Ensure the change is backward-compatible: existing plain string entries remain valid
+    - _Requirements: 35.1, 35.7_
+
+  - [x] 41.2 Add a `formatSpecialRule` display utility
+    - In `src/utils/labels.ts` (or a suitable utility file), add a helper:
+      ```typescript
+      function formatSpecialRule(
+        entry: string | { id: string; parameter: string | number },
+        specialRulesData: Array<{ id: string; label: string; parameterised?: boolean }>
+      ): string
+      ```
+    - If `entry` is a plain string, look up the label by ID; if the rule has `parameterised: true` in `specialRules.json`, append `" (X)"` as a placeholder; otherwise return the label unchanged
+    - If `entry` is an object `{ id, parameter }`, look up the label by `id` and append `" (${parameter})"` in parentheses
+    - If the rule ID is not found in `specialRules.json`, fall back to the raw ID string
+    - _Requirements: 35.3, 35.4, 35.5_
+
+  - [x] 41.3 Apply `formatSpecialRule` in `MemberDetailsDrawer`
+    - In `src/components/common/MemberDetailsDrawer.tsx`, replace any direct rendering of `member.specialRules` entries with calls to `formatSpecialRule`
+    - _Requirements: 35.6_
+
+  - [x] 41.4 Apply `formatSpecialRule` in `MatchTrackingPage` member card
+    - In `src/pages/MatchTrackingPage.tsx`, wherever special rules are rendered on a member card, replace direct string rendering with `formatSpecialRule`
+    - _Requirements: 35.6_
+
+  - [x] 41.5 Apply `formatSpecialRule` to wanderer special rules display
+    - Wanderers in `wanderers.json` already use `{ id, parameter }` objects for their special rules; ensure the same `formatSpecialRule` helper is used wherever wanderer special rules are displayed
+    - _Requirements: 35.8_
+
+  - [x] 41.6 Write property test for parameterised special rule display (Property 30)
+    - **Property 30: Parameterised special rule display format**
+    - **Validates: Requirements 35.3, 35.4, 35.5, 35.7**
+    - Generate entries that are either plain strings or `{ id, parameter }` objects
+    - For plain string entries with `parameterised: true` in `specialRules.json`: assert the output ends with `" (X)"`
+    - For `{ id, parameter }` entries: assert the output ends with `" (${parameter})"`
+    - For plain string entries with `parameterised: false`: assert the output contains no parenthetical suffix
+    - For plain string entries not found in `specialRules.json`: assert the output equals the raw string (fallback)
+
+- [x] 42. NEW-9 — Envenom Weapon: restrict to carried weapons and prevent duplicates
+  - [x] 42.1 Add `parameter` field to `ToolkitItem` model
+    - In `src/models/match.ts`, add `parameter?: string` to the `ToolkitItem` interface so that Envenom Weapon assignments can store the target weapon ID
+    - _Requirements: 36.6_
+
+  - [x] 42.2 Implement weapon eligibility filter for Envenom Weapon dialog in `ToolkitAssignmentPage`
+    - In `src/pages/ToolkitAssignmentPage.tsx`, when the item being assigned is `envenom_weapon` (or the item whose ID matches the Envenom Weapon entry), open a weapon selection dialog instead of the standard member selector
+    - Compute the eligible weapons for the selected member: union of `baseEquipment` (from `baseUnits.json`) and `member.equipment`, filtered to items whose `category` in `wargear.json` is a weapon type (not `armour_*`, `mount`, or `shield`)
+    - Exclude any weapon already assigned an Envenom Weapon for this member in the current `toolkitAssignments`
+    - _Requirements: 36.1, 36.3, 36.7_
+
+  - [x] 42.3 Handle edge cases: no eligible weapons and all weapons already envenomed
+    - If the member has no eligible weapons, disable the Envenom Weapon assignment for that member and display "No eligible weapons" message
+    - If all eligible weapons are already assigned an Envenom Weapon, disable further assignment and display "All weapons already envenomed"
+    - _Requirements: 36.2, 36.4_
+
+  - [x] 42.4 Display human-readable weapon labels in the Envenom Weapon dialog
+    - In the weapon selection dialog, render each weapon option using its human-readable label (from `wargear.json` label field or the existing label utility), not the raw ID
+    - _Requirements: 36.5_
+
+  - [x] 42.5 Store the selected weapon as `parameter` on the `ToolkitItem` and render on `MatchTrackingPage`
+    - When the user confirms a weapon selection, store the weapon ID as `parameter` on the `ToolkitItem` entry
+    - In `src/pages/MatchTrackingPage.tsx`, when rendering an Envenom Weapon toolkit item, display the label as `"Envenom Weapon (WeaponName)"` using the stored `parameter` value (resolved to a human-readable label)
+    - _Requirements: 36.6_
+
+  - [x] 42.6 Write property test for Envenom Weapon weapon eligibility (Property 31)
+    - **Property 31: Envenom Weapon options are a subset of the member's carried weapons**
+    - **Validates: Requirements 36.1, 36.3, 36.7**
+    - Generate members with random `baseEquipment` and `equipment` arrays; generate existing Envenom Weapon assignments for the same member
+    - Assert the eligible weapon options equal the member's weapon-category items minus any already-assigned weapons
+    - Assert no armour, mount, or shield items appear in the eligible set
+
+- [x] 43. NEW-10 — Against the Odds: Wanderer Selection Page (pre-match flow)
+  - [x] 43.1 Create `WandererSelectionPage` component and register route
+    - Create `src/pages/WandererSelectionPage.tsx` as a new page component
+    - The page accepts `companyId` from route params and reads `ActiveMatchState` from the DB
+    - Display all wanderers from `wanderers.json` in a selectable list, showing each wanderer's name, point cost, and key stats (M/W/F and a brief summary)
+    - Include a "Confirm" button (enabled only when a wanderer is selected) and a "Back" button
+    - Register the route `/companies/:companyId/match/wanderer` in the app router (`src/router/`)
+    - _Requirements: 37.4, 37.5, 37.11_
+
+  - [x] 43.2 Wire navigation from `MatchSetupPage` to `WandererSelectionPage`
+    - In `src/pages/MatchSetupPage.tsx`, update the start/next button handler:
+      - If only "wanderer" ATO bonus is selected (no "toolkit"): navigate to `/companies/:companyId/match/wanderer` instead of `/companies/:companyId/match/tracking`
+      - If both "toolkit" and "wanderer" ATO bonuses are selected: navigate to `ToolkitAssignmentPage` as before (the toolkit page will then navigate to `WandererSelectionPage`)
+      - If neither ATO bonus is selected: navigate to `MatchTrackingPage` as before
+    - _Requirements: 37.1, 37.3_
+
+  - [x] 43.3 Wire navigation from `ToolkitAssignmentPage` to `WandererSelectionPage`
+    - In `src/pages/ToolkitAssignmentPage.tsx`, update the "Done" / confirm navigation:
+      - If the active match has the "wanderer" ATO bonus selected, navigate to `/companies/:companyId/match/wanderer` instead of `/companies/:companyId/match/tracking`
+      - Otherwise, navigate to `MatchTrackingPage` as before
+    - _Requirements: 37.2_
+
+  - [x] 43.4 Add selected wanderer as synthetic `MemberMatchState` on confirmation
+    - In `WandererSelectionPage`, when the user confirms a wanderer selection:
+      - Look up the wanderer in `wanderers.json` by the selected ID
+      - Create a synthetic `MemberMatchState` with `memberId: wandererId`, `role: 'wanderer'`, and M/W/F values from the wanderer profile
+      - Append this entry to `ActiveMatchState.members` (do NOT set `company.wandererId`)
+      - Navigate to `/companies/:companyId/match/tracking`
+    - _Requirements: 37.6, 37.7_
+
+  - [x] 43.5 Exclude ATO wanderer XP from post-match data
+    - In `src/pages/MatchTrackingPage.tsx`, in `handleEndMatch`, when building `xpGained`, exclude any `MemberMatchState` entry whose `memberId` matches a wanderer ID from `wanderers.json` AND whose entry is not present in `company.members` (i.e. it is an ATO-only wanderer, not a permanently hired one)
+    - _Requirements: 37.8_
+
+  - [x] 43.6 Implement Back button navigation in `WandererSelectionPage`
+    - The Back button navigates to `ToolkitAssignmentPage` if the "toolkit" ATO bonus is also active, or to `MatchSetupPage` otherwise, without discarding `ActiveMatchState`
+    - _Requirements: 37.9_
+
+  - [x] 43.7 Render ATO wanderer badge on `MatchTrackingPage`
+    - In `src/pages/MatchTrackingPage.tsx`, when rendering a member card for a wanderer whose `memberId` is not in `company.members` (i.e. an ATO wanderer), display a visual badge such as a `Chip` labelled "Temporary" or "ATO" to distinguish it from a permanently hired wanderer
+    - _Requirements: 37.12_
+
+  - [x] 43.8 Write property test for ATO wanderer not persisted to company (Property 32)
+    - **Property 32: ATO wanderer is not persisted to company.wandererId**
+    - **Validates: Requirements 37.7**
+    - Generate `ActiveMatchState` objects where a wanderer has been added via the ATO flow (present in `members` with `role: 'wanderer'` but not in `company.members`)
+    - Assert that `company.wandererId` is unchanged (null or its previous value) after the ATO wanderer is added to the match state
+
+- [x] 44. Final checkpoint — Ensure all tests pass, ask the user if questions arise.

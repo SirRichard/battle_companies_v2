@@ -327,9 +327,12 @@ export default function MatchSetupPage() {
 
     await saveActiveMatch(match)
 
-    // If toolkit selected, go to assignment page first
+    // Navigate based on selected ATO bonuses
     if (atoBonuses.includes('toolkit')) {
+      // Toolkit page will handle wanderer navigation if needed
       navigate(`/companies/${company.id}/match/toolkit`)
+    } else if (atoBonuses.includes('wanderer')) {
+      navigate(`/companies/${company.id}/match/wanderer`)
     } else {
       navigate(`/companies/${company.id}/match`)
     }
@@ -619,7 +622,9 @@ export default function MatchSetupPage() {
         >
           {atoBonuses.includes('toolkit')
             ? 'Next: Assign Kit Items →'
-            : 'Begin Battle'}
+            : atoBonuses.includes('wanderer')
+              ? 'Next: Choose Wanderer →'
+              : 'Begin Battle'}
         </Button>
       </Box>
 

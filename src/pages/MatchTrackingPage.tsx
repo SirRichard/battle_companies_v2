@@ -36,7 +36,7 @@ import { motion } from 'framer-motion'
 import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
-import { getUnitLabel, getWargearLabel } from '../utils/labels'
+import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../utils/labels'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
 import { calcBreakPoint, isCompanyBroken } from '../utils/companyRules'
 import type { Company, CompanyDefinition } from '../models'
@@ -58,6 +58,14 @@ function isConsumable(itemId: string): boolean {
     (e) => e.id === itemId
   )
   return equipItem?.consumable ?? false
+}
+
+function getToolkitItemLabel(item: { itemId: string; parameter?: string }): string {
+  const baseLabel = getWargearLabel(item.itemId)
+  if (item.parameter) {
+    return `${baseLabel} (${getWargearLabel(item.parameter)})`
+  }
+  return baseLabel
 }
 
 const MotionBox = motion(Box)
@@ -178,11 +186,23 @@ export default function MatchTrackingPage() {
         ? 2
         : 1
       : 0
-    const xpGained = match.members.map((mm) => ({
-      memberId: mm.memberId,
-      memberName: mm.memberName,
-      xp: 1 + mm.xpCounterGains + xpBonus, // all match members are participants
-    }))
+
+    // Collect wanderer IDs from wanderers.json to identify ATO wanderers
+    const wandererIds = new Set(
+      (wanderersData as Array<{ id: string }>).map((w) => w.id)
+    )
+    // An ATO wanderer is one whose memberId is a wanderer ID but is NOT in company.members
+    const companyMemberIds = new Set(company.members.map((m) => m.id))
+    const isAtoWanderer = (memberId: string) =>
+      wandererIds.has(memberId) && !companyMemberIds.has(memberId)
+
+    const xpGained = match.members
+      .filter((mm) => !isAtoWanderer(mm.memberId))
+      .map((mm) => ({
+        memberId: mm.memberId,
+        memberName: mm.memberName,
+        xp: 1 + mm.xpCounterGains + xpBonus, // all match members are participants
+      }))
 
     // Apply XP to company members now (injuries applied in post-match)
     const updatedMembers = company.members.map((m) => {
@@ -277,9 +297,13 @@ export default function MatchTrackingPage() {
     id: string
     label: string
     stats: Record<string, number>
+    specialRules?: Array<string | { id: string; parameter: string | number }>
   }>
   const wandererStatsMap = new Map(
     wanderersTyped.map((w) => [w.id, w.stats])
+  )
+  const wandererSpecialRulesMap = new Map(
+    wanderersTyped.map((w) => [w.id, w.specialRules ?? []])
   )
 
   // XP help button passed to PageHeader
@@ -415,6 +439,10 @@ export default function MatchTrackingPage() {
               (mm.role === 'wanderer'
                 ? wandererStatsMap.get(mm.memberId)
                 : undefined)
+            // Special rules: from company member (may include parameterised objects) or wanderer data
+            const specialRules: Array<string | { id: string; parameter: string | number }> =
+              companyMember?.specialRules ??
+              (mm.role === 'wanderer' ? wandererSpecialRulesMap.get(mm.memberId) ?? [] : [])
             return (
               <MemberMatchCard
                 key={mm.memberId}
@@ -423,7 +451,12 @@ export default function MatchTrackingPage() {
                 baseStats={baseStats}
                 statIncreases={companyMember?.statIncreases ?? {}}
                 statDecreases={companyMember?.statDecreases ?? {}}
+                specialRules={specialRules}
                 toolkitItems={match.toolkitItems}
+                isAtoWanderer={
+                  wanderersTyped.some((w) => w.id === mm.memberId) &&
+                  !company.members.some((m) => m.id === mm.memberId)
+                }
                 onXpChange={(delta) =>
                   updateMember(mm.memberId, {
                     xpCounterGains: Math.max(0, mm.xpCounterGains + delta),
@@ -663,7 +696,9 @@ interface CardProps {
   baseStats: Record<string, number> | undefined
   statIncreases: Record<string, number>
   statDecreases: Record<string, number>
+  specialRules: Array<string | { id: string; parameter: string | number }>
   toolkitItems: ToolkitItem[]
+  isAtoWanderer?: boolean
   onXpChange: (delta: number) => void
   onCasualtyToggle: () => void
   onMwfChange: (stat: 'might' | 'will' | 'fate', delta: number) => void
@@ -690,7 +725,9 @@ function MemberMatchCard({
   baseStats,
   statIncreases,
   statDecreases,
+  specialRules,
   toolkitItems,
+  isAtoWanderer,
   onXpChange,
   onCasualtyToggle,
   onMwfChange,
@@ -806,6 +843,20 @@ function MemberMatchCard({
                     mm.role === 'leader' ? 'primary.main' : 'primary.light',
                   border: '1px solid',
                   background: 'transparent',
+                }}
+              />
+            )}
+            {isAtoWanderer && (
+              <Chip
+                label="Temporary"
+                size="small"
+                sx={{
+                  fontSize: '0.6rem',
+                  height: 18,
+                  background: 'rgba(52,152,219,0.12)',
+                  color: 'info.light',
+                  border: '1px solid',
+                  borderColor: 'info.dark',
                 }}
               />
             )}
@@ -1042,6 +1093,31 @@ function MemberMatchCard({
         </Box>
       )}
 
+      {/* Row 4b: special rules */}
+      {specialRules.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+          {specialRules.map((r, idx) => {
+            const label = formatSpecialRule(r)
+            const key = typeof r === 'string' ? r : `${r.id}-${idx}`
+            return (
+              <Chip
+                key={key}
+                label={label}
+                size="small"
+                sx={{
+                  fontSize: '0.6rem',
+                  height: 18,
+                  borderColor: 'primary.dark',
+                  color: 'primary.light',
+                  border: '1px solid',
+                  background: 'rgba(201,168,76,0.05)',
+                }}
+              />
+            )
+          })}
+        </Box>
+      )}
+
       {/* Row 5: Toolkit items */}
       {(() => {
         const memberToolkit = toolkitItems.filter((t) => t.memberId === mm.memberId)
@@ -1062,7 +1138,7 @@ function MemberMatchCard({
                     return (
                       <Box key={item.itemId} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Typography sx={{ fontSize: '0.6rem', textDecoration: 'line-through', opacity: 0.5, color: 'text.secondary' }}>
-                          {getWargearLabel(item.itemId)}
+                          {getToolkitItemLabel(item)}
                         </Typography>
                         <Button
                           size="small"
@@ -1091,14 +1167,14 @@ function MemberMatchCard({
                         color: 'primary.light',
                       }}
                     >
-                      {getWargearLabel(item.itemId)} · Use
+                      {getToolkitItemLabel(item)} · Use
                     </Button>
                   )
                 }
                 return (
                   <Chip
                     key={item.itemId}
-                    label={getWargearLabel(item.itemId)}
+                    label={getToolkitItemLabel(item)}
                     size="small"
                     sx={{ fontSize: '0.6rem', height: 18 }}
                   />

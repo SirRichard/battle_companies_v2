@@ -7,6 +7,7 @@ import CompanyDetailsPage from '../pages/CompanyDetailsPage'
 import EditStatsPage from '../pages/EditStatsPage'
 import MatchSetupPage from '../pages/MatchSetupPage'
 import ToolkitAssignmentPage from '../pages/ToolkitAssignmentPage'
+import WandererSelectionPage from '../pages/WandererSelectionPage'
 import MatchTrackingPage from '../pages/MatchTrackingPage'
 import PostMatchSummaryPage from '../pages/PostMatchSummaryPage'
 import NotFoundPage from '../pages/NotFoundPage'
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: 'companies/:companyId/match/toolkit',
         element: <ToolkitAssignmentPage />,
+      },
+      {
+        path: 'companies/:companyId/match/wanderer',
+        element: <WandererSelectionPage />,
       },
       { path: 'companies/:companyId/match', element: <MatchTrackingPage /> },
       {
