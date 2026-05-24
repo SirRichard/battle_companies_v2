@@ -86,7 +86,7 @@ function canAdvance(wizard: WizardState, selectedCompany: CompanyDefinition | nu
       return heroTempIds.every((tid) => {
         const pathId = wizard.heroPaths[tid]
         if (!pathId) return false
-        if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+        if (pathId === 'path_of_the_sorcerer' && !wizard.heroSpellChoices[tid])
           return false
         return true
       })
@@ -141,7 +141,7 @@ const wizardStateOtherStepsArb: fc.Arbitrary<WizardState> = fc.record({
   }),
   heroPaths: fc.dictionary(
     fc.string({ minLength: 5, maxLength: 20 }),
-    fc.constantFrom('path_of_command', 'path_of_channeling', 'path_of_the_warrior')
+    fc.constantFrom('path_of_command', 'path_of_the_sorcerer', 'path_of_the_warrior')
   ),
   heroSpellChoices: fc.dictionary(
     fc.string({ minLength: 5, maxLength: 20 }),
@@ -263,7 +263,7 @@ describe('Property 2: Preservation - Other Steps Unchanged', () => {
               const expected = heroTempIds.every((tid) => {
                 const pathId = wizard.heroPaths[tid]
                 if (!pathId) return false
-                if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+                if (pathId === 'path_of_the_sorcerer' && !wizard.heroSpellChoices[tid])
                   return false
                 return true
               })
@@ -565,7 +565,7 @@ describe('Property 2: Preservation - Other Steps Unchanged', () => {
         leaderId: 'member_0',
         sergeantIds: ['member_1', 'member_2'],
         heroPaths: {
-          member_0: 'path_of_channeling',
+          member_0: 'path_of_the_sorcerer',
           member_1: 'path_of_the_warrior',
           member_2: 'path_of_the_warrior',
         },

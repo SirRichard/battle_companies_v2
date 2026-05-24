@@ -188,7 +188,9 @@ export function canIncreaseStat(
     const improvementCount = ['shoot', 'courage', 'intelligence'].includes(stat)
       ? Math.abs(current)
       : current
-    if (relMax !== undefined && improvementCount >= relMax) return false
+    // Check relative cap first; fall back to absolute cap if no relative cap defined
+    const cap = relMax ?? absMax
+    if (cap !== undefined && improvementCount >= cap) return false
   } else {
     // Absolute: check total value
     const baseVal = baseStats[stat] ?? 1

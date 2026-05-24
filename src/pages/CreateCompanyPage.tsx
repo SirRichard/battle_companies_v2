@@ -449,7 +449,7 @@ export default function CreateCompanyPage() {
         return heroTempIds.every((tid) => {
           const pathId = wizard.heroPaths[tid]
           if (!pathId) return false
-          if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+          if (pathId === 'path_of_the_sorcerer' && !wizard.heroSpellChoices[tid])
             return false
           return true
         })
@@ -940,7 +940,7 @@ export default function CreateCompanyPage() {
         const pendingHeroTempId = heroTempIds.find((tid) => {
           const pathId = wizard.heroPaths[tid]
           if (!pathId) return true
-          if (pathId === 'path_of_channeling' && !wizard.heroSpellChoices[tid])
+          if (pathId === 'path_of_the_sorcerer' && !wizard.heroSpellChoices[tid])
             return true
           return false
         })
@@ -1151,7 +1151,7 @@ export default function CreateCompanyPage() {
 
         const currentPathId = wizard.heroPaths[pendingHeroTempId]
         const needsSpell =
-          currentPathId === 'path_of_channeling' &&
+          currentPathId === 'path_of_the_sorcerer' &&
           !wizard.heroSpellChoices[pendingHeroTempId]
         const heroTempIdx2 = parseInt(
           pendingHeroTempId.replace('member_', ''),

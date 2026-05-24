@@ -87,7 +87,7 @@ export function buildStartingMembers(
       // Resolve path info for heroes
       const pathId = isHero ? (heroPaths[tempId] ?? null) : null
       const spellChoice =
-        pathId === 'path_of_channeling'
+        pathId === 'path_of_the_sorcerer'
           ? (heroSpellChoices[tempId] ?? null)
           : null
       const heroicAction = pathId ? getPathHeroicAction(pathId) : null

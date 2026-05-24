@@ -1,17 +1,17 @@
 [
   {
-    "id": "path_of_move",
-    "label": "Path of Move",
+    "id": "path_of_the_tactician",
+    "label": "Path of the Tactician",
     "maximums": {
       "relative": {
         "fight": 3,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 3,
         "intelligence": 3
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 2,
         "wounds": 2,
         "might": 2,
@@ -58,8 +58,8 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_move",
-            "label": "Master of Move",
+            "specialRuleId": "heroic_move_mastery",
+            "label": "Heroic Move Mastery",
             "activationType": "active",
             "description": "If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6\" of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4."
           },
@@ -126,8 +126,8 @@
     ]
   },
   {
-    "id": "path_of_shoot",
-    "label": "Path of Shoot",
+    "id": "path_of_the_sharpshooter",
+    "label": "Path of the Sharpshooter",
     "maximums": {
       "relative": {
         "fight": 1,
@@ -149,18 +149,18 @@
       {
         "roll": 2,
         "type": "special_rule",
-        "specialRuleId": "dead_eye_shot",
-        "label": "Dead Eye Shot",
+        "specialRuleId": "big_game_hunter",
+        "label": "Big Game Hunter",
         "activationType": "active",
-        "description": "When benefiting from a Heroic Shoot, this model may reroll failed To Wound Rolls when making shooting attacks."
+        "description": "If this Hero successfully Wounds an enemy Monster model with a shooting attack (a Wound is caused and is not prevented), it will deal D3 Wounds rather than 1."
       },
       {
         "roll": 3,
         "type": "special_rule",
-        "specialRuleId": "archers_this_way",
-        "label": "Archers, this way!",
+        "specialRuleId": "knife_mastery",
+        "label": "Knife Mastery",
         "activationType": "active",
-        "description": "Friendly Battle Company models within 6\" and Line of Sight of this Hero may reroll To Hit Rolls of a 1 when making Shooting Attacks."
+        "description": "Friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. Additionally, friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may use the Shielding rule even if they do not possess any kind of shield."
       },
       {
         "roll": 4,
@@ -184,9 +184,9 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_shoot",
-            "label": "Master of Shoot",
-            "description": "The Hero may call Heroic Shoot without expending a point of Might if they moved in the preceding Move Phase."
+            "specialRuleId": "heroic_shoot_mastery",
+            "label": "Heroic Shoot Mastery",
+            "description": "When benefiting from a Heroic Shoot called by this Hero, friendly models may reroll failed To Wound Rolls when making shooting attacks."
           },
           {
             "type": "stat",
@@ -237,18 +237,18 @@
     ]
   },
   {
-    "id": "path_of_combat",
-    "label": "Path of Combat",
+    "id": "path_of_the_soldier",
+    "label": "Path of the Soldier",
     "maximums": {
       "relative": {
         "fight": 4,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 3,
         "intelligence": 3
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 2,
         "wounds": 2,
         "might": 2,
@@ -295,8 +295,8 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_combat",
-            "label": "Master of Combat",
+            "specialRuleId": "heroic_combat_mastery",
+            "label": "Heroic Combat Mastery",
             "activationType": "active",
             "description": "The Hero may call Heroic Combat without expending a point of Might if they slew an enemy model they were Engaged in Combat with in the previous turn."
           },
@@ -349,8 +349,8 @@
     ]
   },
   {
-    "id": "path_of_accuracy",
-    "label": "Path of Accuracy",
+    "id": "path_of_the_marksman",
+    "label": "Path of the Marksman",
     "heroicAction": "heroic_accuracy",
     "maximums": {
       "relative": {
@@ -381,10 +381,10 @@
       {
         "roll": 3,
         "type": "special_rule",
-        "specialRuleId": "lord_of_the_vale",
-        "label": "Lord of the Vale",
+        "specialRuleId": "hold_positions_loose_the_arrows",
+        "label": "\"Hold positions, loose the arrows!\"",
         "activationType": "active",
-        "description": "Other friendly models within 3\" of this Hero may re-roll To Hit Rolls of a 1 when making a shooting attack in the Shoot Phase, provided they did not Move in the preceding Move Phase."
+        "description": "Whilst within 3\" of this Hero, friendly models may re-roll failed To Hit Rolls when making a shooting attack, provided they did not Move in the preceding Move Phase."
       },
       {
         "roll": 4,
@@ -408,9 +408,9 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_accuracy",
-            "label": "Master of Accuracy",
-            "description": "The Hero may call Heroic Accuracy without expending a point of Might if they did not move in the preceding Move Phase."
+            "specialRuleId": "heroic_accuracy_mastery",
+            "label": "Heroic Accuracy Mastery",
+            "description": "Friendly models benefiting from this Hero's Heroic Accuracy pass in-the-way checks on a 2+ rather than 4+."
           },
           {
             "type": "stat",
@@ -461,19 +461,19 @@
     ]
   },
   {
-    "id": "path_of_challenge",
-    "label": "Path of Challenge",
+    "id": "path_of_the_claimant",
+    "label": "Path of the Claimant",
     "heroicAction": "heroic_challenge",
     "maximums": {
       "relative": {
         "fight": 4,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 3,
         "intelligence": 3
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 3,
         "wounds": 2,
         "might": 3,
@@ -520,8 +520,8 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_challenge",
-            "label": "Master of Challenge",
+            "specialRuleId": "heroic_challenge_mastery",
+            "label": "Heroic Challenge Mastery",
             "description": "The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1."
           },
           {
@@ -557,25 +557,26 @@
       {
         "roll": 11,
         "type": "special_rule",
-        "specialRuleId": "master_duelist",
-        "label": "Master Duelist",
+        "specialRuleId": "general_hunter",
+        "label": "General Hunter",
         "activationType": "active",
-        "description": "At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
+        "description": "If this model slays the enemy General in a Combat, they immediately regain a single point of Might spent earlier in the battle."
       },
       {
         "roll": 12,
         "type": "special_rule",
-        "specialRuleId": "general_hunter",
+        "specialRuleId": "cunning_fighter",
         "label": "General Hunter",
         "activationType": "active",
-        "description": "See page 126 of the Middle-Earth Strategy Battle Game Rules Manual"
+        "description": "If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made."
       }
     ]
   },
   {
-    "id": "path_of_channeling",
-    "label": "Path of Channeling",
+    "id": "path_of_the_sorcerer",
+    "label": "Path of the Sorcerer",
     "heroicAction": "heroic_channeling",
+    "rare": 1,
     "startingBonus": {
       "type": "choice",
       "description": "Choose one Magical Power to add to spell list on embarking this path."
@@ -583,13 +584,13 @@
     "maximums": {
       "relative": {
         "fight": 2,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 3,
         "intelligence": 3
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 2,
         "wounds": 3,
         "might": 1,
@@ -642,10 +643,10 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_channeling",
-            "label": "Master of Channeling",
+            "specialRuleId": "heroic_channeling_mastery",
+            "label": "Heroic Channeling Mastery",
             "activationType": "active",
-            "description": "The Hero may call Heroic Channeling without expending Might in a turn in which you do not have Priority."
+            "description": "When the Hero casts a Heroic Channeled spell that targets a single model, they may target one additional model."
           },
           {
             "type": "stat",
@@ -682,8 +683,7 @@
           {
             "type": "stat",
             "options": ["will"],
-            "amount": 2,
-            "maximum": 6
+            "amount": 2
           }
         ]
       },
@@ -701,7 +701,8 @@
           },
           {
             "type": "improve_casting_value",
-            "description": "Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power."
+            "description": "Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power.",
+            "max": 2
           }
         ]
       },
@@ -724,19 +725,19 @@
     ]
   },
   {
-    "id": "path_of_defence",
-    "label": "Path of Defence",
+    "id": "path_of_the_shieldbearer",
+    "label": "Path of the Shieldbearer",
     "heroicAction": "heroic_defence",
     "maximums": {
       "relative": {
         "fight": 3,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 4,
         "intelligence": 4
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 2,
         "wounds": 3,
         "might": 2,
@@ -783,8 +784,8 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_defence",
-            "label": "Master of Defence",
+            "specialRuleId": "heroic_defence_mastery",
+            "label": "Heroic Defence Mastery",
             "description": "The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat."
           },
           {
@@ -836,20 +837,20 @@
     ]
   },
   {
-    "id": "path_of_march",
-    "label": "Path of March",
+    "id": "path_of_the_ranger",
+    "label": "Path of the Ranger",
     "heroicAction": "heroic_march",
     "maximums": {
       "relative": {
         "move": 2,
         "fight": 2,
-        "shoot": 2,
         "strength": 1,
         "defence": 1,
         "courage": 3,
         "intelligence": 4
       },
       "absolute": {
+        "shoot": 2,
         "attacks": 2,
         "wounds": 2,
         "might": 2,
@@ -896,9 +897,9 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_march",
-            "label": "Master of March",
-            "description": "The Hero may call Heroic March without expending Might on a turn in which you have Priority."
+            "specialRuleId": "heroic_march_mastery",
+            "label": "Heroic March Mastery",
+            "description": "Models are not required to stay within the 'At the Double' range of this Hero in a turn in which this Hero declares a Heroic March."
           },
           {
             "type": "stat",
@@ -949,21 +950,21 @@
     ]
   },
   {
-    "id": "path_of_resolve",
-    "label": "Path of Resolve",
+    "id": "path_of_the_warlord",
+    "label": "Path of the Warlord",
     "heroicAction": "heroic_resolve",
     "maximums": {
       "relative": {
         "fight": 4,
-        "shoot": 2,
         "strength": 1,
-        "defence": 1,
-        "courage": 3,
-        "intelligence": 3
+        "defence": 1
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 3,
         "wounds": 3,
+        "courage": 3,
+        "intelligence": 3,
         "might": 3,
         "will": 3,
         "fate": 3
@@ -1008,8 +1009,8 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_resolve",
-            "label": "Master of Resolve",
+            "specialRuleId": "heroic_resolve_mastery",
+            "label": "Heroic Resolve Mastery",
             "description": "The Hero may call Heroic Resolve without expending Might if their force is Broken."
           },
           {
@@ -1058,24 +1059,24 @@
         "specialRuleId": "voice_of_command",
         "label": "Voice of Command",
         "activationType": "active",
-        "description": "The range of this Hero’s Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero’s Stand Fast."
+        "description": "The range of this Hero's Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero's Stand Fast."
       }
     ]
   },
   {
-    "id": "path_of_strength",
-    "label": "Path of Strength",
+    "id": "path_of_the_berserker",
+    "label": "Path of the Berserker",
     "heroicAction": "heroic_strength",
     "maximums": {
       "relative": {
         "fight": 4,
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 4,
         "intelligence": 2
       },
       "absolute": {
+        "shoot": 3,
         "attacks": 3,
         "wounds": 2,
         "might": 3,
@@ -1087,10 +1088,10 @@
       {
         "roll": 2,
         "type": "special_rule",
-        "specialRuleId": "strength_of_the_marshal",
-        "label": "Strength of the Marshal",
-        "activationType": "active",
-        "description": "Each time this Hero rolls a natural 6 To Wound when making a Strike with a hand weapon, they may immediately make a single additional To Wound Roll against the same target. If this additional To Wound Roll is a natural 6, this will not benefit from this special rule."
+        "specialRuleId": "burly",
+        "label": "Burly",
+        "activationType": "passive",
+        "description": "A model with this special rule does not suffer the -1 penalty to the Duel Roll for using a two-handed weapon. Additionally, a model with this special rule can still Move its full Move Value whilst carrying a Heavy Object."
       },
       {
         "roll": 3,
@@ -1122,15 +1123,13 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_strength",
-            "label": "Master of Strength",
-            "description": "The Hero may call Heroic Strength without expending Might if they are the only friendly model contributing to the Combat."
+            "specialRuleId": "heroic_strength_mastery",
+            "label": "Heroic Strength Mastery",
+            "description": "When this Hero declares a Heroic Strength, they may choose to make a single Strike against every enemy involved in the combat, including supporting models, instead of making Strikes as normal."
           },
           {
-            "type": "special_rule",
-            "specialRuleId": "burly",
-            "label": "Burly",
-            "description": "See page 124 of the Middle-Earth Strategy Battle Game Rules Manual"
+            "type": "stat",
+            "options": ["strength"]
           }
         ]
       },
@@ -1177,12 +1176,11 @@
     ]
   },
   {
-    "id": "path_of_strike",
-    "label": "Path of Strike",
+    "id": "path_of_the_duelist",
+    "label": "Path of the Duelist",
     "heroicAction": "heroic_strike",
     "maximums": {
       "relative": {
-        "shoot": 1,
         "strength": 1,
         "defence": 1,
         "courage": 4,
@@ -1190,9 +1188,10 @@
       },
       "absolute": {
         "fight": 9,
+        "shoot": 3,
         "attacks": 2,
         "wounds": 2,
-        "might": 2,
+        "might": 3,
         "will": 3,
         "fate": 1
       }
@@ -1201,10 +1200,10 @@
       {
         "roll": 2,
         "type": "special_rule",
-        "specialRuleId": "cunning_fighter",
-        "label": "Cunning Fighter",
+        "specialRuleId": "grim_blade",
+        "label": "Grim Blade",
         "activationType": "active",
-        "description": "If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made."
+        "description": "This Hero will always win the roll-off during a Drawn Combat. If both sides have a Hero with this special rule, neither side will benefit from this special rule."
       },
       {
         "roll": 3,
@@ -1236,9 +1235,9 @@
         "options": [
           {
             "type": "special_rule",
-            "specialRuleId": "master_of_strike",
-            "label": "Master of Strike",
-            "description": "The Hero may call Heroic Strike without expending Might if the Hero’s side of the Combat has a lower Fight Value than the opposing side."
+            "specialRuleId": "heroic_strike_mastery",
+            "label": "Heroic Strike Mastery",
+            "description": "When calling a Heroic Strike the Hero adds +3 to their Fight Value rather than rolling a D3."
           },
           {
             "type": "stat",
@@ -1273,18 +1272,18 @@
       {
         "roll": 11,
         "type": "special_rule",
-        "specialRuleId": "duelists_blade",
-        "label": "Duelist's Blade",
+        "specialRuleId": "master_duelist",
+        "label": "Master Duelist",
         "activationType": "active",
-        "description": "This Hero will always win the roll-off during a Drawn Combat on a roll of a 3+ if they’re Good, or 1-4 if they’re Evil, regardless of any abilities on the opposing side. If both sides have a Hero with this special rule, neither side will benefit from this special rule."
+        "description": "At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
       },
       {
         "roll": 12,
         "type": "special_rule",
-        "specialRuleId": "adaptive_fighter",
-        "label": "Adaptive Fighter",
+        "specialRuleId": "warrior_of_renown",
+        "label": "Warrior of Renown",
         "activationType": "active",
-        "description": "If this Hero wins a Duel Roll, then before models Back Away this Hero may choose a single enemy model involved in the combat. The chosen model is Backed Away in a direction chosen by this Hero. This direction may be chosen so that the model is forced to Back Away over the edge of a cliff, in which case they will suffer falling damage as normal. Once this has been resolved, other models Back Away as normal and Strikes are resolved. However, if a model has been Backed Away over the edge of a cliff as described earlier, this Hero cannot make Strikes against that model."
+        "description": "Enemy models Engaged in Combat with this Hero cannot declare a Heroic Strike."
       }
     ]
   }

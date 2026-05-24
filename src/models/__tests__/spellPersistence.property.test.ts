@@ -57,7 +57,7 @@ function buildMember(
     lifetimeExperience: 0,
     injuries: [],
     specialRules: [],
-    pathId: 'path_of_channeling',
+    pathId: 'path_of_the_sorcerer',
     statIncreases: {},
     statDecreases: {},
     spells,

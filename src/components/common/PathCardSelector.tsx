@@ -60,42 +60,42 @@ const HEROIC_ACTION_LABELS: Record<string, string> = {
 }
 
 const PATH_DESCRIPTIONS: Record<string, string> = {
-  path_of_move:
+  path_of_the_tactician:
     'A master of momentum and battlefield positioning, controlling the flow of every engagement.',
-  path_of_shoot:
+  path_of_the_sharpshooter:
     'A deadly marksman who looses arrows with preternatural speed and precision.',
-  path_of_combat:
+  path_of_the_soldier:
     'A ferocious warrior who wins the day through sheer aggression and relentless fighting spirit.',
-  path_of_accuracy:
+  path_of_the_marksman:
     'A patient hunter whose every arrow finds its mark, even through the thickest of mêlées.',
-  path_of_challenge:
+  path_of_the_claimant:
     'A duelist who thrives against mighty foes, growing stronger with every worthy opponent slain.',
-  path_of_channeling:
+  path_of_the_sorcerer:
     'A wielder of arcane power who bends fate through the careful casting of magical arts.',
-  path_of_defence:
+  path_of_the_shieldbearer:
     'An ironclad bulwark who turns defence into strength, protecting allies through unyielding resolve.',
-  path_of_march:
+  path_of_the_ranger:
     'A swift ranger who traverses any terrain with ease and rallies allies to move as one.',
-  path_of_resolve:
+  path_of_the_warlord:
     'A commanding leader whose presence alone steels the hearts of all who fight alongside them.',
-  path_of_strength:
+  path_of_the_berserker:
     'A powerhouse warrior who strikes with devastating force, breaking enemies with raw might.',
-  path_of_strike:
+  path_of_the_duelist:
     'A bladesman of unsurpassed skill whose fight value strikes fear into all who face them.',
 }
 
 const SIGNATURE_STAT: Record<string, string> = {
-  path_of_move: 'Will',
-  path_of_shoot: 'Shoot Value',
-  path_of_combat: 'Fight Value',
-  path_of_accuracy: 'Shoot Value',
-  path_of_challenge: 'Might',
-  path_of_channeling: 'Will',
-  path_of_defence: 'Defence',
-  path_of_march: 'Move',
-  path_of_resolve: 'Courage & Intelligence',
-  path_of_strength: 'Strength',
-  path_of_strike: 'Fight Value',
+  path_of_the_tactician: 'Will',
+  path_of_the_sharpshooter: 'Shoot Value',
+  path_of_the_soldier: 'Fight Value',
+  path_of_the_marksman: 'Shoot Value',
+  path_of_the_claimant: 'Might',
+  path_of_the_sorcerer: 'Will',
+  path_of_the_shieldbearer: 'Defence',
+  path_of_the_ranger: 'Move',
+  path_of_the_warlord: 'Courage & Intelligence',
+  path_of_the_berserker: 'Strength',
+  path_of_the_duelist: 'Fight Value',
 }
 
 // ─── Ceiling helpers ──────────────────────────────────────────────────────────
