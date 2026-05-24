@@ -73,7 +73,7 @@
     "size": "large",
     "rating": 2,
     "influenceCost": 1,
-    "description": "A model may elect to use their Dwarven Brew at the start of any game, if they do so, every model within the model’s Battle Company adds +1 to their Courage value for the remainder of the game. Once used, take an Intelligence Test. On an unsuccessful roll, the keg has run dry; remove it from the Hero model’s Equipment."
+    "description": "A model may elect to use their Dwarven Brew at the start of any game, if they do so, every model within the model's Battle Company adds +1 to their Courage value for the remainder of the game. Once used, take an Intelligence Test. On an unsuccessful roll, the keg has run dry; remove it from the Hero model's Equipment."
   },
   {
     "id": "envenom_weapon",
@@ -93,7 +93,7 @@
     "influenceCost": 2,
     "heroOnly": true,
     "consumable": true,
-    "description": "At the end of any game the Hero participated in without being removed as a casualty, the Hero may use these. All models in the Battle Company add +1 to Injury rolls. Take an Intelligence Test; on a fail, remove from Equipment."
+    "description": "A Hero may elect to use their Healing Herbs at the end of any game they participated in that they were not removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Healing Herbs from their Equipment. All members of the Battle Company may add +1 to any Injury rolls that they must make at the end of the game. This is not cumulative."
   },
   {
     "id": "small_shield",
@@ -148,7 +148,7 @@
     "influenceCost": 1,
     "heroOnly": true,
     "conditionallyConsumable": true,
-    "description": "At the start of any game, before forces are deployed, the Hero may read the Scroll of Hidden Paths. If they do, you may keep D3 Warrior models off the board when deploying your forces. These models will arrive from any board edge of your choosing at the end of your company’s second Move phase via the rules for Reinforcements. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model’s Equipment."
+    "description": "At the start of any game, before forces are deployed, the Hero may read the Scroll of Hidden Paths. If they do, you may keep D3 Warrior models off the board when deploying your forces. These models will arrive from any board edge of your choosing at the end of your company's second Move phase via the rules for Reinforcements. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model's Equipment."
   },
   {
     "id": "seeing_stone",

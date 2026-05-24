@@ -56,6 +56,13 @@ import {
 import type { Member, Company, CompanyDefinition } from '../models'
 import type { PostMatchData } from '../models/postmatch'
 import { calcMemberRating } from '../utils/rating'
+import {
+  findWondrousCramCandidates,
+  findHealingHerbsCandidates,
+  removeOwnedEquipment,
+  type ItemConsumptionCandidate,
+} from '../utils/itemConsumption'
+import equipmentData from '../data/equipment.json'
 import companiesData from '../data/companies.json'
 import specialRulesData from '../data/specialRules.json'
 import heroicActionsData from '../data/heroicActions.json'
@@ -345,6 +352,17 @@ export default function PostMatchSummaryPage() {
   const pendingDiceRef = useRef<[number, number] | null>(null)
   const [injuriesReady, setInjuriesReady] = useState(false)
 
+  // ── Item Resolution state (pre-injury phase) ───────────────────────────────
+  const [itemResolutionPhase, setItemResolutionPhase] = useState<'cram' | 'herbs' | 'done'>('cram')
+  const [cramCandidates, setCramCandidates] = useState<ItemConsumptionCandidate[]>([])
+  const [herbsCandidates, setHerbsCandidates] = useState<ItemConsumptionCandidate[]>([])
+  const [cramIndex, setCramIndex] = useState(0)
+  const [herbsIndex, setHerbsIndex] = useState(0)
+  const [injuryModifier, setInjuryModifier] = useState<0 | 1>(0)
+  const [resolvedCramMembers, setResolvedCramMembers] = useState<Set<string>>(new Set())
+  const [itemResolutionDone, setItemResolutionDone] = useState(false)
+  const [itemPromptOpen, setItemPromptOpen] = useState(false)
+
   // Scratch/heal dialogs
   const [scratchDialog, setScratchDialog] = useState<{
     memberId: string
@@ -420,6 +438,185 @@ export default function PostMatchSummaryPage() {
   const casualties = postMatchData!.casualties
   const hasCasualties = casualties.length > 0
 
+  // ── Filtered casualties (excluding cram-resolved members) ───────────────────
+  const effectiveCasualties = casualties.filter(
+    (c) => !resolvedCramMembers.has(c.memberId)
+  )
+  const hasEffectiveCasualties = effectiveCasualties.length > 0
+
+  // ── Item Resolution Logic (pre-injury phase) ───────────────────────────────
+
+  // Compute candidates on page load and auto-consume temporary ones
+  const itemResolutionInitRef = useRef(false)
+  useEffect(() => {
+    if (!workingCompany || !postMatchData || itemResolutionInitRef.current) return
+    itemResolutionInitRef.current = true
+
+    const allMatchMembers = postMatchData.xpGained.map((x) => x.memberId)
+    const toolkitItems = postMatchData.toolkitItems ?? []
+
+    const cramCands = findWondrousCramCandidates(
+      postMatchData.casualties,
+      toolkitItems,
+      workingCompany.members
+    )
+    const herbsCands = findHealingHerbsCandidates(
+      postMatchData.casualties,
+      toolkitItems,
+      workingCompany.members,
+      allMatchMembers
+    )
+
+    setCramCandidates(cramCands)
+    setHerbsCandidates(herbsCands)
+
+    // Auto-consume ALL temporary cram candidates immediately
+    const tempCramMembers = new Set<string>()
+    for (const c of cramCands) {
+      if (c.source === 'temporary') {
+        tempCramMembers.add(c.memberId)
+      }
+    }
+
+    // Auto-consume ALL temporary herbs candidates immediately
+    let herbsModifier: 0 | 1 = 0
+    for (const h of herbsCands) {
+      if (h.source === 'temporary') {
+        herbsModifier = 1
+      }
+    }
+
+    // Set resolved cram members from temporary auto-consumption
+    if (tempCramMembers.size > 0) {
+      setResolvedCramMembers(tempCramMembers)
+    }
+    if (herbsModifier === 1) {
+      setInjuryModifier(1)
+    }
+
+    // Determine first permanent candidate to prompt for
+    const firstPermanentCram = cramCands.findIndex((c) => c.source === 'permanent')
+    const firstPermanentHerbs = herbsCands.findIndex((h) => h.source === 'permanent')
+
+    if (firstPermanentCram >= 0) {
+      // Start cram phase at first permanent candidate
+      setCramIndex(firstPermanentCram)
+      setItemResolutionPhase('cram')
+      setItemPromptOpen(true)
+    } else if (firstPermanentHerbs >= 0) {
+      // No permanent cram, skip to herbs phase
+      setHerbsIndex(firstPermanentHerbs)
+      setItemResolutionPhase('herbs')
+      setItemPromptOpen(true)
+    } else {
+      // No permanent candidates at all — resolution done
+      setItemResolutionPhase('done')
+      setItemResolutionDone(true)
+    }
+  }, [workingCompany, postMatchData])
+
+  // Handle accept/decline for permanent item consumption prompt
+  const handleItemAccept = () => {
+    setItemPromptOpen(false)
+    if (itemResolutionPhase === 'cram') {
+      const candidate = cramCandidates[cramIndex]
+      if (candidate) {
+        // Add to resolved members (skip injury roll)
+        setResolvedCramMembers((prev) => new Set([...prev, candidate.memberId]))
+        // Remove item from member's ownedEquipment
+        setWorkingCompany((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            members: prev.members.map((m) =>
+              m.id === candidate.memberId
+                ? removeOwnedEquipment(m, 'wondrous_cram')
+                : m
+            ),
+          }
+        })
+      }
+      advanceItemResolution('cram')
+    } else if (itemResolutionPhase === 'herbs') {
+      const candidate = herbsCandidates[herbsIndex]
+      if (candidate) {
+        // Set modifier to 1 (not cumulative)
+        setInjuryModifier(1)
+        // Remove item from member's ownedEquipment
+        setWorkingCompany((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            members: prev.members.map((m) =>
+              m.id === candidate.memberId
+                ? removeOwnedEquipment(m, 'healing_herbs')
+                : m
+            ),
+          }
+        })
+      }
+      advanceItemResolution('herbs')
+    }
+  }
+
+  const handleItemDecline = () => {
+    setItemPromptOpen(false)
+    if (itemResolutionPhase === 'cram') {
+      advanceItemResolution('cram')
+    } else if (itemResolutionPhase === 'herbs') {
+      advanceItemResolution('herbs')
+    }
+  }
+
+  const advanceItemResolution = (phase: 'cram' | 'herbs') => {
+    if (phase === 'cram') {
+      // Find next permanent cram candidate
+      const nextIdx = cramCandidates.findIndex(
+        (c, i) => i > cramIndex && c.source === 'permanent'
+      )
+      if (nextIdx >= 0) {
+        setCramIndex(nextIdx)
+        setItemPromptOpen(true)
+      } else {
+        // Cram done, move to herbs
+        const firstPermanentHerbs = herbsCandidates.findIndex(
+          (h) => h.source === 'permanent'
+        )
+        if (firstPermanentHerbs >= 0) {
+          setItemResolutionPhase('herbs')
+          setHerbsIndex(firstPermanentHerbs)
+          setItemPromptOpen(true)
+        } else {
+          setItemResolutionPhase('done')
+          setItemResolutionDone(true)
+        }
+      }
+    } else {
+      // Find next permanent herbs candidate
+      const nextIdx = herbsCandidates.findIndex(
+        (h, i) => i > herbsIndex && h.source === 'permanent'
+      )
+      if (nextIdx >= 0) {
+        setHerbsIndex(nextIdx)
+        setItemPromptOpen(true)
+      } else {
+        setItemResolutionPhase('done')
+        setItemResolutionDone(true)
+      }
+    }
+  }
+
+  // Get item label/description for prompt
+  const getItemInfo = (itemId: string) => {
+    const item = (equipmentData as Array<{ id: string; label: string; description?: string }>).find(
+      (e) => e.id === itemId
+    )
+    return {
+      label: item?.label ?? itemId,
+      description: item?.description ?? '',
+    }
+  }
+
   // ─── Step header ─────────────────────────────────────────────────────────────
 
   const SectionHeader = ({ step, label }: { step: Step; label: string }) => {
@@ -485,7 +682,7 @@ export default function PostMatchSummaryPage() {
     (idx: number) => {
       setDiceIndividual(null)
       pendingDiceRef.current = null
-      const casualty = casualties[idx]
+      const casualty = effectiveCasualties[idx]
       if (!casualty) {
         setInjuriesReady(true)
         return
@@ -496,30 +693,32 @@ export default function PostMatchSummaryPage() {
       // handleDiceSettled can read them synchronously without stale closure issues
       const die1 = Math.floor(Math.random() * 6) + 1
       const die2 = Math.floor(Math.random() * 6) + 1
-      const roll = die1 + die2
+      const roll = Math.min(die1 + die2 + injuryModifier, 12)
       pendingDiceRef.current = [die1, die2]
       setTimeout(() => {
         setDiceValue(roll)
       }, 1400)
     },
-    [casualties]
+    [effectiveCasualties, injuryModifier]
   )
 
   useEffect(() => {
     if (
       currentStep === 'Injuries' &&
-      hasCasualties &&
+      itemResolutionDone &&
+      hasEffectiveCasualties &&
       injuryRecords.length === 0 &&
       !rollingFor
     ) {
       startNextInjuryRoll(0)
     }
-    if (currentStep === 'Injuries' && !hasCasualties) {
+    if (currentStep === 'Injuries' && itemResolutionDone && !hasEffectiveCasualties) {
       setInjuriesReady(true)
     }
   }, [
     currentStep,
-    hasCasualties,
+    itemResolutionDone,
+    hasEffectiveCasualties,
     injuryRecords.length,
     rollingFor,
     startNextInjuryRoll,
@@ -528,7 +727,7 @@ export default function PostMatchSummaryPage() {
   // Called when AnimatedDice settles — wrapped in useCallback to avoid stale closures
   const handleDiceSettled = useCallback(() => {
     if (diceValue === null || !workingCompany) return
-    const casualty = casualties[injuryIndex]
+    const casualty = effectiveCasualties[injuryIndex]
     if (!casualty) return
     const member = workingCompany.members.find(
       (m) => m.id === casualty.memberId
@@ -561,7 +760,7 @@ export default function PostMatchSummaryPage() {
       applyInjuryAndAdvance(newRecord)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diceValue, workingCompany, injuryIndex, casualties])
+  }, [diceValue, workingCompany, injuryIndex, effectiveCasualties])
 
   useEffect(() => {
     if (diceValue !== null && rollingFor) {
@@ -861,7 +1060,7 @@ export default function PostMatchSummaryPage() {
     setInjuryIndex(nextIdx)
     setRollingFor(null)
     setDiceValue(null)
-    if (nextIdx >= casualties.length) {
+    if (nextIdx >= effectiveCasualties.length) {
       setInjuriesReady(true)
     } else {
       setTimeout(() => startNextInjuryRoll(nextIdx), 600)
@@ -1335,9 +1534,10 @@ export default function PostMatchSummaryPage() {
       casualties: postMatchData!.casualties.map((c) => ({
         memberId: c.memberId,
         memberName: c.memberName,
-        injuryResult:
-          injuryRecords.find((r) => r.memberId === c.memberId)?.outcome?.type ??
-          'unknown',
+        injuryResult: resolvedCramMembers.has(c.memberId)
+          ? 'full_recovery'
+          : injuryRecords.find((r) => r.memberId === c.memberId)?.outcome?.type ??
+            'unknown',
       })),
       xpGained: postMatchData!.xpGained,
     }
@@ -1368,7 +1568,7 @@ export default function PostMatchSummaryPage() {
   const currentHero =
     progPhase === 'heroes' ? heroAdvRecords[progressionIndex] : null
   const currentCasualty = rollingFor
-    ? casualties.find((c) => c.memberId === rollingFor)
+    ? effectiveCasualties.find((c) => c.memberId === rollingFor)
     : null
 
   if (isLoading) {
@@ -1403,9 +1603,55 @@ export default function PostMatchSummaryPage() {
           <SectionHeader step="Injuries" label="Injuries" />
           <Collapse in={currentStep === 'Injuries'}>
             <Box>
+              {/* Item resolution summary */}
+              {resolvedCramMembers.size > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  {Array.from(resolvedCramMembers).map((memberId) => {
+                    const casualty = casualties.find((c) => c.memberId === memberId)
+                    return casualty ? (
+                      <Box
+                        key={memberId}
+                        sx={{
+                          mb: 0.5,
+                          p: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          borderLeftWidth: 3,
+                          borderLeftColor: '#2ecc71',
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ color: '#2ecc71' }}>
+                          {casualty.memberName} — Wondrous Cram consumed. Full Recovery!
+                        </Typography>
+                      </Box>
+                    ) : null
+                  })}
+                </Box>
+              )}
+              {injuryModifier === 1 && (
+                <Box sx={{ mb: 1.5, p: 1, border: '1px solid', borderColor: 'primary.dark', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ color: 'primary.main' }}>
+                    Healing Herbs active: +1 to all injury rolls
+                  </Typography>
+                </Box>
+              )}
+
+              {!itemResolutionDone && hasCasualties && (
+                <Typography variant="body2" sx={{ opacity: 0.6, mb: 2 }}>
+                  Resolving item effects...
+                </Typography>
+              )}
+
               {!hasCasualties && (
                 <Typography variant="body2" sx={{ opacity: 0.6, mb: 2 }}>
                   No casualties this match.
+                </Typography>
+              )}
+
+              {hasCasualties && itemResolutionDone && !hasEffectiveCasualties && resolvedCramMembers.size > 0 && (
+                <Typography variant="body2" sx={{ opacity: 0.6, mb: 2 }}>
+                  All casualties resolved via Wondrous Cram.
                 </Typography>
               )}
 
@@ -1951,6 +2197,56 @@ export default function PostMatchSummaryPage() {
           )}
         </StepCard>
       </Box>
+
+      {/* ── Item Consumption Prompt dialog ─────────────────────────────── */}
+      <Dialog
+        open={itemPromptOpen}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle>
+          {itemResolutionPhase === 'cram' ? 'Use Wondrous Cram?' : 'Use Healing Herbs?'}
+        </DialogTitle>
+        <DialogContent>
+          {(() => {
+            const candidate =
+              itemResolutionPhase === 'cram'
+                ? cramCandidates[cramIndex]
+                : herbsCandidates[herbsIndex]
+            if (!candidate) return null
+            const info = getItemInfo(candidate.itemId)
+            return (
+              <>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>{candidate.memberName}</strong> has{' '}
+                  <strong>{info.label}</strong> (permanent).
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mb: 1 }}>
+                  {info.description}
+                </Typography>
+                <Typography variant="body2">
+                  Consume this item? It will be removed from equipment.
+                </Typography>
+              </>
+            )
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleItemDecline} color="inherit" size="small">
+            Decline
+          </Button>
+          <Button onClick={handleItemAccept} variant="contained" size="small">
+            Accept
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── T'is Just a Scratch dialog ────────────────────────────────────── */}
       <Dialog

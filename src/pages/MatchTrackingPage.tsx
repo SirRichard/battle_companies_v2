@@ -38,6 +38,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../utils/labels'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
+import { isPostMatchOnlyItem } from '../utils/itemConsumption'
 import { calcBreakPoint, isCompanyBroken } from '../utils/companyRules'
 import type { Company, CompanyDefinition } from '../models'
 import type { ActiveMatchState, MemberMatchState, ToolkitItem } from '../models/match'
@@ -238,7 +239,7 @@ export default function MatchTrackingPage() {
       atoBonuses: match.atoBonuses,
       influenceBase,
       casualties: match.members
-        .filter((m) => m.isCasualty)
+        .filter((m) => m.isCasualty && !isAtoWanderer(m.memberId))
         .map((m) => ({
           memberId: m.memberId,
           memberName: m.memberName,
@@ -247,6 +248,7 @@ export default function MatchTrackingPage() {
           isHero: m.role !== 'warrior',
         })),
       xpGained,
+      toolkitItems: match.toolkitItems,
     }
 
     navigate(`/companies/${company.id}/post-match`, {
@@ -1135,6 +1137,23 @@ function MemberMatchCard({
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {memberToolkit.map((item) => {
                 const used = mm.usedToolkitItems?.includes(item.itemId) ?? false
+                if (isPostMatchOnlyItem(item.itemId)) {
+                  return (
+                    <Chip
+                      key={item.itemId}
+                      label={getToolkitItemLabel(item)}
+                      size="small"
+                      sx={{
+                        fontSize: '0.6rem',
+                        height: 18,
+                        borderColor: 'primary.dark',
+                        color: 'primary.light',
+                        border: '1px solid',
+                        background: 'rgba(201,168,76,0.05)',
+                      }}
+                    />
+                  )
+                }
                 if (isConsumable(item.itemId)) {
                   if (used) {
                     return (
@@ -1187,68 +1206,72 @@ function MemberMatchCard({
         )
       })()}
 
-      <Divider sx={{ opacity: 0.2, mb: 1 }} />
+      {!isAtoWanderer && (
+        <>
+          <Divider sx={{ opacity: 0.2, mb: 1 }} />
 
-      {/* Row 5: XP counter */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          justifyContent: 'space-between',
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 0.5, sm: 0 },
-        }}
-      >
-        <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          XP gained this match
-          <Typography
-            component="span"
-            variant="caption"
-            sx={{ opacity: 0.45, ml: 0.5 }}
-          >
-            (+1 participation added at end)
-          </Typography>
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <IconButton
-            size="small"
-            onClick={() => onXpChange(-1)}
-            disabled={mm.xpCounterGains === 0}
+          {/* Row 5: XP counter */}
+          <Box
             sx={{
-              p: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 0.5,
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 0.5, sm: 0 },
             }}
           >
-            <RemoveIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-          <Typography
-            sx={{
-              fontFamily: '"Cinzel Decorative", serif',
-              fontSize: '1.1rem',
-              color: mm.xpCounterGains > 0 ? 'primary.main' : 'text.secondary',
-              minWidth: 28,
-              textAlign: 'center',
-              lineHeight: 1,
-            }}
-          >
-            {mm.xpCounterGains}
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => onXpChange(1)}
-            sx={{
-              p: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 0.5,
-            }}
-          >
-            <AddIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-        </Box>
-      </Box>
+            <Typography variant="caption" sx={{ opacity: 0.6 }}>
+              XP gained this match
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ opacity: 0.45, ml: 0.5 }}
+              >
+                (+1 participation added at end)
+              </Typography>
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton
+                size="small"
+                onClick={() => onXpChange(-1)}
+                disabled={mm.xpCounterGains === 0}
+                sx={{
+                  p: 0.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 0.5,
+                }}
+              >
+                <RemoveIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '1.1rem',
+                  color: mm.xpCounterGains > 0 ? 'primary.main' : 'text.secondary',
+                  minWidth: 28,
+                  textAlign: 'center',
+                  lineHeight: 1,
+                }}
+              >
+                {mm.xpCounterGains}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => onXpChange(1)}
+                sx={{
+                  p: 0.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 0.5,
+                }}
+              >
+                <AddIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            </Box>
+          </Box>
+        </>
+      )}
     </MotionBox>
   )
 }

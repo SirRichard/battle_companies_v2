@@ -3,7 +3,7 @@
  * via React Router location state.
  */
 
-import type { AtoBonusType } from './match'
+import type { AtoBonusType, ToolkitItem } from './match'
 
 export interface PostMatchCasualty {
   memberId: string
@@ -29,4 +29,6 @@ export interface PostMatchData {
   influenceBase: number // base influence (2 + result bonus + ato)
   casualties: PostMatchCasualty[]
   xpGained: PostMatchXpEntry[]
+  /** Toolkit items from match (needed for post-match consumption) */
+  toolkitItems: ToolkitItem[]
 }
