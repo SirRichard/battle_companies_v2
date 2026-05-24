@@ -497,7 +497,7 @@ export default function MatchTrackingPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           background: 'linear-gradient(0deg, #110a03 80%, transparent)',
           display: 'flex',
           justifyContent: 'center',
@@ -510,11 +510,12 @@ export default function MatchTrackingPage() {
           onClick={() => setShowEndMatch(true)}
           sx={{
             fontFamily: '"Cinzel Decorative", serif',
-            fontSize: '0.75rem',
+            fontSize: { xs: '0.65rem', sm: '0.75rem' },
             letterSpacing: '0.08em',
-            py: 1.5,
-            px: 4,
-            minWidth: 220,
+            py: { xs: 1, sm: 1.5 },
+            px: { xs: 2.5, sm: 4 },
+            minWidth: { xs: 'auto', sm: 220 },
+            maxWidth: '90vw',
           }}
         >
           End Match
@@ -792,7 +793,7 @@ function MemberMatchCard({
               ? 'primary.dark'
               : 'divider',
         borderRadius: 1,
-        p: 1.5,
+        p: { xs: 1, sm: 1.5 },
         background: mm.isCasualty
           ? 'rgba(192,57,43,0.06)'
           : isHero
@@ -916,7 +917,8 @@ function MemberMatchCard({
                 key={key}
                 sx={{
                   textAlign: 'center',
-                  minWidth: 30,
+                  minWidth: { xs: 32, sm: 30 },
+                  flex: { xs: '0 0 calc(20% - 4px)', sm: 1 },
                   px: 0.5,
                   py: 0.25,
                   border: '1px solid',
@@ -966,7 +968,7 @@ function MemberMatchCard({
 
       {/* Row 3: M/W/F for heroes — interactive */}
       {hasHeroStats && (
-        <Box sx={{ display: 'flex', gap: 1, mb: 1, maxWidth: 440 }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, mb: 1, maxWidth: 440 }}>
           {(['might', 'will', 'fate'] as const).map((stat) => {
             const curKey = `${stat}Current` as keyof MemberMatchState
             const maxKey = `${stat}Max` as keyof MemberMatchState
@@ -989,8 +991,8 @@ function MemberMatchCard({
                     ? 'rgba(192,57,43,0.5)'
                     : 'primary.dark',
                   borderRadius: 1,
-                  py: 0.75,
-                  px: 0.5,
+                  py: { xs: 0.5, sm: 0.75 },
+                  px: { xs: 0.25, sm: 0.5 },
                   background: depleted
                     ? 'rgba(192,57,43,0.06)'
                     : 'rgba(201,168,76,0.04)',
@@ -1009,14 +1011,14 @@ function MemberMatchCard({
                 >
                   {label}
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 0.5 } }}>
                   <IconButton
                     onClick={() => onMwfChange(stat, -1)}
                     disabled={cur <= 0}
                     sx={{
                       p: 0,
-                      width: 36,
-                      height: 36,
+                      width: { xs: 28, sm: 36 },
+                      height: { xs: 28, sm: 36 },
                       border: '1px solid',
                       borderColor:
                         cur <= 0
@@ -1028,13 +1030,13 @@ function MemberMatchCard({
                       '&.Mui-disabled': { opacity: 0.25 },
                     }}
                   >
-                    <RemoveIcon sx={{ fontSize: 16 }} />
+                    <RemoveIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
                   </IconButton>
-                  <Box sx={{ textAlign: 'center', minWidth: 32 }}>
+                  <Box sx={{ textAlign: 'center', minWidth: { xs: 24, sm: 32 } }}>
                     <Typography
                       sx={{
                         fontFamily: '"Cinzel Decorative", serif',
-                        fontSize: '1.1rem',
+                        fontSize: { xs: '0.9rem', sm: '1.1rem' },
                         fontWeight: 700,
                         color: depleted
                           ? 'error.light'
@@ -1057,8 +1059,8 @@ function MemberMatchCard({
                     disabled={cur >= max}
                     sx={{
                       p: 0,
-                      width: 36,
-                      height: 36,
+                      width: { xs: 28, sm: 36 },
+                      height: { xs: 28, sm: 36 },
                       border: '1px solid',
                       borderColor:
                         cur >= max
@@ -1070,7 +1072,7 @@ function MemberMatchCard({
                       '&.Mui-disabled': { opacity: 0.25 },
                     }}
                   >
-                    <AddIcon sx={{ fontSize: 16 }} />
+                    <AddIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
                   </IconButton>
                 </Box>
               </Box>
@@ -1191,8 +1193,10 @@ function MemberMatchCard({
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 0.5, sm: 0 },
         }}
       >
         <Typography variant="caption" sx={{ opacity: 0.6 }}>

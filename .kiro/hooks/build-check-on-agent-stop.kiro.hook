@@ -1,14 +1,20 @@
 {
   "enabled": true,
-  "name": "Build Check on Agent Stop",
+  "name": "Build Check on File Save",
   "description": "Runs npm run build after every agent session to catch any build failures introduced by code changes",
   "version": "1",
   "when": {
-    "type": "agentStop"
+    "type": "fileEdited",
+    "patterns": [
+      ".tsx",
+      ".ts"
+    ]
   },
   "then": {
     "type": "runCommand",
     "command": "npm run build",
     "timeout": 120
-  }
+  },
+  "workspaceFolderName": "battle_companies_v2",
+  "shortName": "build-check-on-agent-stop"
 }

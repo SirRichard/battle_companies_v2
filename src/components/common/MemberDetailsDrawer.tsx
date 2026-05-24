@@ -763,6 +763,7 @@ export default function MemberDetailsDrawer({
             <Box
               sx={{
                 display: 'flex',
+                flexWrap: 'wrap',
                 mt: 1,
                 border: '1px solid',
                 borderColor: 'divider',
@@ -794,7 +795,8 @@ export default function MemberDetailsDrawer({
                         : undefined
                     }
                     sx={{
-                      flex: 1,
+                      flex: { xs: '0 0 20%', sm: 1 },
+                      minWidth: 32,
                       textAlign: 'center',
                       py: 0.75,
                       px: 0.25,

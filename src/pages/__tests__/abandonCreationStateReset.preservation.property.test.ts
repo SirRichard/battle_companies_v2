@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // Bugfix spec: abandon-creation-state-reset, Property 2: Preservation - Non-Abort Wizard Interactions Unchanged
 
 /**

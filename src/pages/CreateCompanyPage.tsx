@@ -9,6 +9,9 @@ import {
   StepLabel,
   StepButton,
   Divider,
+  LinearProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -185,6 +188,8 @@ export default function CreateCompanyPage() {
   const { saveCompany, getStatsForUnit } = useAppContext()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [wizard, setWizard] = useState<WizardState>(() => {
     try {
@@ -1305,55 +1310,154 @@ export default function CreateCompanyPage() {
           overflowX: 'auto',
         }}
       >
-        <Stepper activeStep={wizard.step} alternativeLabel>
-          {STEPS.map((label, index) => {
-            const isCompleted =
-              label === 'Command'
-                ? allRolesForced && wizard.step > 5
-                : index < wizard.step
-            const isVisited = wizard.visitedSteps.includes(index)
-            const isClickable = isCompleted && isVisited
-
-            return (
-              <Step
-                key={label}
-                completed={label === 'Command' ? (allRolesForced && wizard.step > 5) : undefined}
+        {isMobile ? (
+          /* Compact mobile stepper: "Step X of 8" + LinearProgress + back navigation */
+          <Box sx={{ width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 1,
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
               >
-                {isClickable ? (
-                  <StepButton
-                    onClick={() => handleProgressBarClick(index)}
-                    aria-label={`Go back to ${label} step`}
+                Step {wizard.step + 1} of {STEPS.length}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary' }}
+              >
+                {STEPS[wizard.step]}
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={((wizard.step + 1) / STEPS.length) * 100}
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                mb: 1,
+                backgroundColor: 'rgba(200,164,90,0.12)',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 3,
+                  backgroundColor: 'primary.main',
+                },
+              }}
+            />
+            {/* Compact step dots for backward navigation */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 0.75,
+                justifyContent: 'center',
+                mt: 0.5,
+              }}
+            >
+              {STEPS.map((label, index) => {
+                const isCompleted =
+                  label === 'Command'
+                    ? allRolesForced && wizard.step > 5
+                    : index < wizard.step
+                const isVisited = wizard.visitedSteps.includes(index)
+                const isClickable = isCompleted && isVisited
+                const isCurrent = index === wizard.step
+
+                return (
+                  <Box
+                    key={label}
+                    onClick={isClickable ? () => handleProgressBarClick(index) : undefined}
+                    aria-label={isClickable ? `Go back to ${label} step` : `${label} step`}
+                    role={isClickable ? 'button' : undefined}
+                    tabIndex={isClickable ? 0 : undefined}
+                    onKeyDown={isClickable ? (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleProgressBarClick(index)
+                      }
+                    } : undefined}
                     sx={{
-                      cursor: 'pointer',
-                      '& .MuiStepLabel-label': {
-                        textDecoration: 'none',
-                        transition: 'text-decoration 0.15s',
-                      },
-                      '&:hover .MuiStepLabel-label': {
-                        textDecoration: 'underline',
-                      },
-                      '&:focus-visible': {
-                        outline: '2px solid',
-                        outlineColor: 'primary.main',
-                        outlineOffset: '2px',
-                        borderRadius: 1,
-                      },
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      backgroundColor: isCurrent
+                        ? 'primary.main'
+                        : isCompleted
+                          ? 'primary.dark'
+                          : 'rgba(200,164,90,0.2)',
+                      cursor: isClickable ? 'pointer' : 'default',
+                      transition: 'background-color 0.2s, transform 0.15s',
+                      '&:hover': isClickable
+                        ? { transform: 'scale(1.3)', backgroundColor: 'primary.main' }
+                        : {},
+                      '&:focus-visible': isClickable
+                        ? {
+                            outline: '2px solid',
+                            outlineColor: 'primary.main',
+                            outlineOffset: '2px',
+                          }
+                        : {},
                     }}
-                  >
-                    {label}
-                  </StepButton>
-                ) : (
-                  <StepLabel
-                    sx={{ cursor: 'default', pointerEvents: 'none' }}
-                    aria-disabled={index !== wizard.step ? true : undefined}
-                  >
-                    {label}
-                  </StepLabel>
-                )}
-              </Step>
-            )
-          })}
-        </Stepper>
+                  />
+                )
+              })}
+            </Box>
+          </Box>
+        ) : (
+          /* Full desktop/tablet stepper */
+          <Stepper activeStep={wizard.step} alternativeLabel>
+            {STEPS.map((label, index) => {
+              const isCompleted =
+                label === 'Command'
+                  ? allRolesForced && wizard.step > 5
+                  : index < wizard.step
+              const isVisited = wizard.visitedSteps.includes(index)
+              const isClickable = isCompleted && isVisited
+
+              return (
+                <Step
+                  key={label}
+                  completed={label === 'Command' ? (allRolesForced && wizard.step > 5) : undefined}
+                >
+                  {isClickable ? (
+                    <StepButton
+                      onClick={() => handleProgressBarClick(index)}
+                      aria-label={`Go back to ${label} step`}
+                      sx={{
+                        cursor: 'pointer',
+                        '& .MuiStepLabel-label': {
+                          textDecoration: 'none',
+                          transition: 'text-decoration 0.15s',
+                        },
+                        '&:hover .MuiStepLabel-label': {
+                          textDecoration: 'underline',
+                        },
+                        '&:focus-visible': {
+                          outline: '2px solid',
+                          outlineColor: 'primary.main',
+                          outlineOffset: '2px',
+                          borderRadius: 1,
+                        },
+                      }}
+                    >
+                      {label}
+                    </StepButton>
+                  ) : (
+                    <StepLabel
+                      sx={{ cursor: 'default', pointerEvents: 'none' }}
+                      aria-disabled={index !== wizard.step ? true : undefined}
+                    >
+                      {label}
+                    </StepLabel>
+                  )}
+                </Step>
+              )
+            })}
+          </Stepper>
+        )}
       </Box>
 
       {/* Step content */}
@@ -1363,7 +1467,7 @@ export default function CreateCompanyPage() {
           px: { xs: 2, sm: 3 },
           pt: 3,
           pb: { xs: 14, sm: 12 },
-          maxWidth: 600,
+          maxWidth: { xs: '100%', sm: '100%', md: 800, lg: 1000 },
           width: '100%',
           mx: 'auto',
           overflowX: 'hidden',

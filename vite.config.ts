@@ -4,9 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',
+    environment: 'node',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    pool: 'threads',
+    minThreads: 2,
+    maxThreads: 4,
   },
   plugins: [
     react(),

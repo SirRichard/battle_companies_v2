@@ -323,7 +323,7 @@ export default function CompanyDetailsPage() {
             sx={{
               px: { xs: 2, sm: 3 },
               py: 3,
-              maxWidth: 700,
+              maxWidth: { xs: '100%', sm: '100%', md: 900, lg: 1100 },
               mx: 'auto',
               pb: 10,
             }}
@@ -405,22 +405,24 @@ export default function CompanyDetailsPage() {
         onClick={() => navigate(`/companies/${company.id}/match/setup`)}
         sx={{
           position: 'fixed',
-          bottom: 24,
-          right: 24,
+          bottom: { xs: 16, sm: 24 },
+          right: { xs: 16, sm: 24 },
           background: 'linear-gradient(180deg, #D4A84C 0%, #8B6914 100%)',
           border: '1px solid #C9A84C',
           color: '#1A0F05',
           fontFamily: '"Cinzel Decorative", serif',
-          fontSize: '0.65rem',
+          fontSize: { xs: '0.6rem', sm: '0.65rem' },
           letterSpacing: '0.08em',
           gap: 0.75,
           boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+          height: { xs: 40, sm: 48 },
+          px: { xs: 1.5, sm: 2 },
           '&:hover': {
             background: 'linear-gradient(180deg, #E8CC7A 0%, #A07820 100%)',
           },
         }}
       >
-        <AddIcon sx={{ fontSize: '1.1rem' }} />
+        <AddIcon sx={{ fontSize: { xs: '0.9rem', sm: '1.1rem' } }} />
         Start Match
       </Fab>
 
@@ -483,8 +485,9 @@ function MemberRow({
         borderRadius: 1,
         background: isHero ? 'rgba(201,168,76,0.04)' : 'transparent',
         display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        gap: { xs: 1, sm: 1.5 },
         cursor: 'pointer',
         opacity: hasMissingNextGame ? 0.5 : 1,
         transition: 'border-color 0.15s, background 0.15s, opacity 0.15s',
@@ -494,183 +497,214 @@ function MemberRow({
         },
       }}
     >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
-            {member.name}
-          </Typography>
-          {hasMissingNextGame && (
-            <Chip
-              label="Injured"
-              size="small"
-              sx={{
-                fontSize: '0.6rem',
-                background: 'rgba(192,57,43,0.15)',
-                color: 'error.light',
-                border: '1px solid',
-                borderColor: 'error.main',
-                height: 18,
-              }}
-            />
-          )}
-          {otherInjuries.map((inj, i) => (
-            <Chip
-              key={i}
-              label={
-                inj.type === 'arm_wound'
-                  ? '🦾 Arm'
-                  : inj.type === 'leg_wound'
-                    ? '🦿 Leg'
-                    : '⚔️ Honour'
-              }
-              size="small"
-              sx={{
-                fontSize: '0.6rem',
-                background: 'rgba(192,57,43,0.1)',
-                color: 'error.light',
-                border: '1px solid',
-                borderColor: 'error.dark',
-                height: 18,
-              }}
-            />
-          ))}
-        </Box>
-        <Typography
-          variant="caption"
-          sx={{ fontStyle: 'italic', color: 'text.secondary' }}
-        >
-          {getUnitLabel(member.baseUnitId)}
-        </Typography>
-      </Box>
-
-      {isHero && roleLabel(member.role) && (
-        <Chip
-          label={roleLabel(member.role)}
-          size="small"
-          sx={{
-            flexShrink: 0,
-            fontSize: '0.62rem',
-            borderColor:
-              member.role === 'leader' ? 'primary.main' : 'primary.dark',
-            color: member.role === 'leader' ? 'primary.main' : 'primary.light',
-            border: '1px solid',
-            background: 'transparent',
-          }}
-        />
-      )}
-
-      {isHero && member.heroStats && (
-        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-          {(['might', 'will', 'fate'] as const).map((stat) => (
-            <Box key={stat} sx={{ textAlign: 'center', minWidth: 18 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.55rem',
-                  opacity: 0.5,
-                  display: 'block',
-                  textTransform: 'uppercase',
-                  lineHeight: 1,
-                }}
-              >
-                {stat[0]}
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: '"Cinzel Decorative", serif',
-                  fontSize: '0.8rem',
-                  color: 'primary.light',
-                  lineHeight: 1.2,
-                }}
-              >
-                {member.heroStats![stat]}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-
-      {(() => {
-        let displayWargear: string[]
-        if (isHero) {
-          // Heroes: show base equipment + any purchased/assigned equipment
-          const baseEquip =
-            BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-              ?.baseEquipment ?? []
-          displayWargear = Array.from(
-            new Set([...baseEquip, ...(member.equipment ?? [])])
-          )
-        } else {
-          // Warriors: show only the equipment chosen from their loadout options
-          const baseUnit = (
-            baseUnitsData as Array<{
-              id: string
-              baseEquipment?: string[]
-              equipmentOptions?: { options: Array<{ equipment: string[] }> }
-            }>
-          ).find((u) => u.id === member.baseUnitId)
-          const allOptionEquipment =
-            baseUnit?.equipmentOptions?.options.flatMap(
-              (o: { equipment: string[] }) => o.equipment
-            ) ?? []
-          displayWargear = (member.equipment ?? []).filter((e) =>
-            allOptionEquipment.includes(e)
-          )
-        }
-        return displayWargear.length > 0 ? (
+      {/* First line: name + role chip */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          width: { xs: '100%', sm: 'auto' },
+          flex: { sm: 1 },
+          minWidth: 0,
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box
             sx={{
               display: 'flex',
-              gap: 0.5,
+              alignItems: 'center',
+              gap: 0.75,
               flexWrap: 'wrap',
-              justifyContent: 'flex-end',
-              flexShrink: 0,
-              maxWidth: 180,
             }}
           >
-            {displayWargear.map((eq) => (
+            <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
+              {member.name}
+            </Typography>
+            {hasMissingNextGame && (
               <Chip
-                key={eq}
-                label={getWargearLabel(eq)}
+                label="Injured"
                 size="small"
-                sx={{ fontSize: '0.6rem', height: 20 }}
+                sx={{
+                  fontSize: '0.6rem',
+                  background: 'rgba(192,57,43,0.15)',
+                  color: 'error.light',
+                  border: '1px solid',
+                  borderColor: 'error.main',
+                  height: 18,
+                }}
+              />
+            )}
+            {otherInjuries.map((inj, i) => (
+              <Chip
+                key={i}
+                label={
+                  inj.type === 'arm_wound'
+                    ? '🦾 Arm'
+                    : inj.type === 'leg_wound'
+                      ? '🦿 Leg'
+                      : '⚔️ Honour'
+                }
+                size="small"
+                sx={{
+                  fontSize: '0.6rem',
+                  background: 'rgba(192,57,43,0.1)',
+                  color: 'error.light',
+                  border: '1px solid',
+                  borderColor: 'error.dark',
+                  height: 18,
+                }}
               />
             ))}
           </Box>
-        ) : null
-      })()}
+          <Typography
+            variant="caption"
+            sx={{ fontStyle: 'italic', color: 'text.secondary' }}
+          >
+            {getUnitLabel(member.baseUnitId)}
+          </Typography>
+        </Box>
 
-      {/* Rating badge */}
-      {(() => {
-        const rating = calcMemberRating(member, baseStats)
-        return (
-          <Box sx={{ flexShrink: 0, textAlign: 'right', minWidth: 28 }}>
-            <Typography
-              variant="caption"
-              sx={{ opacity: 0.45, fontSize: '0.62rem', display: 'block' }}
-            >
-              {member.experience}xp
-            </Typography>
-            <Typography
-              variant="caption"
+        {isHero && roleLabel(member.role) && (
+          <Chip
+            label={roleLabel(member.role)}
+            size="small"
+            sx={{
+              flexShrink: 0,
+              fontSize: '0.62rem',
+              borderColor:
+                member.role === 'leader' ? 'primary.main' : 'primary.dark',
+              color: member.role === 'leader' ? 'primary.main' : 'primary.light',
+              border: '1px solid',
+              background: 'transparent',
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Second line (mobile) / inline (desktop): hero stats, wargear, rating */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: { xs: 1, sm: 1.5 },
+          flexWrap: 'wrap',
+          width: { xs: '100%', sm: 'auto' },
+          flexShrink: 0,
+        }}
+      >
+        {isHero && member.heroStats && (
+          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+            {(['might', 'will', 'fate'] as const).map((stat) => (
+              <Box key={stat} sx={{ textAlign: 'center', minWidth: 18 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.55rem',
+                    opacity: 0.5,
+                    display: 'block',
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                  }}
+                >
+                  {stat[0]}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: '"Cinzel Decorative", serif',
+                    fontSize: '0.8rem',
+                    color: 'primary.light',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {member.heroStats![stat]}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {(() => {
+          let displayWargear: string[]
+          if (isHero) {
+            // Heroes: show base equipment + any purchased/assigned equipment
+            const baseEquip =
+              BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
+                ?.baseEquipment ?? []
+            displayWargear = Array.from(
+              new Set([...baseEquip, ...(member.equipment ?? [])])
+            )
+          } else {
+            // Warriors: show only the equipment chosen from their loadout options
+            const baseUnit = (
+              baseUnitsData as Array<{
+                id: string
+                baseEquipment?: string[]
+                equipmentOptions?: { options: Array<{ equipment: string[] }> }
+              }>
+            ).find((u) => u.id === member.baseUnitId)
+            const allOptionEquipment =
+              baseUnit?.equipmentOptions?.options.flatMap(
+                (o: { equipment: string[] }) => o.equipment
+              ) ?? []
+            displayWargear = (member.equipment ?? []).filter((e) =>
+              allOptionEquipment.includes(e)
+            )
+          }
+          return displayWargear.length > 0 ? (
+            <Box
               sx={{
-                fontFamily: '"Cinzel Decorative", serif',
-                color: 'primary.dark',
-                fontSize: '0.62rem',
-                display: 'block',
+                display: 'flex',
+                gap: 0.5,
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                flexShrink: 0,
+                maxWidth: { xs: '100%', sm: 180 },
               }}
             >
-              {rating}pts
-            </Typography>
-          </Box>
-        )
-      })()}
+              {displayWargear.map((eq) => (
+                <Chip
+                  key={eq}
+                  label={getWargearLabel(eq)}
+                  size="small"
+                  sx={{ fontSize: '0.6rem', height: 20 }}
+                />
+              ))}
+            </Box>
+          ) : null
+        })()}
+
+        {/* Rating badge */}
+        {(() => {
+          const rating = calcMemberRating(member, baseStats)
+          return (
+            <Box
+              sx={{
+                flexShrink: 0,
+                textAlign: 'right',
+                minWidth: 28,
+                ml: { xs: 'auto', sm: 0 },
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.45, fontSize: '0.62rem', display: 'block' }}
+              >
+                {member.experience}xp
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  color: 'primary.dark',
+                  fontSize: '0.62rem',
+                  display: 'block',
+                }}
+              >
+                {rating}pts
+              </Typography>
+            </Box>
+          )
+        })()}
+      </Box>
     </MotionBox>
   )
 }
@@ -819,7 +853,7 @@ function HistoryMatchCard({
                 value: `+${match.influenceGained} IP`,
               },
             ].map(({ label, value }) => (
-              <Box key={label} sx={{ minWidth: 100 }}>
+              <Box key={label} sx={{ minWidth: { xs: 70, sm: 100 } }}>
                 <Typography
                   variant="caption"
                   sx={{
