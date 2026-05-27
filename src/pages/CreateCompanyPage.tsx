@@ -209,6 +209,9 @@ export default function CreateCompanyPage() {
   })
   const [direction, setDirection] = useState(1)
 
+  // Track which path card is currently viewed in the PathCardSelector (step 6)
+  const [viewedPathId, setViewedPathId] = useState<string | null>(null)
+
   // Persist wizard state to sessionStorage on every change so we can restore
   // it if the user is redirected to stats entry mid-wizard.
   useEffect(() => {
@@ -625,6 +628,39 @@ export default function CreateCompanyPage() {
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'BUTTON') return
       if (wizard.step <= 1) return
+      // Step 6 has its own sub-flow logic — handle separately
+      if (wizard.step === 6) {
+        const heroTempIds = [wizard.leaderId!, ...wizard.sergeantIds]
+        const allHeroesHavePaths = heroTempIds.every(
+          (tid) => wizard.heroPaths[tid]
+        )
+        const pendingHeroTempId = heroTempIds.find(
+          (tid) => !wizard.heroPaths[tid]
+        )
+
+        if (allHeroesHavePaths) {
+          // Review mode — advance wizard (skip gold if none)
+          if ((selectedCompany?.gold ?? 0) === 0) {
+            handleFinish()
+          } else {
+            go(wizard.step + 1)
+          }
+        } else {
+          // Picking mode — assign the currently-viewed path to the pending hero
+          const pathToAssign = viewedPathId ?? wizard.heroPaths[pendingHeroTempId!] ?? (pathsData as Array<{id: string}>)[0]?.id
+          if (pathToAssign && pendingHeroTempId) {
+            setWizard((w) => ({
+              ...w,
+              heroPaths: {
+                ...w.heroPaths,
+                [pendingHeroTempId]: pathToAssign,
+              },
+            }))
+          }
+        }
+        return
+      }
+
       if (!canAdvance()) return
       if (wizard.step === STEPS.length - 1) {
         handleFinish()
@@ -637,11 +673,6 @@ export default function CreateCompanyPage() {
             navigate(`/stats?wizard=1&units=${missing.join(',')}&fromStep=${wizard.step}`)
             return
           }
-        }
-        // Skip gold step if no gold
-        if (wizard.step === 6 && (selectedCompany?.gold ?? 0) === 0) {
-          handleFinish()
-          return
         }
         // Skip step 5 (leader/sergeant selection) when all roles are forced
         if (wizard.step === 4 && allRolesForced) {
@@ -672,6 +703,7 @@ export default function CreateCompanyPage() {
     allRolesForced,
     forcedLeaderId,
     forcedSergeantIds,
+    viewedPathId,
   ])
 
   const handleAbort = useCallback(() => {
@@ -1214,12 +1246,17 @@ export default function CreateCompanyPage() {
             equipment={heroEquipment}
             baseStats={heroBaseStats}
             selectedPathId={wizard.heroPaths[pendingHeroTempId] ?? null}
+            // Implicit sub-flow advancement: setting heroPaths[pendingHeroTempId]
+            // causes pendingHeroTempId to recompute on next render (derived state),
+            // automatically advancing to the next hero without an explicit "go" call.
+            // PathCardSelector fires onSelect unconditionally — no changes needed there.
             onSelect={(pathId) =>
               setWizard((w) => ({
                 ...w,
                 heroPaths: { ...w.heroPaths, [pendingHeroTempId]: pathId },
               }))
             }
+            onCardChange={(pathId) => setViewedPathId(pathId)}
           />
         )
       }
@@ -1514,30 +1551,66 @@ export default function CreateCompanyPage() {
           // Steps 0 and 1 auto-advance on card selection — no Next button needed
           wizard.step <= 1 ? (
             <Box sx={{ minWidth: 100 }} />
+          ) : wizard.step === 6 ? (
+            // ── Step 6 footer button: path sub-flow aware ──────────────────
+            // Derive picking vs review mode from wizard state
+            (() => {
+              const heroTempIds = [wizard.leaderId!, ...wizard.sergeantIds]
+              const allHeroesHavePaths = heroTempIds.every(
+                (tid) => wizard.heroPaths[tid]
+              )
+              const pendingHeroTempId = heroTempIds.find(
+                (tid) => !wizard.heroPaths[tid]
+              )
+
+              return (
+                <Button
+                  variant="contained"
+                  disabled={false}
+                  onClick={() => {
+                    if (allHeroesHavePaths) {
+                      // Review mode — advance wizard to next step (Gold)
+                      if ((selectedCompany?.gold ?? 0) === 0) {
+                        handleFinish()
+                        return
+                      }
+                      go(wizard.step + 1)
+                    } else {
+                      // Picking mode — assign the currently-viewed path to the pending hero.
+                      // This triggers sub-flow advancement via derived pendingHeroTempId.
+                      const pathToAssign = viewedPathId ?? wizard.heroPaths[pendingHeroTempId!] ?? (pathsData as Array<{id: string}>)[0]?.id
+                      if (pathToAssign) {
+                        setWizard((w) => ({
+                          ...w,
+                          heroPaths: {
+                            ...w.heroPaths,
+                            [pendingHeroTempId!]: pathToAssign,
+                          },
+                        }))
+                      }
+                    }
+                  }}
+                  sx={{ minWidth: 100, minHeight: 44 }}
+                >
+                  {allHeroesHavePaths ? 'Next' : 'Select'}
+                </Button>
+              )
+            })()
           ) : (
             <Button
               variant="contained"
               onClick={() => {
-                console.log('Next button clicked at step', wizard.step, 'allRolesForced:', allRolesForced)
                 // Check for missing stats before advancing to step 6 (from step 4 or 5)
                 if ((wizard.step === 5 || (wizard.step === 4 && allRolesForced)) && selectedCompany) {
                   const allIds = getAllUnitIdsForRoster(selectedCompany)
                   const missing = allIds.filter((id) => !getStatsForUnit(id))
-                  console.log('Stats check - allIds:', allIds.length, 'missing:', missing.length)
                   if (missing.length > 0) {
-                    console.log('Navigating to stats page with missing units:', missing)
                     navigate(`/stats?wizard=1&units=${missing.join(',')}&fromStep=${wizard.step}`)
                     return
                   }
                 }
-                // After paths (step 6): skip gold step if no gold
-                if (wizard.step === 6 && (selectedCompany?.gold ?? 0) === 0) {
-                  handleFinish()
-                  return
-                }
                 // Skip step 5 (leader/sergeant selection) when all roles are forced
                 if (wizard.step === 4 && allRolesForced) {
-                  console.log('Skipping step 5, jumping to step 6 with forced roles')
                   setWizard((w) => ({
                     ...w,
                     step: 6,
@@ -1549,20 +1622,12 @@ export default function CreateCompanyPage() {
                   setDirection(1)
                   return
                 }
-                console.log('Normal advance to step', wizard.step + 1)
                 go(wizard.step + 1)
               }}
               disabled={!canAdvance()}
               sx={{ minWidth: 100, minHeight: 44 }}
             >
-              {wizard.step === 6 &&
-              !(
-                [wizard.leaderId!, ...wizard.sergeantIds].every(
-                  (tid) => wizard.heroPaths[tid]
-                )
-              )
-                ? 'Select'
-                : 'Next'}
+              Next
             </Button>
           )
         ) : (

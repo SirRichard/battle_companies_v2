@@ -17,6 +17,7 @@ interface Props {
   baseStats?: Record<string, number>
   selectedPathId: string | null
   onSelect: (pathId: string) => void
+  onCardChange?: (pathId: string) => void
 }
 
 export default function StepPathSelection({
@@ -27,6 +28,7 @@ export default function StepPathSelection({
   baseStats,
   selectedPathId,
   onSelect,
+  onCardChange,
 }: Props) {
   const roleLabel = heroRole === 'leader' ? 'Leader' : 'Sergeant'
 
@@ -111,6 +113,7 @@ export default function StepPathSelection({
     <PathCardSelector
       selectedPathId={selectedPathId}
       onSelect={onSelect}
+      onCardChange={onCardChange}
       baseStats={baseStats}
       headerSlot={header}
     />

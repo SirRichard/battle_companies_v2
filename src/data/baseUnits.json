@@ -4,21 +4,21 @@
     "label": "Warrior of Arnor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["spear", "shield", "heavy_armour"]
+    "baseEquipment": ["spear", "shield", "heavy_armour", "hand_weapon"]
   },
   {
     "id": "knight_of_arnor",
     "label": "Knight of Arnor",
     "pointsCost": 15,
     "keywords": ["man"],
-    "baseEquipment": ["shield", "war_spear", "horse", "heavy_armour"]
+    "baseEquipment": ["shield", "war_spear", "horse", "heavy_armour", "hand_weapon"]
   },
   {
     "id": "ranger_of_arnor",
     "label": "Ranger of Arnor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow"],
+    "baseEquipment": ["armour", "bow", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -43,7 +43,7 @@
     "label": "Blackroot Vale Archer",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow"],
+    "baseEquipment": ["armour", "bow", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -61,21 +61,21 @@
     "label": "Axeman of Lossarnach",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "axe_of_lossarnach"]
+    "baseEquipment": ["heavy_armour", "axe_of_lossarnach", "hand_weapon"]
   },
   {
     "id": "man_at_arms_of_dol_amroth",
     "label": "Man at Arms of Dol Amroth",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "pike"]
+    "baseEquipment": ["heavy_armour", "pike", "hand_weapon"]
   },
   {
     "id": "knight_of_dol_amroth",
     "label": "Knight of Dol Amroth",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield"],
+    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -93,7 +93,7 @@
     "label": "Warrior of Minas Tirith",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -123,14 +123,14 @@
     "label": "Knight of Minas Tirith",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "lance", "horse"]
+    "baseEquipment": ["heavy_armour", "shield", "lance", "horse", "hand_weapon"]
   },
   {
     "id": "citadel_guard",
     "label": "Citadel Guard",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -154,14 +154,14 @@
     "label": "Guard of the Fountain Court",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "spear"]
+    "baseEquipment": ["heavy_armour", "spear", "hand_weapon"]
   },
   {
     "id": "osgiliath_veteran",
     "label": "Osgiliath Veteran",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -191,7 +191,7 @@
     "label": "Ranger of Gondor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow"],
+    "baseEquipment": ["armour", "bow", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -221,7 +221,7 @@
     "label": "Warrior of Numenor",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -251,7 +251,7 @@
     "label": "Rider of Rohan",
     "pointsCost": 14,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "shield", "bow", "horse"],
+    "baseEquipment": ["armour", "shield", "bow", "horse", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -269,7 +269,7 @@
     "label": "Warrior of Rohan",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -299,7 +299,7 @@
     "label": "Rohan Outrider",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow"],
+    "baseEquipment": ["armour", "bow", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -317,7 +317,7 @@
     "label": "Rohan Royal Guard",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -347,7 +347,7 @@
     "label": "Son of Eorl",
     "pointsCost": 20,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "armoured_horse"],
+    "baseEquipment": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -367,7 +367,7 @@
     "label": "Woses Warrior",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["spear", "blowpipe"]
+    "baseEquipment": ["spear", "blowpipe", "hand_weapon"]
   },
   {
     "id": "mirkwood_elf_warrior",
@@ -434,7 +434,7 @@
     "label": "Mirkwood Ranger",
     "pointsCost": 14,
     "keywords": ["elf"],
-    "baseEquipment": ["elf_bow", "elven_cloak"]
+    "baseEquipment": ["elf_bow", "elven_cloak", "elven_hand_weapon"]
   },
   {
     "id": "mirkwood_elf_knight",
@@ -549,7 +549,7 @@
     "label": "Wood Elf Sentinel",
     "pointsCost": 25,
     "keywords": ["elf"],
-    "baseEquipment": ["elf_bow", "elven_cloak"],
+    "baseEquipment": ["elf_bow", "elven_cloak", "elven_hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -635,7 +635,7 @@
     "label": "Erebor Dwarf Warrior",
     "pointsCost": 9,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -661,8 +661,8 @@
     }
   },
   {
-    "id": "grimhammer",
-    "label": "Grimhammer",
+    "id": "grim_hammer_warrior",
+    "label": "Grim Hammer Warrior",
     "pointsCost": 11,
     "keywords": ["dwarf"],
     "baseEquipment": ["heavy_dwarf_armour", "mattock", "throwing_weapons"]
@@ -672,7 +672,7 @@
     "label": "Dwarf Warrior",
     "pointsCost": 8,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -702,7 +702,7 @@
     "label": "Dwarf Ranger",
     "pointsCost": 8,
     "keywords": ["dwarf"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -732,14 +732,14 @@
     "label": "Khazad Guard",
     "pointsCost": 12,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_dwarf_armour", "two_handed_weapon"]
+    "baseEquipment": ["heavy_dwarf_armour", "two_handed_weapon", "hand_weapon"]
   },
   {
     "id": "iron_guard",
     "label": "Iron Guard",
     "pointsCost": 15,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "throwing_weapons"],
+    "baseEquipment": ["heavy_armour", "throwing_weapons", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -747,7 +747,7 @@
     "label": "Vault Warden Iron Shield Bearer",
     "pointsCost": 13,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "iron_shield"]
+    "baseEquipment": ["heavy_armour", "iron_shield", "hand_weapon"]
   },
   {
     "id": "vault_warden_foe_spear",
@@ -761,7 +761,7 @@
     "label": "Iron Hills Warrior",
     "pointsCost": 10,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -791,7 +791,7 @@
     "label": "Iron Hills Goat Rider",
     "pointsCost": 20,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "war_spear", "war_goat"]
+    "baseEquipment": ["heavy_armour", "war_spear", "war_goat", "hand_weapon"]
   },
   {
     "id": "lake_town_guard",
@@ -819,10 +819,10 @@
   },
   {
     "id": "lake_town_militia",
-    "label": "Lake Town Militia",
+    "label": "Lake-Town Militia",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": ["light_armour"],
+    "baseEquipment": ["light_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -852,7 +852,7 @@
     "label": "Warrior of Dale",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -882,14 +882,14 @@
     "label": "Knight of Dale",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "spear"]
+    "baseEquipment": ["heavy_armour", "shield", "spear", "hand_weapon"]
   },
   {
     "id": "ranger_of_the_north",
     "label": "Ranger of the North",
     "pointsCost": 25,
     "keywords": ["man"],
-    "baseEquipment": ["bow"],
+    "baseEquipment": ["bow", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -912,14 +912,15 @@
     "id": "hobbit_militia",
     "label": "Hobbit Militia",
     "pointsCost": 4,
-    "keywords": ["hobbit"]
+    "keywords": ["hobbit"],
+    "baseEquipment": ["hand_weapon"]
   },
   {
     "id": "hobbit_archer",
     "label": "Hobbit Archer",
     "pointsCost": 5,
     "keywords": ["hobbit"],
-    "baseEquipment": ["short_bow"]
+    "baseEquipment": ["short_bow", "hand_weapon"]
   },
   {
     "id": "hobbit_shirriff",
@@ -957,7 +958,7 @@
     "label": "Mordor Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -993,7 +994,7 @@
     "label": "Morannon Orc Warrior",
     "pointsCost": 8,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1023,7 +1024,7 @@
     "label": "Mordor Uruk-Hai",
     "pointsCost": 8,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1041,7 +1042,7 @@
     "label": "Mordor Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg"],
+    "baseEquipment": ["armour", "warg", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1077,28 +1078,28 @@
     "label": "Black Guard of Barad Dur",
     "pointsCost": 12,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour", "shield"]
+    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"]
   },
   {
     "id": "orc_tracker",
     "label": "Orc Tracker",
     "pointsCost": 6,
     "keywords": ["orc"],
-    "baseEquipment": ["orc_bow"]
+    "baseEquipment": ["orc_bow", "hand_weapon"]
   },
   {
     "id": "black_numenorean_warrior",
     "label": "Black Numenorean Warrior",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield"]
+    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"]
   },
   {
     "id": "black_numenorean_knight",
     "label": "Black Numenorean Knight",
     "pointsCost": 20,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "lance", "armoured_horse"]
+    "baseEquipment": ["heavy_armour", "shield", "lance", "armoured_horse", "hand_weapon"]
   },
   {
     "id": "mirkwood_giant_spider",
@@ -1119,7 +1120,7 @@
     "label": "Spectre",
     "pointsCost": 15,
     "keywords": ["spirit"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1127,7 +1128,7 @@
     "label": "Morgul Stalker",
     "pointsCost": 10,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1135,7 +1136,7 @@
     "label": "Angmar Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1178,7 +1179,7 @@
     "label": "Angmar Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg"],
+    "baseEquipment": ["armour", "warg", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1222,7 +1223,7 @@
     "label": "Warrior of Carn Dum",
     "pointsCost": 9,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1247,7 +1248,7 @@
     "label": "Uruk-Hai Scout",
     "pointsCost": 8,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1278,7 +1279,7 @@
     "label": "Wild Man of Dunland",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": [],
+    "baseEquipment": ["hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1326,7 +1327,7 @@
     "label": "Isengard Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1362,7 +1363,7 @@
     "label": "Feral Uruk-Hai",
     "pointsCost": 13,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["light_armour"],
+    "baseEquipment": ["light_armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1370,7 +1371,7 @@
     "label": "Dunlending Warrior",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1400,7 +1401,7 @@
     "label": "Uruk-Hai Warrior",
     "pointsCost": 9,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1430,7 +1431,7 @@
     "label": "Uruk-Hai Berserker",
     "pointsCost": 15,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["light_armour"],
+    "baseEquipment": ["light_armour", "berserker_blade"],
     "onTheirOwnPath": true
   },
   {
@@ -1445,7 +1446,7 @@
     "label": "Isengard Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg"],
+    "baseEquipment": ["armour", "warg", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1481,7 +1482,7 @@
     "label": "Hill Tribesman",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": [],
+    "baseEquipment": ["hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1536,14 +1537,14 @@
     "label": "Dunlending Horseman",
     "pointsCost": 12,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "shield", "horse"]
+    "baseEquipment": ["armour", "shield", "horse", "hand_weapon"]
   },
   {
     "id": "ruffian",
     "label": "Ruffian",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": [],
+    "baseEquipment": ["hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1567,7 +1568,7 @@
     "label": "Rohirrim Traitor",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1597,7 +1598,7 @@
     "label": "Moria Goblin Warrior",
     "pointsCost": 4,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1627,14 +1628,14 @@
     "label": "Moria Goblin Prowler",
     "pointsCost": 7,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour", "two_handed_weapon", "throwing_weapons"]
+    "baseEquipment": ["armour", "two_handed_weapon", "throwing_weapons", "hand_weapon"]
   },
   {
     "id": "moria_blackshield_warrior",
     "label": "Moria Blackshield Warrior",
     "pointsCost": 8,
     "keywords": ["goblin"],
-    "baseEquipment": ["heavy_armour", "shield"],
+    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1712,7 +1713,7 @@
     "label": "Haradrim Warrior",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1736,7 +1737,7 @@
     "label": "Haradrim Raider",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "horse"],
+    "baseEquipment": ["armour", "horse", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1766,7 +1767,7 @@
     "label": "Serpent Guard",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "spear"]
+    "baseEquipment": ["armour", "spear", "hand_weapon"]
   },
   {
     "id": "serpent_rider",
@@ -1780,7 +1781,7 @@
     "label": "Watcher of Karna",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["light_armour"],
+    "baseEquipment": ["light_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1820,7 +1821,7 @@
     "label": "Corsair of Umbar",
     "pointsCost": 8,
     "keywords": ["man", "corsair"],
-    "baseEquipment": ["light_armour"],
+    "baseEquipment": ["light_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1850,14 +1851,14 @@
     "label": "Corsair Crossbowman",
     "pointsCost": 10,
     "keywords": ["man", "corsair"],
-    "baseEquipment": ["crossbow", "pavise"]
+    "baseEquipment": ["crossbow", "pavise", "hand_weapon"]
   },
   {
     "id": "corsair_reaver",
     "label": "Corsair Reaver",
     "pointsCost": 9,
     "keywords": ["man", "corsair"],
-    "baseEquipment": [],
+    "baseEquipment": ["hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1865,7 +1866,7 @@
     "label": "Easterling Warrior",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1895,7 +1896,7 @@
     "label": "Black Dragon Warrior",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield"],
+    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1913,14 +1914,14 @@
     "label": "Easterling Kataphrakt",
     "pointsCost": 15,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "armoured_horse"]
+    "baseEquipment": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"]
   },
   {
     "id": "dragon_cult_acolyte",
     "label": "Dragon Cult Acolyte",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "throwing_weapons"],
+    "baseEquipment": ["armour", "throwing_weapons", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1928,7 +1929,7 @@
     "label": "War Drake of Rhun",
     "pointsCost": 20,
     "keywords": ["drake"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1936,7 +1937,7 @@
     "label": "Mahud Warrior",
     "pointsCost": 8,
     "keywords": ["man", "mahud"],
-    "baseEquipment": ["armour", "shield"],
+    "baseEquipment": ["armour", "shield", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -1960,7 +1961,7 @@
     "label": "Khandish Warrior",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_and_half_weapon"],
+    "baseEquipment": ["armour", "hand_and_half_weapon", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -1978,7 +1979,7 @@
     "label": "Khandish Horseman",
     "pointsCost": 14,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "horse", "hand_and_half_weapon"]
+    "baseEquipment": ["armour", "horse", "hand_and_half_weapon", "hand_weapon"]
   },
   {
     "id": "half_troll",
@@ -1987,12 +1988,18 @@
     "keywords": ["man"],
     "baseEquipment": ["armour"],
     "equipmentOptions": {
-      "selectionRule": "mayChooseOne",
+      "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
           "equipment": ["two_handed_weapon"],
+          "pointsCost": 0
+        },
+        {
+          "id": "option_hand_weapon",
+          "label": "Hand Weapon",
+          "equipment": ["hand_weapon"],
           "pointsCost": 0
         }
       ]
@@ -2003,7 +2010,7 @@
     "label": "Hunter Orc Warrior",
     "pointsCost": 8,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -2027,7 +2034,7 @@
     "label": "Hunter Orc Warg Rider",
     "pointsCost": 15,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "fell_warg"],
+    "baseEquipment": ["armour", "fell_warg", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
@@ -2051,7 +2058,7 @@
     "label": "Goblin Warrior",
     "pointsCost": 5,
     "keywords": ["goblin"],
-    "baseEquipment": [],
+    "baseEquipment": ["hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -2069,14 +2076,14 @@
     "label": "Goblin Mercenary",
     "pointsCost": 6,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour"]
+    "baseEquipment": ["armour", "hand_weapon"]
   },
   {
     "id": "gundabad_orc_warrior",
     "label": "Gundabad Orc Warrior",
     "pointsCost": 9,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour"],
+    "baseEquipment": ["heavy_armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
@@ -2100,7 +2107,7 @@
     "label": "Gundabad Berserker",
     "pointsCost": 15,
     "keywords": ["orc"],
-    "baseEquipment": ["armour"],
+    "baseEquipment": ["armour", "hand_weapon"],
     "equipmentOptions": {
       "selectionRule": "mayChooseOne",
       "options": [

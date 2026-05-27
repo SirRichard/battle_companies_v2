@@ -12,7 +12,7 @@
  *   headerSlot       — optional React node rendered above the nav row
  */
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Box, Typography, Button, Chip, Divider } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
@@ -40,6 +40,7 @@ interface PathDef {
 interface Props {
   selectedPathId: string | null
   onSelect: (pathId: string) => void
+  onCardChange?: (pathId: string) => void
   baseStats?: Record<string, number>
   headerSlot?: React.ReactNode
 }
@@ -216,6 +217,7 @@ function getMasterAbility(path: PathDef): string | null {
 export default function PathCardSelector({
   selectedPathId,
   onSelect,
+  onCardChange,
   baseStats,
   headerSlot,
 }: Props) {
@@ -226,10 +228,17 @@ export default function PathCardSelector({
   const [direction, setDirection] = useState(0)
   const touchStartX = useRef<number | null>(null)
 
+  // Notify parent of the initially-viewed path on mount
+  useEffect(() => {
+    onCardChange?.(PATHS[cardIndex].id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const goTo = (idx: number) => {
     if (idx < 0 || idx >= PATHS.length) return
     setDirection(idx > cardIndex ? 1 : -1)
     setCardIndex(idx)
+    onCardChange?.(PATHS[idx].id)
   }
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {

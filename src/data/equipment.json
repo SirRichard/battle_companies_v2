@@ -13,7 +13,8 @@
     "size": "small",
     "rating": 5,
     "influenceCost": 2,
-    "grantsSpecialRules": ["fearless"]
+    "grantsSpecialRules": ["fearless"],
+    "description": "A model with a Badge of Courage gains the Fearless special rule."
   },
   {
     "id": "barding",
@@ -22,7 +23,8 @@
     "rating": 10,
     "influenceCost": 2,
     "cavalryOnly": true,
-    "grantsSpecialRules": ["expert_rider", "horse_lord"]
+    "grantsSpecialRules": ["expert_rider", "horse_lord"],
+    "description": "The rider gains the Expert Rider & Horselord special rules."
   },
   {
     "id": "climbing_ropes",
@@ -60,12 +62,22 @@
     "description": "This is a Pennant that grants the bearer the Command Support keyword. Friendly models within 3\" of this model may re-roll any rolls of a 1 when making a Duel Roll."
   },
   {
+    "id": "company_instrument",
+    "label": "Company Instrument",
+    "size": "small",
+    "rating": 15,
+    "influenceCost": 3,
+    "grantsSpecialRules": ["command_support"],
+    "description": "This is an Instrument that grants the bearer the Command Support keyword. Friendly models within 3\" of this model that suffer a wound may roll a d6. On a natural 6, they ignore the wound."
+  },
+  {
     "id": "concealing_cloak",
     "label": "Concealing Cloak",
     "size": "small",
     "rating": 5,
     "influenceCost": 2,
-    "grantsSpecialRules": ["stalk_unseen"]
+    "grantsSpecialRules": ["stalk_unseen"],
+    "description": "A model wearing a Concealing Cloak has the Stalk Unseen special rule."
   },
   {
     "id": "dwarven_brew",
@@ -123,12 +135,22 @@
     "description": "After both Battle Companies have deployed, before the first Priority is rolled, a Battle Company with a Map may redeploy D6 models using the normal rules. If both players have a Map, the player with Priority redeploys their models first. In scenarios where you roll for when or where models arrive or deploy, you may modify the roll for this model by +1 or -1. In scenarios where the bearer would be grouped with other models for these rolls, then they may confer this bonus to the whole group."
   },
   {
+    "id": "mountain_boots",
+    "label": "Mountain Boots",
+    "size": "large",
+    "rating": 3,
+    "influenceCost": 1,
+    "grantsSpecialRules": ["mountain_dweller"],
+    "description": "A model wearing Mountain Boots has the Mountain Dweller special rule."
+  },
+  {
     "id": "ring_of_warding",
     "label": "Ring of Warding",
     "size": "small",
     "rating": 5,
     "influenceCost": 1,
-    "grantsSpecialRules": ["resistant_to_magic"]
+    "grantsSpecialRules": ["resistant_to_magic"],
+    "description": "A model with a Ring of Warding gains the Resistant to Magic special rule."
   },
   {
     "id": "scroll_of_courage",
@@ -158,7 +180,7 @@
     "influenceCost": 4,
     "heroOnly": true,
     "unique": true,
-    "description": "Once per game, during the Priority Phase before the roll for Priority, the bearer may automatically win the roll to choose who has Priority."
+    "description": "Once per game, during the Priority Phase but before the roll for Priority, the bearer can use the Palantir to automatically win the roll to choose who has Priority for that turn. If both sides have a special rule allowing them to do this and both wish to use it in the same turn, players roll off as normal and both special rules count as being used."
   },
   {
     "id": "torching_brand",
@@ -179,7 +201,8 @@
     "size": "large",
     "rating": 20,
     "influenceCost": 4,
-    "grantsSpecialRules": ["master_of_traps"]
+    "grantsSpecialRules": ["master_of_traps"],
+    "description": "A model with Traps & Snares gains the Master of Traps special rule."
   },
   {
     "id": "trophy_pelt",
@@ -187,15 +210,8 @@
     "size": "large",
     "rating": [3, 5],
     "influenceCost": 2,
-    "grantsSpecialRules": ["terror"]
-  },
-  {
-    "id": "mountain_boots",
-    "label": "Mountain Boots",
-    "size": "large",
-    "rating": 3,
-    "influenceCost": 1,
-    "grantsSpecialRules": ["mountain_dweller"]
+    "grantsSpecialRules": ["terror"],
+    "description": "A model with a Trophy Pelt gains the Terror special rule."
   },
   {
     "id": "wondrous_cram",
@@ -212,6 +228,7 @@
     "size": "small",
     "rating": 3,
     "influenceCost": 1,
-    "grantsSpecialRules": ["woodland_creature"]
+    "grantsSpecialRules": ["woodland_creature"],
+    "description": "A model wearing the Woodland Belt has the Woodland Creature special rule."
   }
 ]

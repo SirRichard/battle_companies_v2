@@ -9,6 +9,15 @@
     "minor": false
   },
   {
+    "id": "big_game_hunter",
+    "label": "Big Game Hunter",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If this Hero successfully Wound an enemy Monster model with a shooting attack (a Wound is caused and is not prevented), it will deal D3 Wounds rather than 1.",
+    "minor": false
+  },
+  {
     "id": "bodyguard",
     "label": "Bodyguard",
     "activationType": "passive",
@@ -146,6 +155,15 @@
     "minor": false
   },
   {
+    "id": "grim_blade",
+    "label": "Grim Blade",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "This Hero will always win the roll-off during a Drawn Combat. If both sides have a Hero with this special rule, neither side will benefit from this special rule.",
+    "minor": false
+  },
+  {
     "id": "handlers_glove",
     "label": "Handler's Glove",
     "activationType": "active",
@@ -175,6 +193,113 @@
 	"parameter_type": "target_keyword"
   },
   {
+    "id": "heroic_move_mastery",
+    "label": "Heroic Move Mastery",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6” of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4.",
+    "minor": false
+  },
+  {
+    "id": "heroic_shoot_mastery",
+    "label": "Heroic Shoot Mastery",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "When benefiting from a Heroic Shoot called by this Hero, friendly models may reroll failed To Wound Rolls when making shooting attacks.",
+    "minor": false
+  },{
+    "id": "heroic_combat_mastery",
+    "label": "Heroic Combat Mastery",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Combat without expending a point of Might if they slayed an enemy model they were Engaged in Combat with in the previous turn.",
+    "minor": false
+  },
+  {
+    "id": "heroic_accuracy_mastery",
+    "label": "Heroic Accuracy Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Friendly models benefiting from this Hero's Heroic Accuracy pass in-the-way checks on a 2+ rather than 4+.",
+    "minor": false
+  },
+  {
+    "id": "heroic_challenge_mastery",
+    "label": "Heroic Challenge Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1.",
+    "minor": false
+  },
+  {
+    "id": "heroic_chanelling_mastery",
+    "label": "Heroic Channeling Mastery",
+    "activationType": "pasive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "When the Hero casts a Heroic Channeled spell that targets a single model, they may target one additional model.",
+    "minor": false
+  },
+  {
+    "id": "heroic_defence_mastery",
+    "label": "Heroic Defence Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat.",
+    "minor": false
+  },
+  {
+    "id": "heroic_march_mastery",
+    "label": "Heroic March Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Models are not required to stay within the 'At the Double' range of this Hero in a turn in which this Hero declares a Heroic March.",
+    "minor": false
+  },
+  {
+    "id": "heroic_resolve_mastery",
+    "label": "Heroic Resolve Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "The Hero may call Heroic Resolve without expending Might if their force is Broken.",
+    "minor": false
+  },
+  {
+    "id": "heroic_strength_mastery",
+    "label": "Heroic Strength Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "When this Hero declares a Heroic Strength, they may choose to make a single Strike against every enemy involved in the combat, including supporting models, instead of making Strikes as normal.",
+    "minor": false
+  },
+  {
+    "id": "heroic_strike_mastery",
+    "label": "Heroic Strike Mastery",
+    "activationType": "passive",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "When calling a Heroic Strike the Hero adds +3 to their Fight Value rather than rolling a D3.",
+    "minor": false
+  },
+  {
+    "id": "hold_positions_loose_the_arrows",
+    "label": "Hold positions, loose the arrows!",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Whilst within 3\" of this Hero, friendly models may re-roll failed To Hit Rolls when making a shooting attack, providing they didn’t Move in the preceding Move Phase.",
+    "minor": false
+  },
+  {
     "id": "horse_lord",
     "label": "Horse Lord",
     "activationType": "passive",
@@ -202,12 +327,12 @@
     "minor": false
   },
   {
-    "id": "laden_with_baggage",
-    "label": "Laden with Baggage",
-    "activationType": "passive",
+    "id": "knife_mastery",
+    "label": "Knife Mastery",
+    "activationType": "active",
     "source": "battle_companies",
     "parameterised": false,
-    "description": "A Baggage Pony has a carrying capacity of up to 15 pieces of Equipment, weapons or additional wargear (except mounts). Whilst these pieces are on the Pony, the company gains no benefit from them. During the War's Aftermath, after determining injuries but before determining the next scenario, any member of a Battle Company may retrieve, store, or swap one of its pieces of Wargear or Equipment for an item from the Pony. During a scenario, any member of a Battle Company that begins its turn in base contact with the Pony may do likewise. The Battle Company must still abide by Wargear Limits at all times and each member must follow restrictions for Warriors and Heroes as normal.",
+    "description": "Friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. Additionally, friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may use the Shielding rule even if they do not possess any kind of shield.",
     "minor": false
   },
   {
@@ -868,6 +993,15 @@
     "source": "battle_companies",
     "parameterised": false,
     "description": "This Hero increases the range of their shooting attacks by 6\", provided they have not moved that turn. This special rule does not apply to throwing weapons.",
+    "minor": false
+  },
+  {
+    "id": "warrior_of_renown",
+    "label": "Warrior of Renown",
+    "activationType": "active",
+    "source": "battle_companies",
+    "parameterised": false,
+    "description": "Enemy models Engaged in Combat with this Hero cannot declare a Heroic Strike.",
     "minor": false
   }
 ]

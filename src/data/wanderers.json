@@ -75,7 +75,7 @@
     },
     "equipment": ["heavy_armour"],
     "heroicActions": ["heroic_defence"],
-    "specialRules": ["backstabber", "cunning_fighter", "scavenge"],
+    "specialRules": ["backstabbers", "cunning_fighter", "scavenge"],
     "keywordNote": "Man keyword may be replaced with another species keyword with no impact on the profile."
   },
   {

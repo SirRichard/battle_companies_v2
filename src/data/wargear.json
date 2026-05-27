@@ -229,6 +229,16 @@
     "influenceCost": 1,
     "rating": [1, 5]
   },
+  { 
+    "id": "hand_weapon", 
+  "label": "Hand Weapon", 
+  "category": "weapon" 
+},
+  { 
+    "id": "elven_hand_weapon", 
+  "label": "Elven Hand Weapon", 
+  "category": "weapon" 
+},
   {
     "id": "hand_and_half_weapon",
     "label": "Hand and a Half Weapon",

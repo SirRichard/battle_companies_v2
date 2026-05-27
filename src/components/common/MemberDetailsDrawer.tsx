@@ -38,6 +38,7 @@ import heroicActionsData from '../../data/heroicActions.json'
 import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
 import { CHANNELING_SPELLS } from '../wizard/StepSpellSelection'
 import wargearData from '../../data/wargear.json'
+import equipmentData from '../../data/equipment.json'
 import companiesData from '../../data/companies.json'
 
 
@@ -51,6 +52,15 @@ const WARGEAR_CATEGORY_MAP = (
   wargearData as Array<{ id: string; category?: string }>
 ).reduce<Record<string, string>>((acc, w) => {
   if (w.category) acc[w.id] = w.category
+  return acc
+}, {})
+
+// ─── Equipment label lookup ───────────────────────────────────────────────────
+
+const EQUIPMENT_LABEL_MAP = (
+  equipmentData as Array<{ id: string; label: string }>
+).reduce<Record<string, string>>((acc, e) => {
+  acc[e.id] = e.label
   return acc
 }, {})
 
@@ -387,6 +397,10 @@ export default function MemberDetailsDrawer({
   const [wargearEditMode, setWargearEditMode] = useState(false)
   const [removeConfirmItem, setRemoveConfirmItem] = useState<string | null>(null)
 
+  // ── Equipment edit mode state ─────────────────────────────────────────────
+  const [equipEditMode, setEquipEditMode] = useState(false)
+  const [equipRemoveConfirmItem, setEquipRemoveConfirmItem] = useState<string | null>(null)
+
   // Early return — all hooks must be declared above this point
   if (!member) {
     return (
@@ -431,7 +445,11 @@ export default function MemberDetailsDrawer({
     }
   }
 
+  // Equipment items (non-combat) — displayed in dedicated Equipment section
+  const displayEquipment = (member.ownedEquipment ?? []).filter(id => id !== 'envenom_weapon')
+
   const allWargear = Array.from(new Set([...baseEquip, ...assignedEquip, ...envenomWargearEntries]))
+    .filter(id => !displayEquipment.includes(id))
 
   // Equipment-derived stat bonuses (shield +1D, armour upgrade, etc.)
   const equipBonus = calcEquipmentStatBonus(
@@ -1318,6 +1336,77 @@ export default function MemberDetailsDrawer({
           </Box>
         )}
 
+        {/* ── Equipment ──────────────────────────────────────────────────── */}
+        <Box sx={{ mb: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <SectionLabel>Equipment</SectionLabel>
+            {isHero && onSaveCompany && (
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {!equipEditMode && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setEquipEditMode(true)}
+                    sx={{ fontSize: '0.6rem', py: 0.25, px: 1, minWidth: 0, borderColor: 'primary.dark', color: 'primary.light' }}
+                  >
+                    Edit
+                  </Button>
+                )}
+                {equipEditMode && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => setEquipEditMode(false)}
+                    sx={{ fontSize: '0.6rem', py: 0.25, px: 1, minWidth: 0 }}
+                  >
+                    Done
+                  </Button>
+                )}
+              </Box>
+            )}
+          </Box>
+          {displayEquipment.length === 0 ? (
+            <Typography
+              variant="caption"
+              sx={{
+                opacity: 0.5,
+                fontStyle: 'italic',
+                mt: 0.5,
+                display: 'block',
+              }}
+            >
+              No equipment
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
+              {displayEquipment.map((eq) => (
+                <Box key={eq} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                  <Chip
+                    label={EQUIPMENT_LABEL_MAP[eq] ?? eq.replace(/_/g, ' ')}
+                    size="small"
+                    sx={{
+                      fontSize: '0.72rem',
+                      borderColor: equipEditMode && onSaveCompany ? 'error.main' : 'divider',
+                      color: equipEditMode && onSaveCompany ? 'error.light' : 'text.secondary',
+                      border: '1px solid',
+                      background: 'transparent',
+                    }}
+                  />
+                  {equipEditMode && onSaveCompany && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setEquipRemoveConfirmItem(eq)}
+                      sx={{ color: 'error.main', p: 0.25, fontSize: '0.9rem', lineHeight: 1 }}
+                    >
+                      ×
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
         {/* ── Experience ───────────────────────────────────────────────────── */}
         <Box sx={{ mb: 2.5 }}>
           <Box
@@ -1411,16 +1500,19 @@ export default function MemberDetailsDrawer({
               sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}
             >
               {member.injuries.map((injury, i) => {
-                const canTreat =
-                  !!company && !!onSaveCompany && company.influence >= 1
+                const hasIP = (company?.influence ?? 0) >= 1
                 const isWarrior = member.role === 'warrior'
-                const showTreatBtn =
-                  canTreat &&
+                // Determine if this injury type is treatable for this member's role
+                const isTreatable =
+                  !!company &&
+                  !!onSaveCompany &&
                   (injury.type === 'missing_next_game' ||
                     (!isWarrior &&
                       ['arm_wound', 'leg_wound', 'broken_honour'].includes(
                         injury.type
                       )))
+                const showTreatBtn = isTreatable && hasIP
+                const showDisabledTreatBtn = isTreatable && !hasIP
                 return (
                   <Box
                     key={i}
@@ -1478,6 +1570,37 @@ export default function MemberDetailsDrawer({
                         >
                           Treat
                         </Button>
+                      )}
+                      {showDisabledTreatBtn && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled
+                            sx={{
+                              fontSize: '0.58rem',
+                              py: 0.25,
+                              px: 1,
+                              minWidth: 0,
+                              borderColor: 'primary.dark',
+                              color: 'primary.light',
+                              opacity: 0.4,
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            Treat
+                          </Button>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'error.main',
+                              fontSize: '0.55rem',
+                              mt: 0.25,
+                            }}
+                          >
+                            No IP Available
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                     <Typography
@@ -1837,6 +1960,30 @@ export default function MemberDetailsDrawer({
             setRemoveConfirmItem(null)
           }}
           onCancel={() => setRemoveConfirmItem(null)}
+        />
+
+        {/* ── Equipment remove confirm dialog ───────────────────────────────── */}
+        <ConfirmDialog
+          open={equipRemoveConfirmItem !== null}
+          title="Remove Equipment"
+          message={`Remove "${EQUIPMENT_LABEL_MAP[equipRemoveConfirmItem ?? ''] ?? (equipRemoveConfirmItem ?? '').replace(/_/g, ' ')}" from ${member.name}? This cannot be undone.`}
+          confirmLabel="Remove"
+          cancelLabel="Cancel"
+          dangerous
+          onConfirm={async () => {
+            if (!equipRemoveConfirmItem || !company || !onSaveCompany) {
+              setEquipRemoveConfirmItem(null)
+              return
+            }
+            const updatedMembers = company.members.map((m) => {
+              if (m.id !== member.id) return m
+              const updatedOwned = (m.ownedEquipment ?? []).filter((e) => e !== equipRemoveConfirmItem)
+              return { ...m, ownedEquipment: updatedOwned }
+            })
+            await onSaveCompany({ ...company, members: updatedMembers })
+            setEquipRemoveConfirmItem(null)
+          }}
+          onCancel={() => setEquipRemoveConfirmItem(null)}
         />
 
         {/* Bottom safe area */}
