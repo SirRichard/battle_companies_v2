@@ -248,3 +248,198 @@ describe('Property 31: Envenom Weapon options are a subset of the member\'s carr
     )
   })
 })
+
+// Feature: company-creation-enhancements, Property 2: Envenom weapon options are valid weapons minus already-envenomed
+
+/**
+ * Property 2: Envenom weapon options are valid weapons minus already-envenomed
+ * Validates: Requirements 3.2, 3.5
+ *
+ * For any member with any combination of base equipment and purchased wargear,
+ * the available envenom weapon options SHALL be a subset of the member's combined
+ * equipment filtered to weapon categories (excluding armour, mount, shield, special),
+ * minus any weapons already envenomed for that member in the current gold purchases.
+ *
+ * This block tests the ACTUAL exported getMemberWeapons and NON_WEAPON_CATEGORIES
+ * from StepGoldEquipment.tsx.
+ */
+
+import {
+  getMemberWeapons as getMemberWeaponsReal,
+  NON_WEAPON_CATEGORIES as NON_WEAPON_CATEGORIES_REAL,
+  parseGoldEntry,
+} from '../../components/wizard/StepGoldEquipment'
+
+// ── Helpers using real exports ────────────────────────────────────────────────
+
+const WARGEAR_MAP_REAL = Object.fromEntries(
+  (wargearData as Array<{ id: string; category?: string }>).map((w) => [w.id, w])
+)
+
+/**
+ * Mirrors the envenom eligibility logic in EquipmentTabContent using real exports.
+ */
+function getEligibleEnvenomWeaponsReal(
+  baseUnitId: string,
+  memberEquipment: string[],
+  currentPurchases: string[]
+): string[] {
+  const alreadyEnvenomedWeapons = currentPurchases
+    .filter((p) => p.startsWith('envenom_weapon::'))
+    .map((p) => parseGoldEntry(p).parameter!)
+
+  const allWeapons = getMemberWeaponsReal(baseUnitId, [
+    ...memberEquipment,
+    ...currentPurchases.map((p) => parseGoldEntry(p).itemId),
+  ])
+
+  return allWeapons.filter((wId) => !alreadyEnvenomedWeapons.includes(wId))
+}
+
+// ── Arbitraries for Property 2 ───────────────────────────────────────────────
+
+/** Weapon-category IDs only (for generating envenom targets) */
+const WEAPON_IDS = (wargearData as Array<{ id: string; category?: string }>)
+  .filter((w) => !NON_WEAPON_CATEGORIES_REAL.has(w.category ?? ''))
+  .map((w) => w.id)
+
+/** Generate arbitrary subset of wargear as purchased items (plain IDs) */
+const purchasedWargearArb = fc.array(
+  fc.constantFrom(...ALL_WARGEAR_IDS),
+  { minLength: 0, maxLength: 6 }
+)
+
+/** Generate arbitrary envenom purchases as parameterised entries */
+const envenomPurchasesArb = WEAPON_IDS.length > 0
+  ? fc.array(
+      fc.constantFrom(...WEAPON_IDS).map((wId) => `envenom_weapon::${wId}`),
+      { minLength: 0, maxLength: 3 }
+    )
+  : fc.constant([] as string[])
+
+/** Combined purchases: plain wargear + envenom entries */
+const combinedPurchasesArb = fc.tuple(purchasedWargearArb, envenomPurchasesArb)
+  .map(([plain, envenom]) => [...plain, ...envenom])
+
+// ── Property 2 tests ─────────────────────────────────────────────────────────
+
+describe('Property 2: Envenom weapon options are valid weapons minus already-envenomed', () => {
+  /**
+   * Validates: Requirement 3.2
+   * getMemberWeapons (real export) returns only weapon-category items from combined equipment.
+   */
+  it('real getMemberWeapons returns only items whose category is NOT in NON_WEAPON_CATEGORIES', () => {
+    fc.assert(
+      fc.property(validBaseUnitIdArb, equipmentArrayArb, (baseUnitId, memberEquipment) => {
+        const weapons = getMemberWeaponsReal(baseUnitId, memberEquipment)
+
+        for (const weaponId of weapons) {
+          const entry = WARGEAR_MAP_REAL[weaponId]
+          expect(entry).toBeDefined()
+          expect(NON_WEAPON_CATEGORIES_REAL.has(entry.category ?? '')).toBe(false)
+        }
+      }),
+      { numRuns: 100 }
+    )
+  })
+
+  /**
+   * Validates: Requirement 3.2
+   * getMemberWeapons result is subset of member's combined equipment (base + purchased).
+   */
+  it('real getMemberWeapons result is subset of combined equipment', () => {
+    fc.assert(
+      fc.property(validBaseUnitIdArb, equipmentArrayArb, (baseUnitId, memberEquipment) => {
+        const weapons = getMemberWeaponsReal(baseUnitId, memberEquipment)
+
+        const baseUnit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
+        const baseEquipment = baseUnit?.baseEquipment ?? []
+        const combined = new Set([...baseEquipment, ...memberEquipment])
+
+        for (const w of weapons) {
+          expect(combined.has(w)).toBe(true)
+        }
+      }),
+      { numRuns: 100 }
+    )
+  })
+
+  /**
+   * Validates: Requirement 3.5
+   * Already-envenomed weapons are excluded from eligible options.
+   */
+  it('eligible envenom weapons exclude already-envenomed weapons from purchases', () => {
+    fc.assert(
+      fc.property(
+        validBaseUnitIdArb,
+        equipmentArrayArb,
+        combinedPurchasesArb,
+        (baseUnitId, memberEquipment, purchases) => {
+          const eligible = getEligibleEnvenomWeaponsReal(baseUnitId, memberEquipment, purchases)
+
+          const alreadyEnvenomed = new Set(
+            purchases
+              .filter((p) => p.startsWith('envenom_weapon::'))
+              .map((p) => parseGoldEntry(p).parameter!)
+          )
+
+          for (const wId of eligible) {
+            expect(alreadyEnvenomed.has(wId)).toBe(false)
+          }
+        }
+      ),
+      { numRuns: 100 }
+    )
+  })
+
+  /**
+   * Validates: Requirements 3.2, 3.5
+   * Eligible envenom weapons are subset of getMemberWeapons minus already-envenomed.
+   */
+  it('eligible envenom weapons = getMemberWeapons minus already-envenomed', () => {
+    fc.assert(
+      fc.property(
+        validBaseUnitIdArb,
+        equipmentArrayArb,
+        combinedPurchasesArb,
+        (baseUnitId, memberEquipment, purchases) => {
+          const eligible = getEligibleEnvenomWeaponsReal(baseUnitId, memberEquipment, purchases)
+
+          // Compute expected set
+          const allWeapons = getMemberWeaponsReal(baseUnitId, [
+            ...memberEquipment,
+            ...purchases.map((p) => parseGoldEntry(p).itemId),
+          ])
+          const alreadyEnvenomed = new Set(
+            purchases
+              .filter((p) => p.startsWith('envenom_weapon::'))
+              .map((p) => parseGoldEntry(p).parameter!)
+          )
+          const expected = allWeapons.filter((w) => !alreadyEnvenomed.has(w))
+
+          // Sets should be equal
+          expect(new Set(eligible)).toEqual(new Set(expected))
+        }
+      ),
+      { numRuns: 100 }
+    )
+  })
+
+  /**
+   * Validates: Requirement 3.5
+   * When all weapons are envenomed, eligible list is empty.
+   */
+  it('eligible envenom weapons empty when all weapons already envenomed', () => {
+    fc.assert(
+      fc.property(validBaseUnitIdArb, equipmentArrayArb, (baseUnitId, memberEquipment) => {
+        const allWeapons = getMemberWeaponsReal(baseUnitId, memberEquipment)
+        // Create purchases that envenom every weapon
+        const envenomAll = allWeapons.map((w) => `envenom_weapon::${w}`)
+
+        const eligible = getEligibleEnvenomWeaponsReal(baseUnitId, memberEquipment, envenomAll)
+        expect(eligible).toHaveLength(0)
+      }),
+      { numRuns: 100 }
+    )
+  })
+})

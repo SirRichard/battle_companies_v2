@@ -5,6 +5,15 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
+import IconButton from '@mui/material/IconButton'
+import Popover from '@mui/material/Popover'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import List from '@mui/material/List'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemText from '@mui/material/ListItemText'
+import InfoOutlined from '@mui/icons-material/InfoOutlined'
 import baseUnitsData from '../../data/baseUnits.json'
 import wargearData from '../../data/wargear.json'
 import equipmentData from '../../data/equipment.json'
@@ -53,6 +62,7 @@ type EquipmentEntry = {
   influenceCost?: number
   heroOnly?: boolean
   cavalryOnly?: boolean
+  description?: string
 }
 
 type CreatureEntry = {
@@ -69,6 +79,11 @@ const WARGEAR_MAP = Object.fromEntries(
   (wargearData as WargearEntry[]).map((w) => [w.id, w])
 )
 
+export const NON_WEAPON_CATEGORIES = new Set([
+  'armour_1', 'armour_2', 'armour_3', 'armour_4',
+  'mount', 'shield', 'special',
+])
+
 const EQUIPMENT_MAP = Object.fromEntries(
   (equipmentData as EquipmentEntry[]).map((e) => [e.id, e])
 )
@@ -84,6 +99,15 @@ type BaseUnitEntry = {
 const BASE_UNITS_MAP = Object.fromEntries(
   (baseUnitsData as BaseUnitEntry[]).map((u) => [u.id, u])
 )
+
+export function getMemberWeapons(baseUnitId: string, memberEquipment: string[]): string[] {
+  const baseEquip = BASE_UNITS_MAP[baseUnitId]?.baseEquipment ?? []
+  const combined = new Set([...baseEquip, ...memberEquipment])
+  return [...combined].filter(id => {
+    const wg = WARGEAR_MAP[id]
+    return wg && !NON_WEAPON_CATEGORIES.has(wg.category ?? '')
+  })
+}
 
 function collectFromUnit(
   unitId: string,
@@ -160,16 +184,31 @@ function getBestArmourUpgrade(
   return nextUpgrade
 }
 
-function wargearLabel(id: string): string {
+export function parseGoldEntry(entry: string): { itemId: string; parameter?: string } {
+  const parts = entry.split('::')
+  return parts.length === 2
+    ? { itemId: parts[0], parameter: parts[1] }
+    : { itemId: entry }
+}
+
+export function wargearLabel(id: string): string {
+  const { itemId, parameter } = parseGoldEntry(id)
+  if (itemId === 'envenom_weapon' && parameter) {
+    const weaponLabel =
+      WARGEAR_MAP[parameter]?.label ??
+      parameter.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    return `Envenom Weapon (${weaponLabel})`
+  }
   return (
-    WARGEAR_MAP[id]?.label ??
-    EQUIPMENT_MAP[id]?.label ??
-    ALL_CREATURES.find((c) => c.id === id)?.label ??
-    id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    WARGEAR_MAP[itemId]?.label ??
+    EQUIPMENT_MAP[itemId]?.label ??
+    ALL_CREATURES.find((c) => c.id === itemId)?.label ??
+    itemId.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
   )
 }
 
-function goldCost(itemId: string): number {
+export function goldCost(entry: string): number {
+  const { itemId } = parseGoldEntry(entry)
   // Check wargear first
   const wg = WARGEAR_MAP[itemId]
   if (wg?.rating !== undefined) return wg.rating[0]
@@ -662,7 +701,36 @@ function EquipmentTabContent({
   onBuy,
   onRemove,
 }: TabContentProps & { available: EquipmentEntry[] }) {
-  const isEquipmentId = (id: string) => EQUIPMENT_MAP[id] !== undefined
+  const isEquipmentId = (id: string) => {
+    const { itemId } = parseGoldEntry(id)
+    return EQUIPMENT_MAP[itemId] !== undefined
+  }
+
+  const [infoAnchor, setInfoAnchor] = useState<{ el: HTMLElement; description: string } | null>(null)
+  const [envenomDialogOpen, setEnvenomDialogOpen] = useState(false)
+
+  // Compute eligible weapons for envenom
+  const alreadyEnvenomedWeapons = purchased
+    .filter(p => p.startsWith('envenom_weapon::'))
+    .map(p => parseGoldEntry(p).parameter!)
+
+  const eligibleWeapons = getMemberWeapons(member.baseUnitId, [
+    ...member.equipment,
+    ...purchased.map(p => parseGoldEntry(p).itemId),
+  ]).filter(wId => !alreadyEnvenomedWeapons.includes(wId))
+
+  const handleEquipmentBuy = (equipMember: RosterMember, itemId: string) => {
+    if (itemId === 'envenom_weapon') {
+      setEnvenomDialogOpen(true)
+    } else {
+      onBuy(equipMember, itemId)
+    }
+  }
+
+  const handleWeaponSelect = (weaponId: string) => {
+    setEnvenomDialogOpen(false)
+    onBuy(member, `envenom_weapon::${weaponId}`)
+  }
 
   return (
     <>
@@ -699,6 +767,8 @@ function EquipmentTabContent({
             {available.map((e) => {
               const cost = goldCost(e.id)
               const canAfford = cost <= goldRemaining
+              const isEnvenom = e.id === 'envenom_weapon'
+              const envenomDisabled = isEnvenom && eligibleWeapons.length === 0
               return (
                 <Box
                   key={e.id}
@@ -712,17 +782,30 @@ function EquipmentTabContent({
                     borderColor: 'divider',
                     borderRadius: 1,
                     background: 'rgba(0,0,0,0.1)',
-                    opacity: canAfford ? 1 : 0.38,
+                    opacity: canAfford && !envenomDisabled ? 1 : 0.38,
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                    {e.label}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                      {e.label}
+                    </Typography>
+                    {e.description && (
+                      <IconButton
+                        size="small"
+                        onClick={(event) =>
+                          setInfoAnchor({ el: event.currentTarget, description: e.description! })
+                        }
+                        sx={{ p: 0.25 }}
+                      >
+                        <InfoOutlined sx={{ fontSize: '1rem', opacity: 0.6 }} />
+                      </IconButton>
+                    )}
+                  </Box>
                   <Button
                     size="small"
                     variant="outlined"
-                    disabled={!canAfford}
-                    onClick={() => onBuy(member, e.id)}
+                    disabled={!canAfford || envenomDisabled}
+                    onClick={() => handleEquipmentBuy(member, e.id)}
                     sx={{ minWidth: 60, fontSize: '0.62rem', py: 0.5 }}
                   >
                     {cost} gp
@@ -733,6 +816,44 @@ function EquipmentTabContent({
           </Box>
         </>
       )}
+
+      <Popover
+        open={infoAnchor !== null}
+        anchorEl={infoAnchor?.el ?? null}
+        onClose={() => setInfoAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <Box sx={{ p: 2, maxWidth: 320 }}>
+          <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+            {infoAnchor?.description}
+          </Typography>
+        </Box>
+      </Popover>
+
+      {/* Envenom weapon selection dialog */}
+      <Dialog
+        open={envenomDialogOpen}
+        onClose={() => setEnvenomDialogOpen(false)}
+      >
+        <DialogTitle sx={{ fontSize: '1rem' }}>
+          Select Weapon to Envenom
+        </DialogTitle>
+        <DialogContent>
+          <List>
+            {eligibleWeapons.map((wId) => (
+              <ListItemButton key={wId} onClick={() => handleWeaponSelect(wId)}>
+                <ListItemText
+                  primary={
+                    WARGEAR_MAP[wId]?.label ??
+                    wId.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+                  }
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

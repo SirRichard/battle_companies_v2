@@ -39,6 +39,23 @@ export function getUnitLabel(baseUnitId: string): string {
 }
 
 export function getWargearLabel(wargearId: string): string {
+  // Handle parameterised entries in "baseId::parameter" format
+  if (wargearId.includes('::')) {
+    const [baseId, parameter] = wargearId.split('::')
+    if (baseId === 'envenom_weapon') {
+      // Resolve parameter as weapon label from wargear.json
+      const weaponLabel =
+        WARGEAR.find((w) => w.id === parameter)?.label ?? humanise(parameter)
+      return `Envenom Weapon (${weaponLabel})`
+    }
+    // Other parameterised entries: resolve both parts
+    const baseLabel =
+      WARGEAR.find((w) => w.id === baseId)?.label ?? humanise(baseId)
+    const paramLabel =
+      WARGEAR.find((w) => w.id === parameter)?.label ?? humanise(parameter)
+    return `${baseLabel} (${paramLabel})`
+  }
+
   return WARGEAR.find((w) => w.id === wargearId)?.label ?? humanise(wargearId)
 }
 

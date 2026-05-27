@@ -23,18 +23,30 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
 } from '@mui/material'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import { getProceedButtonLabel } from '../utils/proceedButtonLabel'
 import { useAppContext } from '../context/AppContext'
 import { TOOLKIT_KITS } from './MatchSetupPage'
 import type { ToolkitItem } from '../models/match'
 import wargearData from '../data/wargear.json'
 import baseUnitsData from '../data/baseUnits.json'
-import { getWargearLabel } from '../utils/labels'
+import equipmentData from '../data/equipment.json'
+import { getWargearLabel, formatSpecialRule } from '../utils/labels'
+import { getItemIneligibilityReason } from '../utils/kitEligibility'
 import type { Member } from '../models'
 
 // ─── Data helpers ──────────────────────────────────────────────────────────────
+
+const EQUIPMENT_RAW = equipmentData as Array<{
+  id: string
+  label: string
+  description?: string
+  grantsSpecialRules?: Array<string | { id: string; parameter: string | number }>
+}>
 
 const WARGEAR_RAW = wargearData as Array<{
   id: string
@@ -140,6 +152,9 @@ export default function ToolkitAssignmentPage() {
 
   const company = companies.find((c) => c.id === companyId)
 
+  // Active match state (loaded on mount for button label derivation)
+  const [match, setMatch] = useState<Awaited<ReturnType<typeof loadActiveMatch>>>(null)
+
   // Selected kit
   const [kitId, setKitId] = useState<string | null>(null)
   const kit = TOOLKIT_KITS.find((k) => k.id === kitId)
@@ -148,6 +163,9 @@ export default function ToolkitAssignmentPage() {
   const [assignments, setAssignments] = useState<
     Array<{ memberId: string; parameter?: string }>
   >([])
+
+  // Kit info dialog state — tracks which kit's info dialog is open (null = closed)
+  const [infoDialogKit, setInfoDialogKit] = useState<string | null>(null)
 
   // Partial-assignment confirmation dialog state
   const [confirmPartialOpen, setConfirmPartialOpen] = useState(false)
@@ -159,6 +177,13 @@ export default function ToolkitAssignmentPage() {
   } | null>(null)
   const [paramValue, setParamValue] = useState('')
   const [dynamicParamOptions, setDynamicParamOptions] = useState<string[] | null>(null)
+
+  // Load active match on mount to derive button label from atoBonuses
+  useEffect(() => {
+    if (companyId) {
+      loadActiveMatch(companyId).then((m) => setMatch(m ?? null))
+    }
+  }, [companyId])
 
   // Initialise assignments array when kit changes
   useEffect(() => {
@@ -177,6 +202,8 @@ export default function ToolkitAssignmentPage() {
   const activeMembers = company.members.filter(
     (m) => !m.injuries.some((i) => i.type === 'missing_next_game')
   )
+
+  const buttonLabel = getProceedButtonLabel(match?.atoBonuses ?? [])
 
   const allAssigned = kit
     ? assignments.length === kit.items.length &&
@@ -326,16 +353,35 @@ export default function ToolkitAssignmentPage() {
                   transition: 'all 0.15s',
                 }}
               >
-                <Typography
-                  variant="body2"
+                <Box
                   sx={{
-                    fontWeight: 600,
-                    color: isSelected ? 'primary.main' : 'text.primary',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     mb: 0.5,
                   }}
                 >
-                  {k.label}
-                </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      color: isSelected ? 'primary.main' : 'text.primary',
+                    }}
+                  >
+                    {k.label}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    aria-label={`Info about ${k.label}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setInfoDialogKit(k.id)
+                    }}
+                    sx={{ color: 'text.secondary' }}
+                  >
+                    <InfoOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Box>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {Array.from(new Set(k.items)).map((itemId) => {
                     const count = k.items.filter((i) => i === itemId).length
@@ -445,6 +491,25 @@ export default function ToolkitAssignmentPage() {
                               }
                             }
                           }
+
+                          // Check duplicate/ownership eligibility (skip if already disabled by envenom logic)
+                          if (!disabledReason) {
+                            const currentAssignments = assignments.map((asg, idx) => ({
+                              memberId: asg.memberId,
+                              itemId: kit.items[idx],
+                            }))
+                            const memberOwned = m.ownedEquipment ?? []
+                            const ineligibility = getItemIneligibilityReason(
+                              m.id,
+                              itemId,
+                              currentAssignments,
+                              memberOwned
+                            )
+                            if (ineligibility) {
+                              disabledReason = ineligibility
+                            }
+                          }
+
                           return (
                             <MenuItem
                               key={m.id}
@@ -494,7 +559,7 @@ export default function ToolkitAssignmentPage() {
                   py: 1.5,
                 }}
               >
-                Begin Battle
+                {buttonLabel}
               </Button>
             </Box>
           </Box>
@@ -584,6 +649,19 @@ export default function ToolkitAssignmentPage() {
           </DialogActions>
         </Dialog>
       )}
+
+      {/* ── Kit Info Dialog ── */}
+      {infoDialogKit && (() => {
+        const infoKit = TOOLKIT_KITS.find((k) => k.id === infoDialogKit)
+        if (!infoKit) return null
+        return (
+          <KitInfoDialog
+            open
+            onClose={() => setInfoDialogKit(null)}
+            kit={infoKit}
+          />
+        )
+      })()}
     </Box>
   )
 }
@@ -602,5 +680,92 @@ function SectionLabel({ children }: { children: ReactNode }) {
     >
       {children}
     </Typography>
+  )
+}
+
+// ─── Kit Info Dialog ──────────────────────────────────────────────────────────
+
+interface KitInfoDialogProps {
+  open: boolean
+  onClose: () => void
+  kit: { id: string; label: string; items: string[] }
+}
+
+function KitInfoDialog({ open, onClose, kit }: KitInfoDialogProps) {
+  // Derive unique items with quantity counts
+  const itemCounts = new Map<string, number>()
+  for (const itemId of kit.items) {
+    itemCounts.set(itemId, (itemCounts.get(itemId) ?? 0) + 1)
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          background: 'linear-gradient(160deg,#1a1008 0%,#110a03 100%)',
+          border: '1px solid rgba(200,164,90,0.25)',
+          borderRadius: 2,
+          maxWidth: 420,
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontFamily: '"Cinzel Decorative", serif',
+          fontSize: '0.85rem',
+          color: 'primary.main',
+        }}
+      >
+        {kit.label}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {Array.from(itemCounts.entries()).map(([itemId, count]) => {
+            const equipEntry = EQUIPMENT_RAW.find((e) => e.id === itemId)
+            const label = getItemLabel(itemId)
+            const displayLabel = count > 1 ? `${count}× ${label}` : label
+
+            // Determine description: equipment.description → formatted grantsSpecialRules → fallback
+            let description: string
+            if (equipEntry?.description) {
+              description = equipEntry.description
+            } else if (
+              equipEntry?.grantsSpecialRules &&
+              equipEntry.grantsSpecialRules.length > 0
+            ) {
+              description =
+                'Grants: ' +
+                equipEntry.grantsSpecialRules.map(formatSpecialRule).join(', ')
+            } else {
+              description = 'No description available'
+            }
+
+            return (
+              <Box key={itemId}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, mb: 0.25 }}
+                >
+                  {displayLabel}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}
+                >
+                  {description}
+                </Typography>
+              </Box>
+            )
+          })}
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ px: 2, pb: 2 }}>
+        <Button variant="outlined" size="small" onClick={onClose} autoFocus>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

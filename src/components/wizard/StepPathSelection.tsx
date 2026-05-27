@@ -32,7 +32,21 @@ export default function StepPathSelection({
 
   const header = (
     <Box
-      sx={{ mb: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
+      sx={{
+        mb: 2,
+        pb: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        flexWrap: 'wrap',
+        gap: { xs: 0.5, sm: 1.5 },
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
+        backgroundColor: 'background.default',
+      }}
     >
       <Typography variant="body2" sx={{ opacity: 0.6, fontStyle: 'italic' }}>
         Choosing path for
@@ -52,7 +66,7 @@ export default function StepPathSelection({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 0.5,
-          mt: 0.5,
+          mt: { xs: 0.5, sm: 0 },
         }}
       >
         <Typography variant="caption" sx={{ opacity: 0.65 }}>
@@ -73,7 +87,7 @@ export default function StepPathSelection({
         )}
       </Box>
       {equipment.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: { xs: 0.75, sm: 0 } }}>
           {equipment.map((eq) => (
             <Chip
               key={eq}

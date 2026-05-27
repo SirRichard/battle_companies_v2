@@ -27,6 +27,8 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
@@ -38,6 +40,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAppContext } from '../context/AppContext'
 import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../utils/labels'
 import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
+import { getDwarvenBrewCourageBonus, memberOwnsDwarvenBrew, hasTemporaryDwarvenBrew, dwarvenBrewIntelligenceTestPasses } from '../utils/dwarvenBrew'
 import { isPostMatchOnlyItem } from '../utils/itemConsumption'
 import { calcBreakPoint, isCompanyBroken } from '../utils/companyRules'
 import type { Company, CompanyDefinition } from '../models'
@@ -103,6 +106,19 @@ function sortMembers(members: MemberMatchState[]): MemberMatchState[] {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface DwarvenBrewState {
+  /** Whether a permanent brew prompt has been shown/resolved */
+  promptResolved: boolean
+  /** Whether the player elected to use their permanent brew */
+  elected: boolean
+  /** Intelligence test result (null if not yet rolled) */
+  intelligenceTestResult: number | null
+  /** Whether the test passed (brew retained) or failed (brew removed post-match) */
+  testPassed: boolean | null
+  /** Member ID of the brew owner */
+  ownerMemberId: string | null
+}
+
 export default function MatchTrackingPage() {
   const { companyId } = useParams<{ companyId: string }>()
   const navigate = useNavigate()
@@ -124,14 +140,45 @@ export default function MatchTrackingPage() {
   const [showXpHint, setShowXpHint] = useState(false)
   const [rerollConfirm, setRerollConfirm] = useState(false)
 
+  // ── Permanent Dwarven Brew state ────────────────────────────────────────────
+  const [dwarvenBrew, setDwarvenBrew] = useState<DwarvenBrewState>({
+    promptResolved: true,
+    elected: false,
+    intelligenceTestResult: null,
+    testPassed: null,
+    ownerMemberId: null,
+  })
+  const [brewSnackbar, setBrewSnackbar] = useState<{ open: boolean; passed: boolean }>({
+    open: false,
+    passed: false,
+  })
+
   // Load active match from DB on mount
   useEffect(() => {
     if (!companyId) return
     loadActiveMatch(companyId).then((m) => {
-      if (m) setMatch(m)
-      else navigate(`/companies/${companyId}/match/setup`, { replace: true })
+      if (m) {
+        setMatch(m)
+
+        // ── Permanent Dwarven Brew detection ──────────────────────────────────
+        // If no temporary brew in toolkit, check if any company member owns one permanently
+        if (!hasTemporaryDwarvenBrew(m.toolkitItems) && company) {
+          const brewOwner = company.members.find((member) => memberOwnsDwarvenBrew(member))
+          if (brewOwner) {
+            setDwarvenBrew({
+              promptResolved: false,
+              elected: false,
+              intelligenceTestResult: null,
+              testPassed: null,
+              ownerMemberId: brewOwner.id,
+            })
+          }
+        }
+      } else {
+        navigate(`/companies/${companyId}/match/setup`, { replace: true })
+      }
     })
-  }, [companyId, loadActiveMatch, navigate])
+  }, [companyId, loadActiveMatch, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist match state whenever it changes
   useEffect(() => {
@@ -215,6 +262,19 @@ export default function MatchTrackingPage() {
         lifetimeExperience: m.lifetimeExperience + gain.xp,
       }
     })
+
+    // Remove dwarven brew if intelligence test failed
+    if (dwarvenBrew.testPassed === false && dwarvenBrew.ownerMemberId) {
+      const ownerIdx = updatedMembers.findIndex((m) => m.id === dwarvenBrew.ownerMemberId)
+      if (ownerIdx !== -1) {
+        updatedMembers[ownerIdx] = {
+          ...updatedMembers[ownerIdx],
+          ownedEquipment: (updatedMembers[ownerIdx].ownedEquipment ?? []).filter(
+            (e) => e !== 'dwarven_brew'
+          ),
+        }
+      }
+    }
 
     // Update W/D/L and influence
     const updatedCompany: Company = {
@@ -455,6 +515,7 @@ export default function MatchTrackingPage() {
                 statDecreases={companyMember?.statDecreases ?? {}}
                 specialRules={specialRules}
                 toolkitItems={match.toolkitItems}
+                permanentBrewUsed={dwarvenBrew.elected}
                 isAtoWanderer={
                   wanderersTyped.some((w) => w.id === mm.memberId) &&
                   !company.members.some((m) => m.id === mm.memberId)
@@ -686,6 +747,143 @@ export default function MatchTrackingPage() {
         onConfirm={handleAbort}
         onCancel={() => setShowAbort(false)}
       />
+
+      {/* ── Dwarven Brew use prompt ────────────────────────────────────────── */}
+      <Dialog
+        open={!dwarvenBrew.promptResolved && dwarvenBrew.ownerMemberId !== null && !dwarvenBrew.elected}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle>Use Dwarven Brew?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1, opacity: 0.85 }}>
+            <strong>
+              {company.members.find((m) => m.id === dwarvenBrew.ownerMemberId)?.name ?? 'A member'}
+            </strong>{' '}
+            owns a Dwarven Brew.
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.7 }}>
+            Using it grants <strong>+1 Courage</strong> to all company members for this game.
+            An Intelligence Test will be required to determine if the keg runs dry.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() =>
+              setDwarvenBrew((prev) => ({ ...prev, promptResolved: true, elected: false }))
+            }
+          >
+            Decline
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() =>
+              setDwarvenBrew((prev) => ({ ...prev, elected: true }))
+            }
+            sx={{
+              fontFamily: '"Cinzel Decorative", serif',
+              fontSize: '0.65rem',
+            }}
+          >
+            Use
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Dwarven Brew Intelligence Test dialog ──────────────────────────── */}
+      <Dialog
+        open={dwarvenBrew.elected && dwarvenBrew.intelligenceTestResult === null}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+            border: '1px solid rgba(200,164,90,0.25)',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle>Intelligence Test</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1, opacity: 0.85 }}>
+            <strong>
+              {company.members.find((m) => m.id === dwarvenBrew.ownerMemberId)?.name ?? 'The owner'}
+            </strong>{' '}
+            must pass an Intelligence test to keep the Dwarven Brew.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
+            Roll a D6. Need{' '}
+            <strong>
+              {(() => {
+                const owner = company.members.find((m) => m.id === dwarvenBrew.ownerMemberId)
+                const ownerStats = owner ? getStatsForUnit(owner.baseUnitId)?.stats : undefined
+                const intStat = ownerStats?.intelligence ?? 4
+                return `${intStat}+`
+              })()}
+            </strong>{' '}
+            to pass.
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+            {[1, 2, 3, 4, 5, 6].map((roll) => (
+              <Button
+                key={roll}
+                variant="outlined"
+                onClick={() => {
+                  const owner = company.members.find((m) => m.id === dwarvenBrew.ownerMemberId)
+                  const ownerStats = owner ? getStatsForUnit(owner.baseUnitId)?.stats : undefined
+                  const intStat = ownerStats?.intelligence ?? 4
+                  const passed = dwarvenBrewIntelligenceTestPasses(roll, intStat)
+                  setDwarvenBrew((prev) => ({
+                    ...prev,
+                    intelligenceTestResult: roll,
+                    testPassed: passed,
+                    promptResolved: true,
+                  }))
+                  setBrewSnackbar({ open: true, passed })
+                }}
+                sx={{
+                  minWidth: 48,
+                  minHeight: 48,
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  borderColor: 'primary.dark',
+                  color: 'primary.main',
+                  '&:hover': { background: 'rgba(201,168,76,0.12)' },
+                }}
+              >
+                {roll}
+              </Button>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dwarven Brew outcome snackbar ──────────────────────────────────── */}
+      <Snackbar
+        open={brewSnackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setBrewSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={brewSnackbar.passed ? 'success' : 'warning'}
+          onClose={() => setBrewSnackbar((prev) => ({ ...prev, open: false }))}
+          sx={{ width: '100%' }}
+        >
+          {brewSnackbar.passed
+            ? 'Intelligence test passed! The Dwarven Brew is retained.'
+            : 'Intelligence test failed — the keg has run dry. Brew will be removed after the match.'}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
@@ -701,6 +899,7 @@ interface CardProps {
   statDecreases: Record<string, number>
   specialRules: Array<string | { id: string; parameter: string | number }>
   toolkitItems: ToolkitItem[]
+  permanentBrewUsed: boolean
   isAtoWanderer?: boolean
   onXpChange: (delta: number) => void
   onCasualtyToggle: () => void
@@ -730,6 +929,7 @@ function MemberMatchCard({
   statDecreases,
   specialRules,
   toolkitItems,
+  permanentBrewUsed,
   isAtoWanderer,
   onXpChange,
   onCasualtyToggle,
@@ -761,7 +961,8 @@ function MemberMatchCard({
     const inc = statIncreases[key] ?? 0
     const dec = statDecreases[key] ?? 0
     const eq = key === 'defence' ? equipBonus.defence : 0
-    return raw + inc - dec + eq
+    const brewBonus = key === 'courage' ? getDwarvenBrewCourageBonus(toolkitItems, permanentBrewUsed) : 0
+    return raw + inc - dec + eq + brewBonus
   }
 
   const formatStat = (key: string, raw: number): string => {

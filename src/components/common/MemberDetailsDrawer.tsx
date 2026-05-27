@@ -116,6 +116,22 @@ function getBaseEquipment(baseUnitId: string): string[] {
   return BASE_UNITS_RAW.find((u) => u.id === baseUnitId)?.baseEquipment ?? []
 }
 
+/**
+ * Format a wargear/equipment entry for display.
+ * Detects parameterised "envenom_weapon::<weaponId>" pattern and renders as
+ * "Envenom Weapon (WeaponLabel)". Falls back to getWargearLabel for plain IDs.
+ */
+function formatWargearEntry(entry: string): string {
+  if (entry.startsWith('envenom_weapon::')) {
+    const weaponId = entry.slice('envenom_weapon::'.length)
+    if (weaponId) {
+      return `Envenom Weapon (${getWargearLabel(weaponId)})`
+    }
+    return 'Envenom Weapon'
+  }
+  return getWargearLabel(entry)
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -328,37 +344,7 @@ export default function MemberDetailsDrawer({
     setDieSettled(false)
   }
 
-  // Handle "Spend IP" — deduct 1 extra IP and apply improved outcome (treat as success)
-  const handleSpendIP = async () => {
-    if (!member || !company || !onSaveCompany || rolledValue === null) return
-    const influence = company.influence
-    const totalCost = 1 + treatAdjust + 1 // base 1 + pre-roll adjust + 1 for IP spend
-    // Spending IP always treats as success — remove the injury
-    const updated = {
-      ...company,
-      influence: influence - totalCost,
-      members: company.members.map((m) =>
-        m.id !== member.id
-          ? m
-          : {
-              ...m,
-              injuries: (() => {
-                const injs = [...m.injuries]
-                const idx = injs.findIndex((i) => i.type === treatTargetInjury)
-                if (idx >= 0) injs.splice(idx, 1)
-                return injs
-              })(),
-            }
-      ),
-    }
-    await onSaveCompany(updated)
-    setTreatStage(null)
-    setTreatType(null)
-    setTreatTargetInjury(null)
-    setRolledValue(null)
-    setTreatAdjust(0)
-    setDieSettled(false)
-  }
+
 
   // Animated die effect — runs when treatStage transitions to 'rolling'
   useEffect(() => {
@@ -428,7 +414,24 @@ export default function MemberDetailsDrawer({
   // De-duplicated while preserving order (base first, then assigned)
   const baseEquip = getBaseEquipment(member.baseUnitId)
   const assignedEquip = member.equipment ?? []
-  const allWargear = Array.from(new Set([...baseEquip, ...assignedEquip]))
+
+  // Synthesize envenom weapon entries from ownedEquipment + specialRules
+  // companyFactory stores envenom as ownedEquipment=['envenom_weapon'] +
+  // specialRules=[{ id: 'poisoned_attacks', parameter: weaponId }]
+  const envenomWargearEntries: string[] = []
+  if ((member.ownedEquipment ?? []).includes('envenom_weapon')) {
+    for (const rule of member.specialRules) {
+      if (
+        typeof rule === 'object' &&
+        rule.id === 'poisoned_attacks' &&
+        typeof rule.parameter === 'string'
+      ) {
+        envenomWargearEntries.push(`envenom_weapon::${rule.parameter}`)
+      }
+    }
+  }
+
+  const allWargear = Array.from(new Set([...baseEquip, ...assignedEquip, ...envenomWargearEntries]))
 
   // Equipment-derived stat bonuses (shield +1D, armour upgrade, etc.)
   const equipBonus = calcEquipmentStatBonus(
@@ -1041,7 +1044,7 @@ export default function MemberDetailsDrawer({
                 return (
                   <Box key={eq} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                     <Chip
-                      label={getWargearLabel(eq)}
+                      label={formatWargearEntry(eq)}
                       size="small"
                       sx={{
                         fontSize: '0.72rem',
@@ -1153,8 +1156,22 @@ export default function MemberDetailsDrawer({
         {/* ── Special Rules ─────────────────────────────────────────────────── */}
         {(() => {
           // Include both plain string rules (non-heroic) and parameterised object rules
+          // Filter out poisoned_attacks entries that correspond to envenom weapons
+          // (those are already displayed in the wargear section)
+          const hasEnvenomWeapon = (member.ownedEquipment ?? []).includes('envenom_weapon')
           const specialRules = member.specialRules.filter(
-            (r) => typeof r !== 'string' || !HEROIC_ACTION_LABELS.has(r)
+            (r) => {
+              if (typeof r === 'string') return !HEROIC_ACTION_LABELS.has(r)
+              // Filter out poisoned_attacks from envenom weapons (shown as wargear instead)
+              if (
+                hasEnvenomWeapon &&
+                r.id === 'poisoned_attacks' &&
+                typeof r.parameter === 'string'
+              ) {
+                return false
+              }
+              return true
+            }
           )
           if (specialRules.length === 0) return null
           return (
@@ -1561,62 +1578,14 @@ export default function MemberDetailsDrawer({
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Attempt Recovery — Roll D6 (1+ IP)
+                          Attempt Recovery — Roll D6 (1 IP)
                         </Typography>
                         <Typography variant="caption" sx={{ opacity: 0.6 }}>
                           Roll 5+ to remove injury. Spend extra IP to boost
                           roll.
                         </Typography>
                       </Box>
-                      {treatType === 'roll_hero' && (
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            px: 0.5,
-                          }}
-                        >
-                          <Typography variant="caption" sx={{ opacity: 0.65, flex: 1 }}>
-                            Pre-roll IP boost (optional):
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{ minWidth: 28, p: 0.5 }}
-                            disabled={treatAdjust <= 0}
-                            onClick={(e) => { e.stopPropagation(); setTreatAdjust((a) => Math.max(0, a - 1)) }}
-                          >
-                            −
-                          </Button>
-                          <Typography
-                            sx={{
-                              fontFamily: '"Cinzel Decorative", serif',
-                              minWidth: 28,
-                              textAlign: 'center',
-                              fontSize: '0.8rem',
-                              color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
-                            }}
-                          >
-                            {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{ minWidth: 28, p: 0.5 }}
-                            disabled={
-                              treatAdjust >= 3 ||
-                              company.influence < 1 + treatAdjust + 1
-                            }
-                            onClick={(e) => { e.stopPropagation(); setTreatAdjust((a) => Math.min(3, a + 1)) }}
-                          >
-                            +
-                          </Button>
-                          <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                            {1 + treatAdjust} IP
-                          </Typography>
-                        </Box>
-                      )}
+
                       <Box
                         onClick={() => setTreatType('miss_hero')}
                         sx={{
@@ -1721,29 +1690,60 @@ export default function MemberDetailsDrawer({
                   >
                     Company Influence: {company.influence} IP
                   </Typography>
-                  {/* Spend IP option — only shown on failure */}
+                  {/* Post-roll IP boost controls — only shown on failure */}
                   {rolledValue + treatAdjust < 5 && (
                     <Box
                       sx={{
                         p: 1.25,
                         border: '1px solid',
-                        borderColor:
-                          company.influence >= 1 + treatAdjust + 1
-                            ? 'primary.dark'
-                            : 'divider',
+                        borderColor: 'primary.dark',
                         borderRadius: 1,
                         background: 'rgba(201,168,76,0.04)',
-                        opacity: company.influence >= 1 + treatAdjust + 1 ? 1 : 0.5,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.25 }}>
-                        Spend 1 IP to improve outcome
+                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75 }}>
+                        Boost roll with IP (1 IP = +1)
                       </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                        {company.influence >= 1 + treatAdjust + 1
-                          ? 'Treat the injury as a success regardless of the roll.'
-                          : 'Insufficient IP.'}
-                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 28, p: 0.5 }}
+                          disabled={treatAdjust <= 0}
+                          onClick={() => setTreatAdjust((a) => Math.max(0, a - 1))}
+                        >
+                          −
+                        </Button>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Cinzel Decorative", serif',
+                            minWidth: 28,
+                            textAlign: 'center',
+                            fontSize: '0.8rem',
+                            color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
+                          }}
+                        >
+                          {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 28, p: 0.5 }}
+                          disabled={company.influence < 1 + treatAdjust + 1}
+                          onClick={() => setTreatAdjust((a) => a + 1)}
+                        >
+                          +
+                        </Button>
+                        <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                          Total: {rolledValue + treatAdjust} → {rolledValue + treatAdjust >= 5 ? 'Success' : 'Fail'}
+                        </Typography>
+                      </Box>
                     </Box>
                   )}
                 </Box>
@@ -1787,7 +1787,7 @@ export default function MemberDetailsDrawer({
                 <Button
                   variant="contained"
                   size="small"
-                  onClick={() => setTreatStage('rolling')}
+                  onClick={() => { setTreatAdjust(0); setTreatStage('rolling') }}
                   sx={{
                     fontFamily: '"Cinzel Decorative", serif',
                     fontSize: '0.62rem',
@@ -1796,26 +1796,6 @@ export default function MemberDetailsDrawer({
                   Roll D6 →
                 </Button>
               )}
-
-              {/* IP prompt stage: spend IP (only on failure) */}
-              {treatStage === 'ip_prompt' &&
-                rolledValue !== null &&
-                rolledValue + treatAdjust < 5 && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={company.influence < 1 + treatAdjust + 1}
-                    onClick={handleSpendIP}
-                    sx={{
-                      fontFamily: '"Cinzel Decorative", serif',
-                      fontSize: '0.62rem',
-                      borderColor: 'primary.main',
-                      color: 'primary.main',
-                    }}
-                  >
-                    Spend 1 IP ({1 + treatAdjust + 1} IP total)
-                  </Button>
-                )}
 
               {/* IP prompt stage: accept result */}
               {treatStage === 'ip_prompt' && rolledValue !== null && (

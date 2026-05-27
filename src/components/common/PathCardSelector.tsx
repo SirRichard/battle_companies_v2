@@ -567,9 +567,7 @@ export default function PathCardSelector({
                           display: 'block',
                         }}
                       >
-                        {rule.description.length > 120
-                          ? rule.description.slice(0, 120) + '…'
-                          : rule.description}
+                        {rule.description}
                       </Typography>
                     </Box>
                   ))}
@@ -584,7 +582,7 @@ export default function PathCardSelector({
                   onClick={() => onSelect(path.id)}
                   sx={{ minHeight: 44 }}
                 >
-                  {isSelected ? 'Path Chosen ✓' : 'Choose This Path'}
+                  {isSelected ? 'Path Chosen ✓' : 'Select This Path'}
                 </Button>
               </Box>
             </Box>

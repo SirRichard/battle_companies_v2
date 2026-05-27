@@ -629,8 +629,21 @@ function MemberRow({
             const baseEquip =
               BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
                 ?.baseEquipment ?? []
+            // Synthesize envenom weapon entries from ownedEquipment + specialRules
+            const envenomEntries: string[] = []
+            if ((member.ownedEquipment ?? []).includes('envenom_weapon')) {
+              for (const rule of member.specialRules) {
+                if (
+                  typeof rule === 'object' &&
+                  rule.id === 'poisoned_attacks' &&
+                  typeof rule.parameter === 'string'
+                ) {
+                  envenomEntries.push(`envenom_weapon::${rule.parameter}`)
+                }
+              }
+            }
             displayWargear = Array.from(
-              new Set([...baseEquip, ...(member.equipment ?? [])])
+              new Set([...baseEquip, ...(member.equipment ?? []), ...envenomEntries])
             )
           } else {
             // Warriors: show only the equipment chosen from their loadout options
@@ -1291,7 +1304,7 @@ function InjuryTreatmentPanel({
                       }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        Attempt Recovery — Roll D6 (1+ IP)
+                        Attempt Recovery — Roll D6 (1 IP)
                       </Typography>
                       <Typography variant="caption" sx={{ opacity: 0.6 }}>
                         Roll 5+ to remove injury. Spend extra IP to boost roll.
@@ -1330,45 +1343,8 @@ function InjuryTreatmentPanel({
                   variant="caption"
                   sx={{ display: 'block', opacity: 0.65, mb: 1.5 }}
                 >
-                  Boost roll with extra IP (max +3, 1 IP each). Need 5+ to succeed.
+                  Roll D6. Need 5+ to succeed. You can spend extra IP after rolling to boost the result.
                 </Typography>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}
-                >
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    sx={{ minWidth: 32, p: 0.5 }}
-                    disabled={treatAdjust <= 0}
-                    onClick={() => setTreatAdjust((a) => Math.max(0, a - 1))}
-                  >
-                    −
-                  </Button>
-                  <Typography
-                    sx={{
-                      fontFamily: '"Cinzel Decorative", serif',
-                      minWidth: 32,
-                      textAlign: 'center',
-                      color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
-                    }}
-                  >
-                    {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    sx={{ minWidth: 32, p: 0.5 }}
-                    disabled={
-                      treatAdjust >= 3 || company.influence < 1 + treatAdjust + 1
-                    }
-                    onClick={() => setTreatAdjust((a) => Math.min(3, a + 1))}
-                  >
-                    +
-                  </Button>
-                  <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
-                    Total: {1 + treatAdjust} IP
-                  </Typography>
-                </Box>
                 {treatRollResult === null ? (
                   <Button
                     variant="contained"
@@ -1384,42 +1360,91 @@ function InjuryTreatmentPanel({
                     Roll D6
                   </Button>
                 ) : (
-                  <Box
-                    sx={{
-                      textAlign: 'center',
-                      p: 1.5,
-                      border: '1px solid',
-                      borderColor:
-                        treatRollResult + treatAdjust >= 5
-                          ? 'success.main'
-                          : 'error.main',
-                      borderRadius: 1,
-                      background:
-                        treatRollResult + treatAdjust >= 5
-                          ? 'rgba(46,204,113,0.06)'
-                          : 'rgba(192,57,43,0.06)',
-                    }}
-                  >
-                    <Typography
+                  <>
+                    <Box
                       sx={{
-                        fontFamily: '"Cinzel Decorative", serif',
-                        fontSize: '1.4rem',
-                        color:
+                        textAlign: 'center',
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor:
                           treatRollResult + treatAdjust >= 5
-                            ? 'success.light'
-                            : 'error.light',
+                            ? 'success.main'
+                            : 'error.main',
+                        borderRadius: 1,
+                        background:
+                          treatRollResult + treatAdjust >= 5
+                            ? 'rgba(46,204,113,0.06)'
+                            : 'rgba(192,57,43,0.06)',
                       }}
                     >
-                      {treatRollResult}
-                      {treatAdjust > 0 &&
-                        ` + ${treatAdjust} = ${treatRollResult + treatAdjust}`}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                      {treatRollResult + treatAdjust >= 5
-                        ? '✓ Success — injury removed!'
-                        : '✗ Failed — injury remains.'}
-                    </Typography>
-                  </Box>
+                      <Typography
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          fontSize: '1.4rem',
+                          color:
+                            treatRollResult + treatAdjust >= 5
+                              ? 'success.light'
+                              : 'error.light',
+                        }}
+                      >
+                        {treatRollResult}
+                        {treatAdjust > 0 &&
+                          ` + ${treatAdjust} = ${treatRollResult + treatAdjust}`}
+                      </Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                        {treatRollResult + treatAdjust >= 5
+                          ? '✓ Success — injury removed!'
+                          : '✗ Failed — injury remains.'}
+                      </Typography>
+                    </Box>
+                    {treatRollResult < 5 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ display: 'block', opacity: 0.65, mb: 1 }}
+                        >
+                          Company Influence: {company.influence} IP
+                        </Typography>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ minWidth: 32, p: 0.5 }}
+                            disabled={treatAdjust <= 0}
+                            onClick={() => setTreatAdjust((a) => Math.max(0, a - 1))}
+                          >
+                            −
+                          </Button>
+                          <Typography
+                            sx={{
+                              fontFamily: '"Cinzel Decorative", serif',
+                              minWidth: 32,
+                              textAlign: 'center',
+                              color: treatAdjust > 0 ? 'primary.main' : 'text.secondary',
+                            }}
+                          >
+                            {treatAdjust > 0 ? `+${treatAdjust}` : '0'}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ minWidth: 32, p: 0.5 }}
+                            disabled={
+                              company.influence < 1 + treatAdjust + 1
+                            }
+                            onClick={() => setTreatAdjust((a) => a + 1)}
+                          >
+                            +
+                          </Button>
+                          <Typography variant="caption" sx={{ opacity: 0.5, ml: 1 }}>
+                            Boost: {treatAdjust} IP · Total cost: {1 + treatAdjust} IP
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </>
                 )}
               </Box>
             )}
@@ -1457,7 +1482,10 @@ function InjuryTreatmentPanel({
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => setTreatDialog('roll')}
+                onClick={() => {
+                  setTreatAdjust(0)
+                  setTreatDialog('roll')
+                }}
                 sx={{
                   fontFamily: '"Cinzel Decorative", serif',
                   fontSize: '0.62rem',
@@ -4209,6 +4237,25 @@ function EquipmentSection({
         (() => {
           const isHero = selectedMember.role !== 'warrior'
           const owned = selectedMember.ownedEquipment ?? []
+          // Synthesize envenom weapon entries: replace plain 'envenom_weapon'
+          // with parameterised 'envenom_weapon::weapon_id' for display
+          const envenomEntries: string[] = []
+          if (owned.includes('envenom_weapon')) {
+            for (const rule of selectedMember.specialRules) {
+              if (
+                typeof rule === 'object' &&
+                rule.id === 'poisoned_attacks' &&
+                typeof rule.parameter === 'string'
+              ) {
+                envenomEntries.push(`envenom_weapon::${rule.parameter}`)
+              }
+            }
+          }
+          // Display list: non-envenom owned items + synthesized envenom entries
+          const displayOwned = [
+            ...owned.filter((id) => id !== 'envenom_weapon'),
+            ...envenomEntries,
+          ]
           const currentLarge = owned.filter(
             (id) => ALL_EQUIPMENT.find((e) => e.id === id)?.size === 'large'
           ).length
@@ -4225,7 +4272,7 @@ function EquipmentSection({
 
           return (
             <Box>
-              {owned.length > 0 && (
+              {displayOwned.length > 0 && (
                 <Box sx={{ mb: 2 }}>
                   <Typography
                     variant="caption"
@@ -4241,12 +4288,15 @@ function EquipmentSection({
                     Current Equipment
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {owned.map((id) => {
+                    {displayOwned.map((id) => {
                       const eq = ALL_EQUIPMENT.find((e) => e.id === id)
+                      const label = id.includes('::')
+                        ? getWargearLabel(id)
+                        : `${eq?.size === 'large' ? '◈' : '◇'} ${eq?.label ?? id}`
                       return (
                         <Chip
                           key={id}
-                          label={`${eq?.size === 'large' ? '◈' : '◇'} ${eq?.label ?? id}`}
+                          label={label}
                           size="small"
                           sx={{
                             fontSize: '0.68rem',

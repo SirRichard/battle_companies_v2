@@ -93,7 +93,7 @@ export function buildStartingMembers(
       const heroicAction = pathId ? getPathHeroicAction(pathId) : null
 
       // Build specialRules: granted heroic action + starting spell (Channeling)
-      const specialRules: string[] = []
+      const specialRules: Array<string | { id: string; parameter: string }> = []
       if (heroicAction) {
         specialRules.push(heroicActionLabel(heroicAction))
       }
@@ -105,6 +105,26 @@ export function buildStartingMembers(
         specialRules.push(`Spell: ${spellLabel}`)
       }
 
+      // Parse goldPurchases: separate plain entries from parameterised ones
+      const plainEquipment: string[] = []
+      const ownedEquipmentItems: string[] = []
+      for (const purchaseEntry of goldPurchases[tempId] ?? []) {
+        const delimiterIndex = purchaseEntry.indexOf('::')
+        if (delimiterIndex !== -1) {
+          const itemId = purchaseEntry.slice(0, delimiterIndex)
+          const parameter = purchaseEntry.slice(delimiterIndex + 2)
+          if (itemId === 'envenom_weapon') {
+            ownedEquipmentItems.push('envenom_weapon')
+            specialRules.push({ id: 'poisoned_attacks', parameter })
+          } else {
+            // Unknown parameterised entry — treat as plain equipment
+            plainEquipment.push(purchaseEntry)
+          }
+        } else {
+          plainEquipment.push(purchaseEntry)
+        }
+      }
+
       members.push({
         id: uuidv4(),
         name,
@@ -112,7 +132,7 @@ export function buildStartingMembers(
         role,
         equipment: [
           ...(entry.equipment ?? []),
-          ...(goldPurchases[tempId] ?? []),
+          ...plainEquipment,
         ],
         experience: 0,
         lifetimeExperience: 0,
@@ -122,6 +142,7 @@ export function buildStartingMembers(
         pathId: pathId ?? undefined,
         statIncreases: {},
         statDecreases: {},
+        ownedEquipment: ownedEquipmentItems.length > 0 ? ownedEquipmentItems : undefined,
         spells: spellChoice ? [spellChoice] : undefined,
       })
 

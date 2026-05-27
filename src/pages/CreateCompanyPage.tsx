@@ -25,7 +25,7 @@ import StepMemberNames from '../components/wizard/StepMemberNames'
 import StepLeaderSelection from '../components/wizard/StepLeaderSelection'
 import StepPathSelection from '../components/wizard/StepPathSelection'
 import StepSpellSelection from '../components/wizard/StepSpellSelection'
-import StepGoldEquipment from '../components/wizard/StepGoldEquipment'
+import StepGoldEquipment, { goldCost } from '../components/wizard/StepGoldEquipment'
 
 import { useAppContext } from '../context/AppContext'
 import type { Alignment, WizardState } from '../models'
@@ -40,6 +40,7 @@ import { getHeroAllowedBaseUnitIds } from '../utils/companyRules'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
+import pathsData from '../data/paths.json'
 
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
@@ -577,16 +578,12 @@ export default function CreateCompanyPage() {
   // Gold remaining helper
   const goldRemaining = () => {
     if (!selectedCompany) return 0
-    const wg = wargearData as Array<{ id: string; rating?: [number, number] }>
     const spent = (
       Object.values(wizard.goldPurchases ?? {}) as string[][]
     ).reduce(
       (sum: number, items: string[]) =>
         sum +
-        items.reduce((s: number, wId: string) => {
-          const w = wg.find((x) => x.id === wId)
-          return s + (w?.rating?.[0] ?? 1)
-        }, 0),
+        items.reduce((s: number, entry: string) => s + goldCost(entry), 0),
       0
     )
     return (selectedCompany.gold ?? 0) - spent
@@ -612,8 +609,8 @@ export default function CreateCompanyPage() {
   }, [selectedCompany, saving, wizard, saveCompany, navigate])
 
   const handleFinish = useCallback(() => {
-    // If company has gold and we're on the gold step, confirm before saving
-    if ((selectedCompany?.gold ?? 0) > 0 && wizard.step === STEPS.length - 1) {
+    // If company has gold and we're on the gold step with unspent gold, confirm before saving
+    if ((selectedCompany?.gold ?? 0) > 0 && wizard.step === STEPS.length - 1 && goldRemaining() > 0) {
       setShowGoldConfirm(true)
     } else {
       void doFinish()
@@ -965,13 +962,8 @@ export default function CreateCompanyPage() {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 {heroTempIds.map((tid) => {
                   const pathId = wizard.heroPaths[tid]
-                  const pLabel =
-                    pathId
-                      ?.replace(/_/g, ' ')
-                      .replace(/\bpath of\b/i, '')
-                      .trim() ?? '—'
-                  const formattedPath =
-                    pLabel.charAt(0).toUpperCase() + pLabel.slice(1)
+                  const pathLabel =
+                    (pathsData as Array<{id: string; label: string}>).find(p => p.id === pathId)?.label ?? pathId
                   const isLeader = tid === wizard.leaderId
                   const tidIdx2 = parseInt(tid.replace('member_', ''), 10)
                   const name =
@@ -1133,7 +1125,7 @@ export default function CreateCompanyPage() {
                         variant="body2"
                         sx={{ color: 'primary.main', fontWeight: 600 }}
                       >
-                        Path of {formattedPath}
+                        {pathLabel}
                       </Typography>
                       {spell && (
                         <Typography
@@ -1563,7 +1555,14 @@ export default function CreateCompanyPage() {
               disabled={!canAdvance()}
               sx={{ minWidth: 100, minHeight: 44 }}
             >
-              Next
+              {wizard.step === 6 &&
+              !(
+                [wizard.leaderId!, ...wizard.sergeantIds].every(
+                  (tid) => wizard.heroPaths[tid]
+                )
+              )
+                ? 'Select'
+                : 'Next'}
             </Button>
           )
         ) : (
