@@ -162,6 +162,18 @@ export interface Faction {
   alignment: Alignment
 }
 
+// ─── Removal Log ──────────────────────────────────────────────────────────────
+
+export interface RemovalEntry {
+  id: string // unique ID (uuid)
+  memberId: string // original member's ID
+  memberName: string // snapshot of member name at removal time
+  itemId: string // wargear or equipment ID
+  itemType: 'wargear' | 'equipment'
+  removedAt: string // ISO 8601 timestamp
+  poisonedWeaponId?: string // only for envenom_weapon: the weapon parameter
+}
+
 // ─── Live Campaign Models ─────────────────────────────────────────────────────
 
 export type MemberRole = 'leader' | 'sergeant' | 'hero_in_making' | 'warrior'
@@ -251,6 +263,7 @@ export interface Company {
   losses: number
   matchHistory: MatchRecord[]
   wandererId?: string
+  removalLog?: RemovalEntry[] // optional for backward compat; treat undefined as []
   createdAt: string
   lastPlayedAt: string
 }

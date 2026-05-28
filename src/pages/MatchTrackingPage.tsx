@@ -276,7 +276,7 @@ export default function MatchTrackingPage() {
       }
     }
 
-    // Update W/D/L and influence
+    // Update W/D/L and influence; clear removalLog on match completion (Req 5.1)
     const updatedCompany: Company = {
       ...company,
       members: updatedMembers,
@@ -285,6 +285,7 @@ export default function MatchTrackingPage() {
       draws: company.draws + (result === 'draw' ? 1 : 0),
       losses: company.losses + (result === 'loss' ? 1 : 0),
       lastPlayedAt: new Date().toISOString(),
+      removalLog: [],
     }
 
     await saveCompany(updatedCompany)

@@ -42,6 +42,7 @@ import { CHANNELING_SPELLS } from '../wizard/StepSpellSelection'
 import wargearData from '../../data/wargear.json'
 import equipmentData from '../../data/equipment.json'
 import companiesData from '../../data/companies.json'
+import { appendRemoval } from '../../utils/removalLog'
 
 
 // ─── Company definition lookup ────────────────────────────────────────────────
@@ -2122,6 +2123,15 @@ export default function MemberDetailsDrawer({
               setRemoveConfirmItem(null)
               return
             }
+            // Log the removal for buyback
+            const updatedLog = appendRemoval(company.removalLog ?? [], {
+              memberId: member.id,
+              memberName: member.name,
+              itemId: removeConfirmItem.startsWith('envenom_weapon::') ? removeConfirmItem.slice('envenom_weapon::'.length) : removeConfirmItem,
+              itemType: 'wargear',
+              removedAt: new Date().toISOString(),
+            })
+
             let updatedMembers: typeof company.members
             if (removeConfirmItem.startsWith('envenom_weapon::')) {
               // Remove envenom_weapon from ownedEquipment + poisoned_attacks rule for this weapon
@@ -2141,7 +2151,7 @@ export default function MemberDetailsDrawer({
                   : { ...m, equipment: (m.equipment ?? []).filter((e) => e !== removeConfirmItem) }
               )
             }
-            await onSaveCompany({ ...company, members: updatedMembers })
+            await onSaveCompany({ ...company, members: updatedMembers, removalLog: updatedLog })
             setRemoveConfirmItem(null)
           }}
           onCancel={() => setRemoveConfirmItem(null)}
@@ -2160,12 +2170,34 @@ export default function MemberDetailsDrawer({
               setEquipRemoveConfirmItem(null)
               return
             }
+
+            // Log the removal for buyback — capture poison data BEFORE removal
+            const removalEntry: Omit<import('../../models').RemovalEntry, 'id'> = {
+              memberId: member.id,
+              memberName: member.name,
+              itemId: equipRemoveConfirmItem,
+              itemType: 'equipment',
+              removedAt: new Date().toISOString(),
+            }
+
+            // Special handling for envenom_weapon: capture poisonedWeaponId
+            if (equipRemoveConfirmItem === 'envenom_weapon') {
+              const poisonRule = member.specialRules.find(
+                (r) => typeof r === 'object' && r.id === 'poisoned_attacks'
+              )
+              if (poisonRule && typeof poisonRule === 'object' && 'parameter' in poisonRule) {
+                removalEntry.poisonedWeaponId = poisonRule.parameter as string
+              }
+            }
+
+            const updatedLog = appendRemoval(company.removalLog ?? [], removalEntry)
+
             const updatedMembers = company.members.map((m) => {
               if (m.id !== member.id) return m
               const updatedOwned = (m.ownedEquipment ?? []).filter((e) => e !== equipRemoveConfirmItem)
               return { ...m, ownedEquipment: updatedOwned }
             })
-            await onSaveCompany({ ...company, members: updatedMembers })
+            await onSaveCompany({ ...company, members: updatedMembers, removalLog: updatedLog })
             setEquipRemoveConfirmItem(null)
           }}
           onCancel={() => setEquipRemoveConfirmItem(null)}

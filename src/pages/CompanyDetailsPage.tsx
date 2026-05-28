@@ -22,7 +22,9 @@ import { motion } from 'framer-motion'
 import SportsMartialArtsIcon from '@mui/icons-material/SportsMartialArts'
 import HistoryIcon from '@mui/icons-material/History'
 import StorefrontIcon from '@mui/icons-material/Storefront'
+import RecyclingIcon from '@mui/icons-material/Recycling'
 import AddIcon from '@mui/icons-material/Add'
+import BuybackTab from '../components/buyback/BuybackTab'
 import PageHeader from '../components/common/PageHeader'
 import MemberDetailsDrawer from '../components/common/MemberDetailsDrawer'
 import CreatureDetailsDrawer from '../components/common/CreatureDetailsDrawer'
@@ -36,6 +38,7 @@ import type {
   StoredBaseUnitStats,
 } from '../models'
 import { getCompanyLabel, getUnitLabel, getWargearLabel } from '../utils/labels'
+import { restoreEntry } from '../utils/removalLog'
 import { calcCompanyRating, calcMemberRating } from '../utils/rating'
 import { getEligibleUniqueWargear, getApplicableSubstitution } from '../utils/companyRules'
 import { getPath } from '../utils/advancement'
@@ -238,6 +241,16 @@ export default function CompanyDetailsPage() {
     [company, saveCompany]
   )
 
+  const handleRestore = useCallback(
+    async (entryId: string) => {
+      if (!company) return
+      const result = restoreEntry(company.removalLog ?? [], entryId, company.members)
+      if ('error' in result) return
+      await saveCompany({ ...company, members: result.members, removalLog: result.log })
+    },
+    [company, saveCompany]
+  )
+
   if (!company) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -262,11 +275,11 @@ export default function CompanyDetailsPage() {
       {/* Stats bar */}
       <Box
         sx={{
-          px: { xs: 2, sm: 3 },
+          px: { xs: 1, sm: 3 },
           py: 1.5,
-          display: { xs: 'grid', sm: 'flex' },
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: undefined },
-          gap: { xs: 2, sm: 3 },
+          display: 'flex',
+          justifyContent: 'center',
+          gap: { xs: 1.5, sm: 2 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           background: 'rgba(0,0,0,0.2)',
@@ -282,10 +295,10 @@ export default function CompanyDetailsPage() {
           },
           { label: 'Members', value: `${totalMembers}/${maxSize}`, atMax: isAtMax },
         ].map(({ label, value, highlight, atMax }) => (
-          <Box key={label}>
+          <Box key={label} sx={{ textAlign: 'center' }}>
             <Typography
               variant="caption"
-              sx={{ opacity: 0.6, display: 'block' }}
+              sx={{ opacity: 0.6, display: 'block', fontSize: { xs: '0.6rem', sm: '0.75rem' } }}
             >
               {label}
             </Typography>
@@ -293,6 +306,8 @@ export default function CompanyDetailsPage() {
               variant="body2"
               sx={{
                 fontWeight: 700,
+                fontSize: { xs: '0.65rem', sm: '0.875rem' },
+                whiteSpace: 'nowrap',
                 color: atMax ? 'warning.main' : highlight ? 'primary.main' : 'text.primary',
               }}
             >
@@ -306,16 +321,23 @@ export default function CompanyDetailsPage() {
       <Tabs
         value={activeTab}
         onChange={(_, v) => setActiveTab(v)}
+        centered={isSmUp}
+        variant={isSmUp ? 'standard' : 'fullWidth'}
         sx={{
           flexShrink: 0,
+          width: '100%',
           borderBottom: '1px solid',
           borderColor: 'divider',
           background: 'rgba(0,0,0,0.15)',
+          '& .MuiTabs-flexContainer': {
+            justifyContent: { xs: 'stretch', sm: 'center' },
+          },
           '& .MuiTab-root': {
             fontFamily: '"Cinzel Decorative", serif',
             fontSize: '0.65rem',
             letterSpacing: '0.08em',
             minHeight: 44,
+            minWidth: { xs: '25%', sm: 'auto' },
             color: 'text.secondary',
             '&.Mui-selected': { color: 'primary.main' },
           },
@@ -327,18 +349,28 @@ export default function CompanyDetailsPage() {
           iconPosition="start"
           label={isSmUp ? "Roster" : undefined}
           aria-label="Roster"
+          sx={{ minWidth: { xs: '25%', sm: 'auto' }, minHeight: 44 }}
         />
         <Tab
           icon={<HistoryIcon sx={{ fontSize: '1rem' }} />}
           iconPosition="start"
           label={isSmUp ? "History" : undefined}
           aria-label="History"
+          sx={{ minWidth: { xs: '25%', sm: 'auto' }, minHeight: 44 }}
         />
         <Tab
           icon={<StorefrontIcon sx={{ fontSize: '1rem' }} />}
           iconPosition="start"
           label={isSmUp ? "Store" : undefined}
           aria-label="Store"
+          sx={{ minWidth: { xs: '25%', sm: 'auto' }, minHeight: 44 }}
+        />
+        <Tab
+          icon={<RecyclingIcon sx={{ fontSize: '1rem' }} />}
+          iconPosition="start"
+          label={isSmUp ? "Buyback" : undefined}
+          aria-label="Buyback"
+          sx={{ minWidth: { xs: '25%', sm: 'auto' }, minHeight: 44 }}
         />
       </Tabs>
 
@@ -621,6 +653,15 @@ export default function CompanyDetailsPage() {
             companyDef={companyDef}
             saveCompany={saveCompany}
             getStatsForUnit={getStatsForUnit}
+          />
+        )}
+
+        {/* ── BUYBACK ── */}
+        {activeTab === 3 && (
+          <BuybackTab
+            removalLog={company.removalLog}
+            members={company.members}
+            onRestore={handleRestore}
           />
         )}
       </Box>
