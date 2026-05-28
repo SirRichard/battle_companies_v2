@@ -15,6 +15,8 @@ import {
   DialogContent,
   DialogActions,
   Collapse,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import { motion } from 'framer-motion'
 import SportsMartialArtsIcon from '@mui/icons-material/SportsMartialArts'
@@ -150,6 +152,8 @@ export function formatSpecialTableRow(row: SpecialTableEntry): string {
 }
 
 export default function CompanyDetailsPage() {
+  const theme = useTheme()
+  const isSmUp = useMediaQuery(theme.breakpoints.up('sm'))
   const { companyId } = useParams<{ companyId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -260,9 +264,9 @@ export default function CompanyDetailsPage() {
         sx={{
           px: { xs: 2, sm: 3 },
           py: 1.5,
-          display: 'flex',
+          display: { xs: 'grid', sm: 'flex' },
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: undefined },
           gap: { xs: 2, sm: 3 },
-          flexWrap: 'wrap',
           borderBottom: '1px solid',
           borderColor: 'divider',
           background: 'rgba(0,0,0,0.2)',
@@ -321,17 +325,20 @@ export default function CompanyDetailsPage() {
         <Tab
           icon={<SportsMartialArtsIcon sx={{ fontSize: '1rem' }} />}
           iconPosition="start"
-          label="Roster"
+          label={isSmUp ? "Roster" : undefined}
+          aria-label="Roster"
         />
         <Tab
           icon={<HistoryIcon sx={{ fontSize: '1rem' }} />}
           iconPosition="start"
-          label="History"
+          label={isSmUp ? "History" : undefined}
+          aria-label="History"
         />
         <Tab
           icon={<StorefrontIcon sx={{ fontSize: '1rem' }} />}
           iconPosition="start"
-          label="Store"
+          label={isSmUp ? "Store" : undefined}
+          aria-label="Store"
         />
       </Tabs>
 
@@ -371,6 +378,7 @@ export default function CompanyDetailsPage() {
                           delay={i * 0.05}
                           onClick={() => setSelectedMemberId(member.id)}
                           baseStats={getStatsForUnit(member.baseUnitId)}
+                          isSmUp={isSmUp}
                         />
                         {creature && (
                           <Box
@@ -449,6 +457,7 @@ export default function CompanyDetailsPage() {
                       delay={i * 0.04}
                       onClick={() => setSelectedMemberId(member.id)}
                       baseStats={getStatsForUnit(member.baseUnitId)}
+                      isSmUp={isSmUp}
                     />
                   ))}
                 </Box>
@@ -513,9 +522,37 @@ export default function CompanyDetailsPage() {
                         <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
                           {wanderer.label}
                         </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.6rem' }}>
-                          Mv {wanderer.stats.move}" | F {wanderer.stats.fight}/{wanderer.stats.shoot ?? '-'}+ | S {wanderer.stats.strength} | D {wanderer.stats.defence} | A {wanderer.stats.attacks} | W {wanderer.stats.wounds} | C {wanderer.stats.courage}
-                        </Typography>
+                        {isSmUp ? (
+                          <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.6rem' }}>
+                            Mv {wanderer.stats.move}" | F {wanderer.stats.fight}/{wanderer.stats.shoot ?? '-'}+ | S {wanderer.stats.strength} | D {wanderer.stats.defence} | A {wanderer.stats.attacks} | W {wanderer.stats.wounds} | C {wanderer.stats.courage}
+                          </Typography>
+                        ) : (
+                          <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(5, 1fr)',
+                            gap: 0.5,
+                            mt: 0.5,
+                          }}>
+                            {[
+                              { label: 'Mv', value: `${wanderer.stats.move}"` },
+                              { label: 'F', value: `${wanderer.stats.fight}/${wanderer.stats.shoot ?? '-'}+` },
+                              { label: 'S', value: `${wanderer.stats.strength}` },
+                              { label: 'D', value: `${wanderer.stats.defence}` },
+                              { label: 'A', value: `${wanderer.stats.attacks}` },
+                              { label: 'W', value: `${wanderer.stats.wounds}` },
+                              { label: 'C', value: `${wanderer.stats.courage}` },
+                            ].map(({ label, value }) => (
+                              <Box key={label} sx={{ textAlign: 'center' }}>
+                                <Typography sx={{ fontSize: '0.55rem', opacity: 0.5, textTransform: 'uppercase' }}>
+                                  {label}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.75rem', color: 'info.light' }}>
+                                  {value}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
                       </Box>
                       <Typography
                         variant="caption"
@@ -813,6 +850,7 @@ interface MemberRowProps {
   delay: number
   onClick: () => unknown
   baseStats?: StoredBaseUnitStats
+  isSmUp: boolean
 }
 
 function MemberRow({
@@ -821,6 +859,7 @@ function MemberRow({
   delay,
   onClick,
   baseStats,
+  isSmUp,
 }: MemberRowProps) {
   const hasMissingNextGame = member.injuries.some(
     (i) => i.type === 'missing_next_game'
@@ -1034,14 +1073,29 @@ function MemberRow({
                 maxWidth: { xs: '100%', sm: 180 },
               }}
             >
-              {displayWargear.map((eq) => (
-                <Chip
-                  key={eq}
-                  label={getWargearLabel(eq)}
-                  size="small"
-                  sx={{ fontSize: '0.6rem', height: 20 }}
-                />
-              ))}
+              {(() => {
+                const visibleWargear = isSmUp ? displayWargear : displayWargear.slice(0, 3)
+                const hiddenCount = displayWargear.length - visibleWargear.length
+                return (
+                  <>
+                    {visibleWargear.map((eq) => (
+                      <Chip
+                        key={eq}
+                        label={getWargearLabel(eq)}
+                        size="small"
+                        sx={{ fontSize: '0.6rem', height: 20 }}
+                      />
+                    ))}
+                    {hiddenCount > 0 && (
+                      <Chip
+                        label={`+${hiddenCount} more`}
+                        size="small"
+                        sx={{ fontSize: '0.6rem', height: 20 }}
+                      />
+                    )}
+                  </>
+                )
+              })()}
             </Box>
           ) : null
         })()}
@@ -1367,6 +1421,7 @@ function HistoryTab({ company }: { company: Company }) {
           px: 4,
           textAlign: 'center',
           opacity: 0.6,
+          pb: 0,
         }}
       >
         <HistoryIcon sx={{ fontSize: 48, mb: 2, color: 'primary.dark' }} />
@@ -1386,7 +1441,7 @@ function HistoryTab({ company }: { company: Company }) {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
-    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 700, mx: 'auto' }}>
+    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 700, mx: 'auto', pb: 10 }}>
       {sorted.map((match, i) => (
         <HistoryMatchCard key={match.id} match={match} index={i} />
       ))}
@@ -2782,9 +2837,9 @@ function StoreTab({
   })()
 
   return (
-    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto', pb: 10 }}>
       {/* Section toggle */}
-      <Box sx={{ display: 'flex', gap: 0.5, mb: 3, flexWrap: 'wrap' }}>
+      <Box sx={{ display: { xs: 'grid', sm: 'flex' }, gridTemplateColumns: { xs: 'repeat(3, 1fr)', sm: undefined }, gap: { xs: '4px', sm: 0.5 }, mb: 3, flexWrap: { sm: 'wrap' } }}>
         {(
           [
             'reinforcements',
@@ -2799,8 +2854,9 @@ function StoreTab({
             key={s}
             onClick={() => setSection(s)}
             sx={{
-              flex: '1 1 auto',
+              flex: { sm: '1 1 auto' },
               minWidth: 68,
+              minHeight: 44,
               py: 1,
               textAlign: 'center',
               cursor: 'pointer',
@@ -2810,6 +2866,9 @@ function StoreTab({
               background:
                 section === s ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.15)',
               transition: 'all 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <Typography

@@ -500,6 +500,7 @@ export default function MemberDetailsDrawer({
   // companyFactory stores envenom as ownedEquipment=['envenom_weapon'] +
   // specialRules=[{ id: 'poisoned_attacks', parameter: weaponId }]
   const envenomWargearEntries: string[] = []
+  const envenomTargetWeapons = new Set<string>()
   if ((member.ownedEquipment ?? []).includes('envenom_weapon')) {
     for (const rule of member.specialRules) {
       if (
@@ -508,6 +509,7 @@ export default function MemberDetailsDrawer({
         typeof rule.parameter === 'string'
       ) {
         envenomWargearEntries.push(`envenom_weapon::${rule.parameter}`)
+        envenomTargetWeapons.add(rule.parameter)
       }
     }
   }
@@ -515,8 +517,10 @@ export default function MemberDetailsDrawer({
   // Equipment items (non-combat) — displayed in dedicated Equipment section
   const displayEquipment = (member.ownedEquipment ?? []).filter(id => id !== 'envenom_weapon')
 
+  // Hide base weapons that are covered by envenom (envenom chip replaces them visually)
   const allWargear = Array.from(new Set([...baseEquip, ...assignedEquip, ...envenomWargearEntries]))
     .filter(id => !displayEquipment.includes(id))
+    .filter(id => !envenomTargetWeapons.has(id))
 
   // Equipment-derived stat bonuses (shield +1D, armour upgrade, etc.)
   const equipBonus = calcEquipmentStatBonus(
@@ -1121,22 +1125,33 @@ export default function MemberDetailsDrawer({
           ) : (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
               {allWargear.map((eq) => {
+                const isEnvenom = eq.startsWith('envenom_weapon::')
                 const isRemovable =
-                  wargearEditMode &&
-                  assignedEquip.includes(eq) &&
-                  !baseEquip.includes(eq) &&
-                  !WARGEAR_CATEGORY_MAP[eq]?.startsWith('armour')
+                  wargearEditMode && (
+                    isEnvenom || (
+                      assignedEquip.includes(eq) &&
+                      !baseEquip.includes(eq) &&
+                      !WARGEAR_CATEGORY_MAP[eq]?.startsWith('armour')
+                    )
+                  )
                 return (
                   <Box key={eq} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                     <Chip
                       label={formatWargearEntry(eq)}
                       size="small"
+                      onClick={isEnvenom ? () => {
+                        const item = EQUIPMENT_BY_ID['envenom_weapon']
+                        if (item?.description) {
+                          setEquipPopup({ label: formatWargearEntry(eq), body: item.description })
+                        }
+                      } : undefined}
                       sx={{
                         fontSize: '0.72rem',
                         borderColor: isRemovable ? 'error.main' : 'divider',
                         color: isRemovable ? 'error.light' : 'text.secondary',
                         border: '1px solid',
                         background: 'transparent',
+                        cursor: isEnvenom ? 'pointer' : 'default',
                       }}
                     />
                     {isRemovable && (
@@ -2098,7 +2113,7 @@ export default function MemberDetailsDrawer({
         <ConfirmDialog
           open={removeConfirmItem !== null}
           title="Remove Wargear"
-          message={`Remove "${getWargearLabel(removeConfirmItem ?? '')}" from ${member.name}? This cannot be undone.`}
+          message={`Remove "${removeConfirmItem?.startsWith('envenom_weapon::') ? formatWargearEntry(removeConfirmItem) : getWargearLabel(removeConfirmItem ?? '')}" from ${member.name}? This cannot be undone.`}
           confirmLabel="Remove"
           cancelLabel="Cancel"
           dangerous
@@ -2107,11 +2122,25 @@ export default function MemberDetailsDrawer({
               setRemoveConfirmItem(null)
               return
             }
-            const updatedMembers = company.members.map((m) =>
-              m.id !== member.id
-                ? m
-                : { ...m, equipment: (m.equipment ?? []).filter((e) => e !== removeConfirmItem) }
-            )
+            let updatedMembers: typeof company.members
+            if (removeConfirmItem.startsWith('envenom_weapon::')) {
+              // Remove envenom_weapon from ownedEquipment + poisoned_attacks rule for this weapon
+              const targetWeaponId = removeConfirmItem.slice('envenom_weapon::'.length)
+              updatedMembers = company.members.map((m) => {
+                if (m.id !== member.id) return m
+                const updatedOwned = (m.ownedEquipment ?? []).filter((e) => e !== 'envenom_weapon')
+                const updatedRules = m.specialRules.filter(
+                  (r) => !(typeof r === 'object' && r.id === 'poisoned_attacks' && r.parameter === targetWeaponId)
+                )
+                return { ...m, ownedEquipment: updatedOwned, specialRules: updatedRules }
+              })
+            } else {
+              updatedMembers = company.members.map((m) =>
+                m.id !== member.id
+                  ? m
+                  : { ...m, equipment: (m.equipment ?? []).filter((e) => e !== removeConfirmItem) }
+              )
+            }
             await onSaveCompany({ ...company, members: updatedMembers })
             setRemoveConfirmItem(null)
           }}
