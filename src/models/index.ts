@@ -44,7 +44,7 @@ export interface ReinforcementEntry {
   equipment?: string[]
   rare?: number
   count?: number
-  units?: Array<{ baseUnitId: string }>
+  units?: Array<{ baseUnitId: string; rare?: number }>
   includeRolls?: number[]
   pool?: Array<{ baseUnitId: string; rare?: number }>
 }
@@ -63,6 +63,7 @@ export interface UniqueWargearEntry {
 export interface HeroUpgrade {
   id: string
   label: string
+  flavor?: string
   description: string
   baseUnitIds?: string[]
   allowedKeywords?: string[]
@@ -119,6 +120,7 @@ export interface SpecialTableEntry {
   baseUnitId?: string
   rare?: number
   count?: number
+  units?: Array<{ baseUnitId: string; rare?: number }>
 }
 
 export interface SpecialUnitEntry {

@@ -30,7 +30,7 @@ import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { getProceedButtonLabel } from '../utils/proceedButtonLabel'
 import { useAppContext } from '../context/AppContext'
-import { TOOLKIT_KITS } from './MatchSetupPage'
+import { TOOLKIT_KITS, getToolkitCount } from './MatchSetupPage'
 import type { ToolkitItem } from '../models/match'
 import wargearData from '../data/wargear.json'
 import baseUnitsData from '../data/baseUnits.json'
@@ -155,9 +155,20 @@ export default function ToolkitAssignmentPage() {
   // Active match state (loaded on mount for button label derivation)
   const [match, setMatch] = useState<Awaited<ReturnType<typeof loadActiveMatch>>>(null)
 
+  // ── Multi-kit state management ──
+  const [currentKitIndex, setCurrentKitIndex] = useState(0)
+  const [accumulatedItems, setAccumulatedItems] = useState<ToolkitItem[]>([])
+  const [selectedKitIds, setSelectedKitIds] = useState<string[]>([])
+
+  // Derive total kits from match atoBonuses
+  const totalKits = match ? getToolkitCount(match.atoBonuses) : 1
+
   // Selected kit
   const [kitId, setKitId] = useState<string | null>(null)
   const kit = TOOLKIT_KITS.find((k) => k.id === kitId)
+
+  // Kit selection is locked while a kit is actively being assigned
+  const kitSelectionLocked = kitId !== null
 
   // assignments[i] = { memberId, parameter? }
   const [assignments, setAssignments] = useState<
@@ -248,16 +259,43 @@ export default function ToolkitAssignmentPage() {
     setDynamicParamOptions(null)
   }
 
-  const handleProceed = async () => {
-    if (!kit) return
+  /** Save all accumulated items to match state and navigate to next page */
+  const finalizeAndNavigate = async (allItems: ToolkitItem[]) => {
+    const currentMatch = await loadActiveMatch(companyId!)
+    if (!currentMatch) return
 
-    if (!allAssigned) {
-      setConfirmPartialOpen(true)
-      return
+    const updatedMatch = { ...currentMatch, toolkitItems: allItems }
+    await saveActiveMatch(updatedMatch)
+
+    if (updatedMatch.atoBonuses.includes('wanderer')) {
+      navigate(`/companies/${companyId}/match/wanderer`)
+    } else {
+      navigate(`/companies/${companyId}/match`)
     }
+  }
 
-    const match = await loadActiveMatch(companyId!)
-    if (!match) return
+  /** Advance to next kit or finalize if all kits done */
+  const advanceKit = async (currentItems: ToolkitItem[]) => {
+    const newAccumulated = [...accumulatedItems, ...currentItems]
+    const newSelectedKitIds = [...selectedKitIds, kitId!]
+    const nextIndex = currentKitIndex + 1
+
+    setAccumulatedItems(newAccumulated)
+    setSelectedKitIds(newSelectedKitIds)
+    setCurrentKitIndex(nextIndex)
+
+    if (nextIndex === totalKits) {
+      // All kits assigned — save and navigate
+      await finalizeAndNavigate(newAccumulated)
+    } else {
+      // More kits to assign — reset kit selection for next round
+      setKitId(null)
+      setAssignments([])
+    }
+  }
+
+  const handleProceed = async () => {
+    if (!kit || !allAssigned) return
 
     const toolkitItems: ToolkitItem[] = assignments
       .filter((a) => a.memberId !== '')
@@ -267,23 +305,14 @@ export default function ToolkitAssignmentPage() {
         parameter: a.parameter,
       }))
 
-    const updatedMatch = { ...match, toolkitItems }
-    await saveActiveMatch(updatedMatch)
-
-    // If wanderer ATO bonus is also selected, go to wanderer selection next
-    if (updatedMatch.atoBonuses.includes('wanderer')) {
-      navigate(`/companies/${companyId}/match/wanderer`)
-    } else {
-      navigate(`/companies/${companyId}/match`)
-    }
+    await advanceKit(toolkitItems)
   }
 
   const handleConfirmPartial = async () => {
+    // Kept for backward compat but no longer reachable in multi-kit flow
+    // (confirm button is disabled when not all assigned)
     if (!kit) return
     setConfirmPartialOpen(false)
-
-    const match = await loadActiveMatch(companyId!)
-    if (!match) return
 
     const assignedItems = assignments
       .map((a, i) => ({ a, itemId: kit.items[i] }))
@@ -295,14 +324,7 @@ export default function ToolkitAssignmentPage() {
       parameter: a.parameter,
     }))
 
-    const updatedMatch = { ...match, toolkitItems }
-    await saveActiveMatch(updatedMatch)
-
-    if (updatedMatch.atoBonuses.includes('wanderer')) {
-      navigate(`/companies/${companyId}/match/wanderer`)
-    } else {
-      navigate(`/companies/${companyId}/match`)
-    }
+    await advanceKit(toolkitItems)
   }
 
   return (
@@ -324,6 +346,24 @@ export default function ToolkitAssignmentPage() {
           width: '100%',
         }}
       >
+        {/* ── Progress indicator (multi-kit only) ── */}
+        {totalKits > 1 && (
+          <Typography
+            data-testid="kit-progress-indicator"
+            variant="body2"
+            sx={{
+              textAlign: 'center',
+              mb: 2,
+              fontWeight: 600,
+              color: 'primary.main',
+              opacity: 0.85,
+              letterSpacing: '0.03em',
+            }}
+          >
+            Kit {currentKitIndex + 1} of {totalKits}
+          </Typography>
+        )}
+
         {/* ── Kit selection ── */}
         <SectionLabel>Choose a Kit</SectionLabel>
         <Box
@@ -337,20 +377,26 @@ export default function ToolkitAssignmentPage() {
         >
           {TOOLKIT_KITS.map((k) => {
             const isSelected = kitId === k.id
+            const isPreviouslySelected = selectedKitIds.includes(k.id)
+            const isDisabled = isPreviouslySelected || kitSelectionLocked
             return (
               <Box
                 key={k.id}
-                onClick={() => setKitId(k.id)}
+                onClick={() => {
+                  if (!isDisabled) setKitId(k.id)
+                }}
                 sx={{
                   p: 1.5,
                   border: '1px solid',
                   borderColor: isSelected ? 'primary.main' : 'divider',
                   borderRadius: 1,
-                  cursor: 'pointer',
+                  cursor: isDisabled ? 'default' : 'pointer',
+                  opacity: isPreviouslySelected ? 0.4 : kitSelectionLocked && !isSelected ? 0.6 : 1,
                   background: isSelected
                     ? 'rgba(201,168,76,0.08)'
                     : 'rgba(0,0,0,0.15)',
                   transition: 'all 0.15s',
+                  pointerEvents: isDisabled ? 'none' : 'auto',
                 }}
               >
                 <Box
@@ -550,7 +596,7 @@ export default function ToolkitAssignmentPage() {
                 variant="contained"
                 fullWidth
                 size="large"
-                disabled={!kit}
+                disabled={!allAssigned}
                 onClick={handleProceed}
                 sx={{
                   fontFamily: '"Cinzel Decorative", serif',
@@ -559,7 +605,7 @@ export default function ToolkitAssignmentPage() {
                   py: 1.5,
                 }}
               >
-                {buttonLabel}
+                {currentKitIndex < totalKits - 1 ? 'Confirm Kit' : buttonLabel}
               </Button>
             </Box>
           </Box>

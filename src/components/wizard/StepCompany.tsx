@@ -218,6 +218,68 @@ export default function StepCompany({ factionId, value, onChange }: Props) {
                     </Box>
                   )}
 
+                  {/* Hero upgrades */}
+                  {(() => {
+                    const raw = company.heroUpgrade
+                    const upgrades = Array.isArray(raw)
+                      ? raw
+                      : raw
+                        ? [raw]
+                        : []
+                    if (upgrades.length === 0) return null
+                    return (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Cinzel", serif',
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.08em',
+                            color: 'primary.main',
+                            opacity: 0.8,
+                            mb: 1,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Hero Upgrades
+                        </Typography>
+                        {upgrades.map((upgrade) => (
+                          <Box key={upgrade.id} sx={{ mb: 1.5 }}>
+                            <Typography
+                              sx={{
+                                fontFamily: '"Cinzel", serif',
+                                fontSize: '0.82rem',
+                                color: 'text.primary',
+                                mb: 0.25,
+                              }}
+                            >
+                              {upgrade.label}
+                              {upgrade.baseUnitIds &&
+                                upgrade.baseUnitIds.length > 0 && (
+                                  <Box
+                                    component="span"
+                                    sx={{ opacity: 0.6, fontSize: '0.78rem' }}
+                                  >
+                                    {' '}
+                                    (
+                                    {upgrade.baseUnitIds
+                                      .map((id) => getUnitLabel(id))
+                                      .join(', ')}
+                                    )
+                                  </Box>
+                                )}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{ opacity: 0.7, lineHeight: 1.6 }}
+                            >
+                              {upgrade.description}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )
+                  })()}
+
                   {/* Starting roster preview */}
                   <Box sx={{ mt: 2 }}>
                     <Typography

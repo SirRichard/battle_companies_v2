@@ -1985,12 +1985,12 @@ function StoreTab({
       return { type: 'choiceFromMultiple', roll: rawRoll, options }
     }
     if (row.result === 'pair') {
-      const units: Array<{ baseUnitId: string }> = row.units ?? []
+      const units: Array<{ baseUnitId: string; rare?: number }> = row.units ?? []
       return {
         type: 'pair',
         roll: rawRoll,
         units: units.map((u) => u.baseUnitId),
-        rare: row.rare,
+        rare: row.rare ?? units[0]?.rare,
       }
     }
     return { type: 'none', roll: rawRoll }
@@ -2198,6 +2198,25 @@ function StoreTab({
     getEffectiveRosterSlots(company.members, companyDef) + rollResult.units.length > maxCompanySize
   )
 
+  // Rare limit: any vault warden unit type has reached its per-unit rare cap
+  const vaultWardenRareLimitReached = (() => {
+    if (!isVaultWardenPairResult) return false
+    const specialTable = companyDef.specialTable ?? []
+    for (const entry of specialTable) {
+      if (
+        entry.result === 'pair' &&
+        entry.units?.some((u) =>
+          vaultWardenConfig?.pairBaseUnitIds.includes(u.baseUnitId)
+        )
+      ) {
+        for (const u of entry.units ?? []) {
+          if (u.rare && countOfUnit(u.baseUnitId) >= u.rare) return true
+        }
+      }
+    }
+    return false
+  })()
+
   // Expected vault warden count: count how many times the pair appears in the special table
   // Each pair entry means 2 expected members (1 of each pairBaseUnitId per pair recruited)
   const vaultWardenExpectedCount = (() => {
@@ -2208,12 +2227,12 @@ function StoreTab({
     for (const entry of specialTable) {
       if (
         entry.result === 'pair' &&
-        (entry as any).units?.some((u: any) =>
+        entry.units?.some((u) =>
           vaultWardenConfig.pairBaseUnitIds.includes(u.baseUnitId)
         )
       ) {
         // Each pair has a rare limit per unit; expected = rare × pairBaseUnitIds.length
-        const rareLimit = (entry as any).units?.[0]?.rare ?? 0
+        const rareLimit = entry.units?.[0]?.rare ?? 0
         return rareLimit * vaultWardenConfig.pairBaseUnitIds.length
       }
     }
@@ -2253,7 +2272,7 @@ function StoreTab({
     vaultWardenMissing &&
     rollResult?.fromSpecial &&
     onSpecialTable &&
-    !isVaultWardenPairResult &&
+    !(isVaultWardenPairResult && !vaultWardenRareLimitReached) &&
     !vaultWardenSubDeclined
   )
 
@@ -2265,7 +2284,7 @@ function StoreTab({
       // Skip the vault warden pair entry
       if (
         entry.result === 'pair' &&
-        (entry as any).units?.some((u: any) =>
+        entry.units?.some((u) =>
           vaultWardenConfig?.pairBaseUnitIds.includes(u.baseUnitId)
         )
       ) {
@@ -3115,8 +3134,8 @@ function StoreTab({
                       </Box>
                     )
                   })()}
-                  {/* ── Vault Warden overflow: choose other special chart option ── */}
-                  {vaultWardenOverflow && (() => {
+                  {/* ── Vault Warden overflow or rare limit: choose other special chart option ── */}
+                  {(vaultWardenOverflow || vaultWardenRareLimitReached) && (() => {
                     const alternatives = getOtherSpecialOptions()
                     return (
                       <Box
@@ -3133,13 +3152,17 @@ function StoreTab({
                           variant="body2"
                           sx={{ mb: 0.5, fontWeight: 600, color: 'warning.main' }}
                         >
-                          Vault Warden Team — Company Limit Exceeded
+                          {vaultWardenRareLimitReached
+                            ? 'Vault Warden Team — Rare Limit Reached'
+                            : 'Vault Warden Team — Company Limit Exceeded'}
                         </Typography>
                         <Typography
                           variant="caption"
                           sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
                         >
-                          Recruiting a Vault Warden Team would exceed your company limit of {maxCompanySize}. You may choose any other option from the Special chart instead.
+                          {vaultWardenRareLimitReached
+                            ? 'You already have the maximum number of Vault Wardens allowed. You may choose any other option from the Special chart instead.'
+                            : `Recruiting a Vault Warden Team would exceed your company limit of ${maxCompanySize}. You may choose any other option from the Special chart instead.`}
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                           {alternatives.map((alt, idx) => {
@@ -3839,6 +3862,136 @@ function StoreTab({
                   </Typography>
                 </Box>
               ))}
+            </Box>
+          )}
+
+          {/* ── SPECIAL UNITS ──────────────────────────────────────────── */}
+          {companyDef.specialUnits && companyDef.specialUnits.length > 0 && (
+            <Box
+              sx={{
+                mt: 3,
+                p: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                background: 'rgba(0,0,0,0.15)',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontSize: '0.58rem',
+                  display: 'block',
+                  mb: 1.5,
+                  color: 'primary.main',
+                }}
+              >
+                Special Units
+              </Typography>
+              {companyDef.specialUnits.map((entry) => {
+                const rosterCountForUnit = company.members.filter(
+                  (m) => m.baseUnitId === entry.baseUnitId
+                ).length
+                const rareLimitReached =
+                  entry.rare != null && rosterCountForUnit >= entry.rare
+                const insufficientInfluence =
+                  company.influence < entry.influenceCost
+                const isDisabled =
+                  insufficientInfluence || atMax || rareLimitReached
+
+                return (
+                  <Box
+                    key={entry.baseUnitId}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 1,
+                      p: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      background: 'rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+                      >
+                        {getUnitLabel(entry.baseUnitId)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.7, display: 'block' }}
+                      >
+                        Cost: {entry.influenceCost} IP
+                        {entry.rare != null && ` · Limit: ${entry.rare}`}
+                      </Typography>
+                      {rareLimitReached && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'warning.main',
+                            display: 'block',
+                            fontSize: '0.6rem',
+                            mt: 0.25,
+                          }}
+                        >
+                          Limit reached
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={isDisabled}
+                      onClick={async () => {
+                        const { v4: uuidv4 } = await import('uuid')
+                        const baseUnit = BASE_UNITS_RAW.find((u) => u.id === entry.baseUnitId)
+                        const defaultWargear = baseUnit?.baseWargear ?? []
+                        const newMember: Member = {
+                          id: uuidv4(),
+                          name: getUnitLabel(entry.baseUnitId),
+                          baseUnitId: entry.baseUnitId,
+                          role: 'warrior',
+                          equipment: defaultWargear,
+                          experience: 0,
+                          lifetimeExperience: 0,
+                          injuries: [],
+                          specialRules: [],
+                          statIncreases: {},
+                          statDecreases: {},
+                        }
+                        await saveCompany({
+                          ...company,
+                          influence: company.influence - entry.influenceCost,
+                          members: [...company.members, newMember],
+                        })
+                        setMsg(`Recruited ${newMember.name}!`)
+                        setTimeout(() => setMsg(null), 3000)
+                      }}
+                      sx={{
+                        fontFamily: '"Cinzel Decorative", serif',
+                        fontSize: '0.55rem',
+                        minWidth: 0,
+                        px: 1.5,
+                        py: 0.5,
+                        borderColor: 'primary.dark',
+                        color: 'primary.main',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          background: 'rgba(201,168,76,0.08)',
+                        },
+                      }}
+                    >
+                      Purchase
+                    </Button>
+                  </Box>
+                )
+              })}
             </Box>
           )}
         </Box>

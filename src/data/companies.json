@@ -224,9 +224,9 @@
 
     "startingRoster": [
       {
-        "baseUnitId": "rivendell_warrior",
-        "count": 1,
-        "equipment": ["elf_bow"]
+        "baseUnitId": "warrior_of_minas_tirith",
+        "count": 2,
+        "equipment": ["shield"]
       },
       {
         "baseUnitId": "warrior_of_minas_tirith",
@@ -234,9 +234,9 @@
         "equipment": ["spear", "shield"]
       },
       {
-        "baseUnitId": "warrior_of_minas_tirith",
-        "count": 2,
-        "equipment": ["shield"]
+        "baseUnitId": "rivendell_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
       },
       {
         "baseUnitId": "hobbit_archer",
@@ -457,13 +457,9 @@
         "equipment": ["shield"]
       },
       {
-        "baseUnitId": "ranger_of_gondor",
-        "count": 1
-      },
-      {
         "baseUnitId": "warrior_of_minas_tirith",
         "count": 1,
-        "equipment": ["bow"]
+        "equipment": ["shield"]
       },
       {
         "baseUnitId": "warrior_of_minas_tirith",
@@ -471,9 +467,13 @@
         "equipment": ["shield", "spear"]
       },
       {
+        "baseUnitId": "ranger_of_gondor",
+        "count": 1
+      },
+      {
         "baseUnitId": "warrior_of_minas_tirith",
         "count": 1,
-        "equipment": ["shield"]
+        "equipment": ["bow"]
       }
     ],
 
@@ -766,8 +766,8 @@
       },
       {
         "baseUnitId": "warrior_of_rohan",
-        "count": 1,
-        "equipment": ["bow"]
+        "count": 4,
+        "equipment": ["shield"]
       },
       {
         "baseUnitId": "warrior_of_rohan",
@@ -776,8 +776,8 @@
       },
       {
         "baseUnitId": "warrior_of_rohan",
-        "count": 4,
-        "equipment": ["shield"]
+        "count": 1,
+        "equipment": ["bow"]
       }
     ],
 
@@ -1039,17 +1039,11 @@
       {
         "baseUnitId": "lothlorien_warrior",
         "count": 1,
-        "equipment": ["elf_bow"]
-      },
-      {
-        "baseUnitId": "galadhrim_warrior",
-        "count": 1,
-        "equipment": ["elf_bow"]
+        "equipment": ["wood_elf_spear"]
       },
       {
         "baseUnitId": "lothlorien_warrior",
-        "count": 1,
-        "equipment": ["wood_elf_spear"]
+        "count": 1
       },
       {
         "baseUnitId": "galadhrim_warrior",
@@ -1057,12 +1051,18 @@
         "equipment": ["elven_spear"]
       },
       {
-        "baseUnitId": "lothlorien_warrior",
+        "baseUnitId": "galadhrim_warrior",
         "count": 1
       },
       {
+        "baseUnitId": "lothlorien_warrior",
+        "count": 1,
+        "equipment": ["elf_bow"]
+      },
+      {
         "baseUnitId": "galadhrim_warrior",
-        "count": 1
+        "count": 1,
+        "equipment": ["elf_bow"]
       }
     ],
 
@@ -2060,7 +2060,7 @@
       {
         "baseUnitId": "angmar_orc_warrior",
         "count": 1,
-        "equipment": ["orc_bow"]
+        "equipment": ["shield"]
       },
       {
         "baseUnitId": "angmar_orc_warrior",
@@ -2070,12 +2070,12 @@
       {
         "baseUnitId": "angmar_orc_warrior",
         "count": 1,
-        "equipment": ["shield"]
+        "equipment": ["two_handed_weapon"]
       },
       {
         "baseUnitId": "angmar_orc_warrior",
         "count": 1,
-        "equipment": ["two_handed_weapon"]
+        "equipment": ["orc_bow"]
       },
       {
         "baseUnitId": "wild_warg",
@@ -2531,12 +2531,12 @@
       {
         "baseUnitId": "isengard_orc_warrior",
         "count": 1,
-        "equipment": ["orc_bow"]
+        "equipment": ["two_handed_weapon"]
       },
       {
         "baseUnitId": "isengard_orc_warrior",
         "count": 1,
-        "equipment": ["two_handed_weapon"]
+        "equipment": ["orc_bow"]
       }
     ],
 
@@ -2635,11 +2635,6 @@
       {
         "baseUnitId": "hill_tribesman",
         "count": 1,
-        "equipment": ["bow"]
-      },
-      {
-        "baseUnitId": "hill_tribesman",
-        "count": 1,
         "equipment": ["two_handed_weapon"]
       },
       {
@@ -2656,6 +2651,11 @@
         "baseUnitId": "hill_tribesman",
         "count": 2,
         "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["bow"]
       }
     ],
 
@@ -2748,12 +2748,12 @@
       },
       {
         "baseUnitId": "uruk_hai_scout",
-        "count": 2,
-        "equipment": ["uruk_hai_bow"]
+        "count": 3
       },
       {
         "baseUnitId": "uruk_hai_scout",
-        "count": 3
+        "count": 2,
+        "equipment": ["uruk_hai_bow"]
       }
     ],
 
@@ -2856,21 +2856,6 @@
 
     "startingRoster": [
       {
-        "baseUnitId": "ruffian",
-        "count": 2,
-        "equipment": ["bow"]
-      },
-      {
-        "baseUnitId": "ruffian",
-        "count": 5,
-        "equipment": ["whip"]
-      },
-      {
-        "baseUnitId": "hill_tribesman",
-        "count": 1,
-        "equipment": ["bow"]
-      },
-      {
         "baseUnitId": "hill_tribesman",
         "count": 1,
         "equipment": ["spear"]
@@ -2879,6 +2864,21 @@
         "baseUnitId": "hill_tribesman",
         "count": 1,
         "equipment": ["light_shield"]
+      },
+      {
+        "baseUnitId": "hill_tribesman",
+        "count": 1,
+        "equipment": ["bow"]
+      },
+      {
+        "baseUnitId": "ruffian",
+        "count": 5,
+        "equipment": ["whip"]
+      },
+      {
+        "baseUnitId": "ruffian",
+        "count": 2,
+        "equipment": ["bow"]
       }
     ],
 
@@ -3196,12 +3196,14 @@
       }
     ],
 
-    "heroUpgrade": {
-      "id": "feel_no_pain",
-      "label": "Feel No Pain",
-      "flavor": "Driven further by the orders relayed by the Signal Towers, this hero is driven to a deeper frenzy.",
-      "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 5+, the Wound is ignored."
-    },
+    "heroUpgrade": [
+      {
+        "id": "feel_no_pain",
+        "label": "Feel No Pain",
+        "flavor": "Driven further by the orders relayed by the Signal Towers, this hero is driven to a deeper frenzy.",
+        "description": "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 5+, the Wound is ignored."
+      }
+    ],
 
     "specialUnits": [
       {
@@ -3344,13 +3346,13 @@
       },
       {
         "baseUnitId": "hunter_orc_warrior",
-        "count": 2,
-        "equipment": ["orc_bow"]
+        "count": 1,
+        "equipment": ["two_handed_weapon"]
       },
       {
         "baseUnitId": "hunter_orc_warrior",
-        "count": 1,
-        "equipment": ["two_handed_weapon"]
+        "count": 2,
+        "equipment": ["orc_bow"]
       },
       {
         "baseUnitId": "fell_warg",
@@ -3461,16 +3463,6 @@
 
     "startingRoster": [
       {
-        "baseUnitId": "moria_goblin_warrior",
-        "count": 1,
-        "equipment": ["orc_bow"]
-      },
-      {
-        "baseUnitId": "moria_goblin_warrior",
-        "count": 2,
-        "equipment": ["spear"]
-      },
-      {
         "baseUnitId": "mordor_orc_warrior",
         "count": 1,
         "equipment": ["spear"]
@@ -3487,6 +3479,16 @@
       },
       {
         "baseUnitId": "mordor_orc_warrior",
+        "count": 1,
+        "equipment": ["orc_bow"]
+      },
+      {
+        "baseUnitId": "moria_goblin_warrior",
+        "count": 2,
+        "equipment": ["spear"]
+      },
+      {
+        "baseUnitId": "moria_goblin_warrior",
         "count": 1,
         "equipment": ["orc_bow"]
       },
@@ -3834,11 +3836,6 @@
 
     "startingRoster": [
       {
-        "baseUnitId": "mahud_warrior",
-        "count": 1,
-        "equipment": ["blowpipe"]
-      },
-      {
         "baseUnitId": "khandish_warrior",
         "count": 2
       },
@@ -3846,6 +3843,11 @@
         "baseUnitId": "corsair_of_umbar",
         "count": 2,
         "equipment": ["light_shield", "throwing_weapons"]
+      },
+      {
+        "baseUnitId": "mahud_warrior",
+        "count": 1,
+        "equipment": ["blowpipe"]
       },
       {
         "baseUnitId": "haradrim_warrior",

@@ -3412,6 +3412,14 @@ function HeroAdvancementCard({
                       >
                         {upgrade.label}
                       </Typography>
+                      {upgrade.flavor && selectedUpgradeId === upgrade.id && (
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.7, fontStyle: 'italic', display: 'block', mt: 0.25 }}
+                        >
+                          {upgrade.flavor}
+                        </Typography>
+                      )}
                       {upgrade.description && (
                         <Typography
                           variant="caption"

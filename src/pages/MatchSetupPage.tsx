@@ -170,6 +170,13 @@ function rollScenario(): ScenarioDef {
   return match ?? SCENARIOS[0]
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Count how many 'toolkit' entries exist in the atoBonuses array */
+export function getToolkitCount(bonuses: AtoBonusType[]): number {
+  return bonuses.filter((b) => b === 'toolkit').length
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MatchSetupPage() {
@@ -241,6 +248,11 @@ export default function MatchSetupPage() {
   }
 
   const handleAtoToggle = (id: AtoBonusType) => {
+    if (id === 'toolkit') {
+      // Toolkit uses counter-based increment (click = +1)
+      handleToolkitIncrement()
+      return
+    }
     setAtoBonuses((prev) => {
       const already = prev.includes(id)
       if (already) return prev.filter((b) => b !== id)
@@ -253,6 +265,31 @@ export default function MatchSetupPage() {
         ) + (ATO_BONUSES.find((b) => b.id === id)?.ratingValue ?? 0)
       if (companyRating + newTotal > opponentRatingNum) return prev
       return [...prev, id]
+    })
+  }
+
+  const handleToolkitIncrement = () => {
+    setAtoBonuses((prev) => {
+      const count = getToolkitCount(prev)
+      if (count >= 5) return prev // max 5
+      // Check budget: adding another toolkit (+30) would exceed opponent rating
+      const currentTotal = prev.reduce(
+        (sum, b) =>
+          sum + (ATO_BONUSES.find((x) => x.id === b)?.ratingValue ?? 0),
+        0
+      )
+      if (companyRating + currentTotal + 30 > opponentRatingNum) return prev
+      return [...prev, 'toolkit']
+    })
+  }
+
+  const handleToolkitDecrement = () => {
+    setAtoBonuses((prev) => {
+      const count = getToolkitCount(prev)
+      if (count <= 0) return prev
+      // Remove one 'toolkit' entry (last occurrence)
+      const idx = prev.lastIndexOf('toolkit')
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
     })
   }
 
@@ -439,16 +476,37 @@ export default function MatchSetupPage() {
               {ATO_BONUSES.filter(
                 (bonus) => bonus.ratingValue <= ratingDiff
               ).map((bonus) => {
-                const isSelected = atoBonuses.includes(bonus.id)
+                const isToolkit = bonus.id === 'toolkit'
+                const toolkitCount = getToolkitCount(atoBonuses)
+                const isSelected = isToolkit
+                  ? toolkitCount > 0
+                  : atoBonuses.includes(bonus.id)
                 const wouldExceed =
                   !isSelected &&
                   companyRating + totalAtoBonusRating + bonus.ratingValue >
                     opponentRatingNum
-                const disabled = wouldExceed
+                // For toolkit: disabled if at max 5 OR budget insufficient for +30
+                const toolkitDisabled = isToolkit
+                  ? toolkitCount >= 5 ||
+                    companyRating + totalAtoBonusRating + 30 > opponentRatingNum
+                  : false
+                const disabled = isToolkit ? toolkitDisabled && !isSelected : wouldExceed
                 return (
                   <Box
                     key={bonus.id}
-                    onClick={() => !disabled && handleAtoToggle(bonus.id)}
+                    onClick={() => {
+                      if (isToolkit) {
+                        if (!toolkitDisabled) handleToolkitIncrement()
+                      } else {
+                        if (!disabled) handleAtoToggle(bonus.id)
+                      }
+                    }}
+                    onContextMenu={(e) => {
+                      if (isToolkit && toolkitCount > 0) {
+                        e.preventDefault()
+                        handleToolkitDecrement()
+                      }
+                    }}
                     sx={{
                       p: 1.5,
                       border: '1px solid',
@@ -457,15 +515,22 @@ export default function MatchSetupPage() {
                       background: isSelected
                         ? 'rgba(201,168,76,0.08)'
                         : 'rgba(0,0,0,0.15)',
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.4 : 1,
+                      cursor:
+                        (isToolkit ? toolkitDisabled && toolkitCount === 0 : disabled)
+                          ? 'default'
+                          : 'pointer',
+                      opacity:
+                        (isToolkit ? toolkitDisabled && toolkitCount === 0 : disabled)
+                          ? 0.4
+                          : 1,
                       transition: 'all 0.15s',
-                      '&:hover': !disabled
-                        ? {
-                            borderColor: 'primary.dark',
-                            background: 'rgba(201,168,76,0.05)',
-                          }
-                        : {},
+                      '&:hover':
+                        !(isToolkit ? toolkitDisabled && toolkitCount === 0 : disabled)
+                          ? {
+                              borderColor: 'primary.dark',
+                              background: 'rgba(201,168,76,0.05)',
+                            }
+                          : {},
                     }}
                   >
                     <Box
@@ -497,23 +562,74 @@ export default function MatchSetupPage() {
                         >
                           {bonus.label}
                         </Typography>
+                        {isToolkit && toolkitCount > 0 && (
+                          <Chip
+                            label={`×${toolkitCount}`}
+                            size="small"
+                            data-testid="toolkit-count-badge"
+                            sx={{
+                              fontSize: '0.65rem',
+                              height: 18,
+                              minWidth: 28,
+                              color: 'primary.main',
+                              borderColor: 'primary.main',
+                              border: '1px solid',
+                              background: 'rgba(201,168,76,0.12)',
+                              fontWeight: 700,
+                            }}
+                          />
+                        )}
                       </Box>
-                      <Chip
-                        label={`+${bonus.ratingValue} pts`}
-                        size="small"
-                        sx={{
-                          fontSize: '0.65rem',
-                          height: 20,
-                          borderColor: isSelected ? 'primary.main' : 'divider',
-                          color: isSelected ? 'primary.main' : 'text.secondary',
-                          border: '1px solid',
-                          background: 'transparent',
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {isToolkit && toolkitCount > 0 && (
+                          <Chip
+                            label="−"
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToolkitDecrement()
+                            }}
+                            sx={{
+                              fontSize: '0.8rem',
+                              height: 20,
+                              minWidth: 24,
+                              cursor: 'pointer',
+                              color: 'text.secondary',
+                              borderColor: 'divider',
+                              border: '1px solid',
+                              background: 'rgba(0,0,0,0.2)',
+                              '&:hover': {
+                                background: 'rgba(201,168,76,0.1)',
+                                borderColor: 'primary.main',
+                              },
+                            }}
+                          />
+                        )}
+                        <Chip
+                          label={`+${bonus.ratingValue} pts`}
+                          size="small"
+                          sx={{
+                            fontSize: '0.65rem',
+                            height: 20,
+                            borderColor: isSelected ? 'primary.main' : 'divider',
+                            color: isSelected ? 'primary.main' : 'text.secondary',
+                            border: '1px solid',
+                            background: 'transparent',
+                          }}
+                        />
+                      </Box>
                     </Box>
                     <Typography variant="caption" sx={{ opacity: 0.6 }}>
                       {bonus.desc}
                     </Typography>
+                    {isToolkit && toolkitCount > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.5, display: 'block', mt: 0.5, fontStyle: 'italic' }}
+                      >
+                        Right-click or tap "−" to remove one kit
+                      </Typography>
+                    )}
                   </Box>
                 )
               })}
@@ -621,7 +737,7 @@ export default function MatchSetupPage() {
           }}
         >
           {atoBonuses.includes('toolkit')
-            ? 'Next: Assign Kit Items →'
+            ? `Next: Assign Kit Items (${getToolkitCount(atoBonuses)}) →`
             : atoBonuses.includes('wanderer')
               ? 'Next: Choose Wanderer →'
               : 'Begin Battle'}

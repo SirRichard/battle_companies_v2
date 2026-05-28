@@ -28,7 +28,7 @@ import { DieFace } from './AnimatedDice'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
-import type { Member, StoredBaseUnitStats, Company, CompanyDefinition } from '../../models'
+import type { Member, StoredBaseUnitStats, Company, CompanyDefinition, HeroUpgrade } from '../../models'
 import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../../utils/labels'
 import { calcMemberRating } from '../../utils/rating'
 import pathsData from '../../data/paths.json'
@@ -223,6 +223,53 @@ const INJURY_DESCRIPTIONS: Record<string, string> = {
 // ─── XP threshold ─────────────────────────────────────────────────────────────
 
 const XP_PER_LEVEL = 5
+
+// ─── Hero Upgrade Card (expandable flavor) ───────────────────────────────────
+
+function HeroUpgradeCard({ upgrade }: { upgrade: HeroUpgrade }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <Box
+      onClick={upgrade.flavor ? () => setExpanded((v) => !v) : undefined}
+      sx={{
+        px: 1.5,
+        py: 1,
+        border: '1px solid',
+        borderColor: 'primary.dark',
+        borderRadius: 1,
+        background: 'rgba(201,168,76,0.04)',
+        cursor: upgrade.flavor ? 'pointer' : 'default',
+      }}
+    >
+      <Typography
+        sx={{
+          fontFamily: '"Cinzel Decorative", serif',
+          fontSize: '0.75rem',
+          color: 'primary.main',
+          mb: 0.25,
+        }}
+      >
+        {upgrade.label}
+      </Typography>
+      {upgrade.flavor && expanded && (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.6, fontStyle: 'italic', display: 'block', mb: 0.25 }}
+        >
+          {upgrade.flavor}
+        </Typography>
+      )}
+      {upgrade.description && (
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.7, display: 'block' }}
+        >
+          {upgrade.description}
+        </Typography>
+      )}
+    </Box>
+  )
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -1121,36 +1168,7 @@ export default function MemberDetailsDrawer({
               <SectionLabel>Company Hero Upgrades</SectionLabel>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
                 {ownedUpgrades.map((upgrade) => (
-                  <Box
-                    key={upgrade.id}
-                    sx={{
-                      px: 1.5,
-                      py: 1,
-                      border: '1px solid',
-                      borderColor: 'primary.dark',
-                      borderRadius: 1,
-                      background: 'rgba(201,168,76,0.04)',
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontFamily: '"Cinzel Decorative", serif',
-                        fontSize: '0.75rem',
-                        color: 'primary.main',
-                        mb: 0.25,
-                      }}
-                    >
-                      {upgrade.label}
-                    </Typography>
-                    {upgrade.description && (
-                      <Typography
-                        variant="caption"
-                        sx={{ opacity: 0.7, display: 'block' }}
-                      >
-                        {upgrade.description}
-                      </Typography>
-                    )}
-                  </Box>
+                  <HeroUpgradeCard key={upgrade.id} upgrade={upgrade} />
                 ))}
               </Box>
             </Box>
