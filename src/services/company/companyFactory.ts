@@ -7,6 +7,9 @@ import type {
   WizardState,
 } from '../../models'
 import pathsData from '../../data/paths.json'
+import equipmentData from '../../data/equipment.json'
+
+const EQUIPMENT_IDS = new Set(equipmentData.map((e) => e.id))
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -120,6 +123,9 @@ export function buildStartingMembers(
             // Unknown parameterised entry — treat as plain equipment
             plainEquipment.push(purchaseEntry)
           }
+        } else if (EQUIPMENT_IDS.has(purchaseEntry)) {
+          // Equipment.json item → ownedEquipment section
+          ownedEquipmentItems.push(purchaseEntry)
         } else {
           plainEquipment.push(purchaseEntry)
         }

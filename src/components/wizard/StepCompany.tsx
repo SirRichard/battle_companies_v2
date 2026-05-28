@@ -192,7 +192,7 @@ export default function StepCompany({ factionId, value, onChange }: Props) {
                         Company Special Rules
                       </Typography>
                       {company.companySpecialRules
-                        .filter((r) => r.title)
+                        .filter((r) => r.title || r.label)
                         .map((rule) => (
                           <Box key={rule.id} sx={{ mb: 1.5 }}>
                             <Typography
@@ -203,7 +203,7 @@ export default function StepCompany({ factionId, value, onChange }: Props) {
                                 mb: 0.25,
                               }}
                             >
-                              {rule.title}
+                              {rule.title || rule.label}
                             </Typography>
                             {rule.description && (
                               <Typography

@@ -1,7 +1,7 @@
 {
   "elite_company": {
     "id": "elite_company",
-    "title": "Elite Company",
+    "label": "Elite Company",
     "description": "This Battle Company may only have up to {maxSize} members rather than the normal 15.",
     "parameters": {
       "maxSize": 12
@@ -9,7 +9,7 @@
   },
   "large_company": {
     "id": "large_company",
-    "title": "Large Company",
+    "label": "Large Company",
     "description": "This Battle Company may have up to {maxSize} members rather than the normal 15.",
     "parameters": {
       "maxSize": null
@@ -17,7 +17,7 @@
   },
   "mercenary_ambush": {
     "id": "mercenary_ambush",
-    "title": "Mercenary Ambush",
+    "label": "Mercenary Ambush",
     "description": "Goblin Mercenaries treat a Hero model with the Mercenary Ambush special rule exactly as if they were a Goblin Mercenary Captain for the purposes of the Mercenary Ambush special rule."
   }
 }

@@ -8,6 +8,7 @@ import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
 import specialRulesRaw from '../data/specialRules.json'
 
+import { resolveParameterisedLabel } from './paramLabel'
 import type { CompanyDefinition } from '../models'
 
 const COMPANIES = companiesData as CompanyDefinition[]
@@ -81,10 +82,7 @@ export function formatSpecialRule(
     if (rule.parameterised) return `${rule.label} (X)`
     return rule.label
   }
-  // Object form: { id, parameter }
-  const rule = SPECIAL_RULES_DATA.find((r) => r.id === entry.id)
-  const label = rule ? rule.label : entry.id
-  // Strip any existing placeholder like " (X)" from the stored label before appending the real value
-  const baseLabel = rule ? label.replace(/\s*\([^)]*\)\s*$/, '').trim() : label
-  return `${baseLabel} (${entry.parameter})`
+  // Object form: { id, parameter } — delegate to resolveParameterisedLabel
+  // which handles weapon→wargear label lookup, friendly_hero→member name, etc.
+  return resolveParameterisedLabel(entry)
 }

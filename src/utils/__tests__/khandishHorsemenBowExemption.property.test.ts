@@ -55,7 +55,7 @@ function makeCompanyDefWithExemption(): CompanyDefinition {
     companySpecialRules: [
       {
         id: 'khandish_horsemen',
-        title: 'Khandish Horsemen',
+        label: 'Khandish Horsemen',
         description:
           'Khandish Horsemen in this Battle Company do not count towards your Bow Limit.',
         limitExemptions: {

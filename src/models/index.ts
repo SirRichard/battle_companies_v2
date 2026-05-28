@@ -71,9 +71,10 @@ export interface HeroUpgrade {
 
 export interface CompanySpecialRule {
   id: string
-  title: string
+  title?: string
+  label?: string
   flavor?: string
-  description: string
+  description?: string
   limitExemptions?: {
     bow?: string[]
     cavalry?: string[]

@@ -398,7 +398,7 @@ describe('Property 7: Hero restrictions eligibility', () => {
             companySpecialRules: [
               {
                 id: 'hero_restrictions_rule',
-                title: 'Hero Restrictions',
+                label: 'Hero Restrictions',
                 description: 'Only certain units may be heroes.',
                 heroRestrictions: [{ allowedBaseUnitIds }],
               },
@@ -609,7 +609,7 @@ describe('Property 6: Substitution prompt visibility', () => {
             companySpecialRules: [
               {
                 id: 'substitution_rule',
-                title: 'Substitution Rule',
+                label: 'Substitution Rule',
                 description: 'A test substitution rule.',
                 reinforcementSubstitution: [
                   {
@@ -698,7 +698,7 @@ describe('Property 11: Break point calculation correctness', () => {
       companySpecialRules: [
         {
           id: 'breaking_point',
-          title: 'Breaking Point',
+          label: 'Breaking Point',
           description: 'Custom break point.',
           parameters: { breakPointPercentage },
         },

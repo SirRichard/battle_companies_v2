@@ -289,6 +289,9 @@ export default function StepGoldEquipment({
     const allEquip = [...member.equipment, ...purchased]
     const armourUpgradeId = getBestArmourUpgrade(allEquip, accessible)
 
+    // Check if member already has a small shield (equipment) — blocks wargear shields
+    const hasSmallShield = allEquip.includes('small_shield')
+
     return (wargearData as WargearEntry[]).filter((w) => {
       if (w.purchasable === false) return false
       if (w.rating === undefined) return false
@@ -301,6 +304,8 @@ export default function StepGoldEquipment({
         allEquip.some((e) => WARGEAR_MAP[e]?.category === 'mount')
       )
         return false
+      // Shield: cannot carry with small shield
+      if (w.category === 'shield' && hasSmallShield) return false
       // Armour: only the valid upgrade
       if (ARMOUR_TIER[w.id] !== undefined) return w.id === armourUpgradeId
       return true
@@ -312,10 +317,16 @@ export default function StepGoldEquipment({
   ): EquipmentEntry[] => {
     const purchased = getPurchasedForMember(member.tempId)
     const allEquip = [...member.equipment, ...purchased]
+    // Check if member already carries a shield (wargear category "shield")
+    const hasShield = allEquip.some(
+      (id) => WARGEAR_MAP[id]?.category === 'shield'
+    )
     return (equipmentData as EquipmentEntry[]).filter((e) => {
       if (allEquip.includes(e.id)) return false
       if (e.cavalryOnly) return false
       if (e.heroOnly && !member.isHero) return false
+      // Small Shield cannot be carried with another shield
+      if (e.id === 'small_shield' && hasShield) return false
       return true
     })
   }

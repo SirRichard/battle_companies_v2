@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest'
 import * as fc from 'fast-check'
 import specialRulesData from '../../data/specialRules.json'
+import wargearData from '../../data/wargear.json'
 import { formatSpecialRule } from '../labels'
 
 // ── Data pools ────────────────────────────────────────────────────────────────
@@ -21,9 +22,11 @@ type SpecialRuleEntry = {
   id: string
   label: string
   parameterised?: boolean
+  parameter_type?: string
 }
 
 const allRules = specialRulesData as SpecialRuleEntry[]
+const wargear = wargearData as Array<{ id: string; label: string }>
 
 const parameterisedRuleIds = allRules
   .filter((r) => r.parameterised === true)
@@ -56,7 +59,7 @@ describe('Property 30: Parameterised special rule display format', () => {
     )
   })
 
-  it('{ id, parameter } object → output ends with " (${parameter})"', () => {
+  it('{ id, parameter } object → output contains resolved parameter in parentheses', () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...parameterisedRuleIds),
@@ -66,7 +69,30 @@ describe('Property 30: Parameterised special rule display format', () => {
         ),
         (id, parameter) => {
           const result = formatSpecialRule({ id, parameter })
-          expect(result).toMatch(new RegExp(`\\(${String(parameter).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)$`))
+          const rule = allRules.find((r) => r.id === id)!
+          const paramType = rule.parameter_type
+
+          // Determine expected resolved value based on parameter_type
+          let expectedValue: string
+          if (paramType === 'weapon' || paramType === 'friendly_hero') {
+            // These types attempt a lookup; on miss they humanise the parameter
+            const humanised = String(parameter)
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, (l) => l.toUpperCase())
+            if (paramType === 'weapon') {
+              const weapon = wargear.find((w) => w.id === parameter)
+              expectedValue = weapon ? weapon.label : humanised
+            } else {
+              // friendly_hero with no members passed → humanise fallback
+              expectedValue = humanised
+            }
+          } else {
+            expectedValue = String(parameter)
+          }
+
+          // Result should end with the resolved value in parentheses
+          const escaped = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          expect(result).toMatch(new RegExp(`\\(${escaped}\\)$`))
         }
       ),
       { numRuns: 300 }
@@ -103,7 +129,7 @@ describe('Property 30: Parameterised special rule display format', () => {
     )
   })
 
-  it('{ id, parameter } with unknown id → output uses raw id as base label', () => {
+  it('{ id, parameter } with unknown id → output uses humanised id as base label', () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 20 }).filter(
@@ -112,8 +138,9 @@ describe('Property 30: Parameterised special rule display format', () => {
         fc.integer({ min: 1, max: 10 }),
         (unknownId, parameter) => {
           const result = formatSpecialRule({ id: unknownId, parameter })
-          // Should use the raw id as the base and append the parameter
-          expect(result).toBe(`${unknownId} (${parameter})`)
+          const humanised = unknownId.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+          // Should use the humanised id as the base and append the parameter
+          expect(result).toBe(`${humanised} (${parameter})`)
         }
       ),
       { numRuns: 200 }

@@ -32,7 +32,7 @@ function makeMirkwoodCompanyDef(): CompanyDefinition {
     companySpecialRules: [
       {
         id: 'dark_union',
-        title: 'Dark Union',
+        label: 'Dark Union',
         description:
           'A Warg Marauder takes up 3 slots of the Battle Company Roster.',
         unitRosterOverrides: [
