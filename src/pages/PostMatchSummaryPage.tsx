@@ -22,9 +22,6 @@ import {
   DialogActions,
   Collapse,
   CircularProgress,
-  List,
-  ListItem,
-  ListItemButton,
 } from '@mui/material'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
 import { motion } from 'framer-motion'
@@ -68,12 +65,15 @@ import companiesData from '../data/companies.json'
 import specialRulesData from '../data/specialRules.json'
 import heroicActionsData from '../data/heroicActions.json'
 import pathsData from '../data/paths.json'
-import wanderersData from '../data/wanderers.json'
 import { v4 as uuidv4 } from 'uuid'
 import { CHANNELING_SPELLS } from '../components/wizard/StepSpellSelection'
 import PathCardSelector from '../components/common/PathCardSelector'
 import { getEligibleHeroUpgrades } from '../utils/companyRules'
 import { getUnitRosterOverrides } from '../utils/limitCheckers'
+import { isRuleOwned, applyParameterisedRule, isValidParameter } from '../utils/parameterizedRules'
+import type { SpecialRuleEntry } from '../utils/parameterizedRules'
+import ParameterSelector from '../components/match/ParameterSelector'
+import baseUnitsData from '../data/baseUnits.json'
 
 const MotionBox = motion(Box)
 const COMPANIES = companiesData as CompanyDefinition[]
@@ -82,12 +82,25 @@ const SPECIAL_RULES = specialRulesData as Array<{
   label: string
   description: string
   minor: boolean
+  parameterised?: boolean
+  parameter_type?: string
 }>
 const HEROIC_ACTIONS = heroicActionsData as Array<{
   id: string
   label: string
   universal: boolean
 }>
+
+const BASE_UNITS_RAW = baseUnitsData as Array<{
+  id: string
+  baseWargear?: string[]
+}>
+
+/** Returns the baseWargear array for a given base unit ID. */
+function getBaseWargear(baseUnitId: string): string[] {
+  const unit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
+  return unit?.baseWargear ?? []
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -418,10 +431,7 @@ export default function PostMatchSummaryPage() {
   } | null>(null)
   const [cascadeSummary, setCascadeSummary] = useState<string | null>(null)
 
-  // ── Wanderer ATO selection state ────────────────────────────────────────────
-  const [wandererSelectOpen, setWandererSelectOpen] = useState(false)
-  const [wandererSelectDone, setWandererSelectDone] = useState(false)
-  const [selectedWandererId, setSelectedWandererId] = useState<string | null>(null)
+
 
   // ── Confirm return ──────────────────────────────────────────────────────────
   const [showReturnConfirm, setShowReturnConfirm] = useState(false)
@@ -1379,7 +1389,10 @@ export default function PostMatchSummaryPage() {
     chosenMinorRuleB?: string,
     chosenHeroicActionB?: string,
     chosenSpellB?: string,
-    chosenImproveSpellB?: string
+    chosenImproveSpellB?: string,
+    // Parameter values for parameterised rules
+    chosenParamValue?: string | number | null,
+    chosenParamValueB?: string | number | null
   ) => {
     const chosenResult = chosen === 'A' ? record.resultA : record.resultB
     const otherResult = chosen === 'A' ? record.resultB : record.resultA
@@ -1394,7 +1407,8 @@ export default function PostMatchSummaryPage() {
       minorRule?: string,
       heroicAction?: string,
       spellId?: string,
-      improveSpellId?: string
+      improveSpellId?: string,
+      paramValue?: string | number | null
     ): Member => {
       const entry = res.entry
       if (!entry) return member
@@ -1436,6 +1450,9 @@ export default function PostMatchSummaryPage() {
         }
         if (chosen.type === 'minor_special_rule' && minorRule) {
           const ruleData = SPECIAL_RULES.find((r) => r.id === minorRule)
+          if (ruleData?.parameterised && paramValue != null) {
+            return applyParameterisedRule(member, ruleData.id, paramValue)
+          }
           return applySpecialRule(member, ruleData?.label ?? minorRule)
         }
         if (chosen.type === 'heroic_action' && heroicAction) {
@@ -1458,6 +1475,9 @@ export default function PostMatchSummaryPage() {
       }
       if (entry.type === 'minor_special_rule' && minorRule) {
         const ruleData = SPECIAL_RULES.find((r) => r.id === minorRule)
+        if (ruleData?.parameterised && paramValue != null) {
+          return applyParameterisedRule(member, ruleData.id, paramValue)
+        }
         return applySpecialRule(member, ruleData?.label ?? minorRule)
       }
       return member
@@ -1477,7 +1497,8 @@ export default function PostMatchSummaryPage() {
             chosenMinorRule,
             chosenHeroicAction,
             chosenSpell,
-            chosenImproveSpell
+            chosenImproveSpell,
+            chosenParamValue
           )
           if (applyBoth) {
             updated = applyResult(
@@ -1488,7 +1509,8 @@ export default function PostMatchSummaryPage() {
               chosenMinorRuleB,
               chosenHeroicActionB,
               chosenSpellB,
-              chosenImproveSpellB
+              chosenImproveSpellB,
+              chosenParamValueB
             )
           }
           return subtractAdvancementXp(updated)
@@ -2055,6 +2077,7 @@ export default function PostMatchSummaryPage() {
                       (m) => m.id === currentHero.memberId
                     )!
                   }
+                  companyMembers={workingCompany.members}
                   getStatsForUnit={getStatsForUnit}
                   eligibleHeroUpgrades={
                     companyDef
@@ -2069,7 +2092,7 @@ export default function PostMatchSummaryPage() {
                   onApplyHeroUpgrade={(upgradeId) =>
                     applyHeroUpgradeSwap(currentHero.memberId, upgradeId)
                   }
-                  onApply={(chosen, statIdx, optIdx, minorRule, heroicAction, spell, improveSpell, statIdxB, optIdxB, minorRuleB, heroicActionB, spellB, improveSpellB) =>
+                  onApply={(chosen, statIdx, optIdx, minorRule, heroicAction, spell, improveSpell, statIdxB, optIdxB, minorRuleB, heroicActionB, spellB, improveSpellB, paramValue, paramValueB) =>
                     applyHeroAdv(
                       currentHero,
                       chosen,
@@ -2084,7 +2107,9 @@ export default function PostMatchSummaryPage() {
                       minorRuleB,
                       heroicActionB,
                       spellB,
-                      improveSpellB
+                      improveSpellB,
+                      paramValue,
+                      paramValueB
                     )
                   }
                 />
@@ -2170,23 +2195,7 @@ export default function PostMatchSummaryPage() {
                 </Typography>
               </Box>
 
-              {postMatchData.atoBonuses.includes('wanderer') && !wandererSelectDone && (
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => {
-                    setSelectedWandererId(workingCompany.wandererId ?? null)
-                    setWandererSelectOpen(true)
-                  }}
-                  sx={{
-                    fontFamily: '"Cinzel Decorative", serif',
-                    fontSize: '0.65rem',
-                    mb: 1,
-                  }}
-                >
-                  Choose Wanderer
-                </Button>
-              )}
+
 
               <Button
                 variant="contained"
@@ -2548,111 +2557,6 @@ export default function PostMatchSummaryPage() {
         </DialogActions>
       </Dialog>
 
-      {/* ── Wanderer selection dialog ─────────────────────────────────────── */}
-      <Dialog
-        open={wandererSelectOpen}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
-            border: '1px solid rgba(200,164,90,0.25)',
-            borderRadius: 2,
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            fontFamily: '"Cinzel Decorative", serif',
-            fontSize: '0.85rem',
-            color: 'primary.main',
-          }}
-        >
-          Choose a Wanderer
-        </DialogTitle>
-        <DialogContent sx={{ px: 1, pb: 0 }}>
-          <List disablePadding>
-            {(wanderersData as Array<{
-              id: string
-              label: string
-              influenceCost: number
-              stats: { move: number; might: number; will: number; fate: number }
-            }>).map((w) => {
-              const isSelected = selectedWandererId === w.id
-              return (
-                <ListItem key={w.id} disablePadding sx={{ mb: 0.5 }}>
-                  <ListItemButton
-                    selected={isSelected}
-                    onClick={() => setSelectedWandererId(w.id)}
-                    sx={{
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: isSelected ? 'primary.main' : 'divider',
-                      background: isSelected
-                        ? 'rgba(201,168,76,0.08)'
-                        : 'rgba(0,0,0,0.15)',
-                      '&.Mui-selected': { background: 'rgba(201,168,76,0.08)' },
-                      '&.Mui-selected:hover': { background: 'rgba(201,168,76,0.12)' },
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: isSelected ? 'primary.main' : 'text.primary' }}
-                        >
-                          {w.label}
-                        </Typography>
-                        <Chip
-                          label={`${w.influenceCost} IP`}
-                          size="small"
-                          sx={{
-                            fontSize: '0.6rem',
-                            height: 18,
-                            border: '1px solid',
-                            borderColor: isSelected ? 'primary.dark' : 'divider',
-                            background: 'transparent',
-                            color: isSelected ? 'primary.light' : 'text.secondary',
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                        M{w.stats.move} / W{w.stats.will} / F{w.stats.fate} · Might {w.stats.might}
-                      </Typography>
-                    </Box>
-                  </ListItemButton>
-                </ListItem>
-              )
-            })}
-          </List>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setWandererSelectOpen(false)}
-            fullWidth
-          >
-            Dismiss
-          </Button>
-          <Button
-            variant="contained"
-            disabled={!selectedWandererId}
-            onClick={() => {
-              if (!selectedWandererId) return
-              setWorkingCompany((prev) =>
-                prev ? { ...prev, wandererId: selectedWandererId } : prev
-              )
-              setWandererSelectDone(true)
-              setWandererSelectOpen(false)
-            }}
-            fullWidth
-            sx={{ fontFamily: '"Cinzel Decorative", serif', fontSize: '0.65rem' }}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* ── Return confirm ─────────────────────────────────────────────────── */}
       <ConfirmDialog
         open={showReturnConfirm}
@@ -2965,6 +2869,7 @@ function CompletedWarriorCard({
 interface HACardProps {
   record: HeroAdvRecord
   member: Member
+  companyMembers: Member[]
   getStatsForUnit: (
     id: string
   ) => import('../models').StoredBaseUnitStats | undefined
@@ -2982,7 +2887,10 @@ interface HACardProps {
     minorRuleB?: string,
     heroicActionB?: string,
     spellB?: string,
-    improveSpellB?: string
+    improveSpellB?: string,
+    // Parameter values for parameterised rules
+    paramValue?: string | number | null,
+    paramValueB?: string | number | null
   ) => void
   eligibleHeroUpgrades: import('../models').HeroUpgrade[]
   onApplyHeroUpgrade: (upgradeId: string) => void
@@ -2991,6 +2899,7 @@ interface HACardProps {
 function HeroAdvancementCard({
   record,
   member,
+  companyMembers,
   getStatsForUnit,
   onApply,
   eligibleHeroUpgrades,
@@ -3003,6 +2912,7 @@ function HeroAdvancementCard({
   const [heroicAction, setHeroicAction] = useState<string>('')
   const [spellChoice, setSpellChoice] = useState<string>('')
   const [improveSpellChoice, setImproveSpellChoice] = useState<string>('')
+  const [parameterValue, setParameterValue] = useState<string | number | null>(null)
 
   // Sub-choices for the second result when roll is 5
   const [statChoiceB, setStatChoiceB] = useState<number>(0)
@@ -3011,6 +2921,7 @@ function HeroAdvancementCard({
   const [heroicActionB, setHeroicActionB] = useState<string>('')
   const [spellChoiceB, setSpellChoiceB] = useState<string>('')
   const [improveSpellChoiceB, setImproveSpellChoiceB] = useState<string>('')
+  const [parameterValueB, setParameterValueB] = useState<string | number | null>(null)
 
   // Hero upgrade swap selection
   const [selectedUpgradeId, setSelectedUpgradeId] = useState<string | null>(null)
@@ -3041,7 +2952,8 @@ function HeroAdvancementCard({
       minorRule,
       heroicAction,
       spellChoice,
-      improveSpellChoice
+      improveSpellChoice,
+      parameterValue
     )
 
   // canConfirm for upgrade swap flow
@@ -3057,7 +2969,8 @@ function HeroAdvancementCard({
       minorRule,
       heroicAction,
       spellChoice,
-      improveSpellChoice
+      improveSpellChoice,
+      parameterValue
     ) &&
     needsExtraChoice(
       otherRoll5Result.entry,
@@ -3066,7 +2979,8 @@ function HeroAdvancementCard({
       minorRuleB,
       heroicActionB,
       spellChoiceB,
-      improveSpellChoiceB
+      improveSpellChoiceB,
+      parameterValueB
     )
 
   const canConfirm = isRoll5 ? canConfirmRoll5 : (canConfirmNormal || canConfirmUpgrade)
@@ -3178,7 +3092,7 @@ function HeroAdvancementCard({
               optionChoice={optionChoice}
               onOptionChoice={setOptionChoice}
               minorRule={minorRule}
-              onMinorRule={setMinorRule}
+              onMinorRule={(id) => { setMinorRule(id); setParameterValue(null) }}
               heroicAction={heroicAction}
               onHeroicAction={setHeroicAction}
               spellChoice={spellChoice}
@@ -3186,6 +3100,9 @@ function HeroAdvancementCard({
               improveSpellChoice={improveSpellChoice}
               onImproveSpellChoice={setImproveSpellChoice}
               member={member}
+              parameterValue={parameterValue}
+              onParameterValue={setParameterValue}
+              companyMembers={companyMembers}
             />
           </Box>
 
@@ -3228,7 +3145,7 @@ function HeroAdvancementCard({
               optionChoice={optionChoiceB}
               onOptionChoice={setOptionChoiceB}
               minorRule={minorRuleB}
-              onMinorRule={setMinorRuleB}
+              onMinorRule={(id) => { setMinorRuleB(id); setParameterValueB(null) }}
               heroicAction={heroicActionB}
               onHeroicAction={setHeroicActionB}
               spellChoice={spellChoiceB}
@@ -3236,6 +3153,9 @@ function HeroAdvancementCard({
               improveSpellChoice={improveSpellChoiceB}
               onImproveSpellChoice={setImproveSpellChoiceB}
               member={member}
+              parameterValue={parameterValueB}
+              onParameterValue={setParameterValueB}
+              companyMembers={companyMembers}
             />
           </Box>
         </>
@@ -3259,6 +3179,7 @@ function HeroAdvancementCard({
                     setHeroicAction('')
                     setSpellChoice('')
                     setImproveSpellChoice('')
+                    setParameterValue(null)
                   }}
                   sx={{
                     p: 1.25,
@@ -3323,7 +3244,7 @@ function HeroAdvancementCard({
               optionChoice={optionChoice}
               onOptionChoice={setOptionChoice}
               minorRule={minorRule}
-              onMinorRule={setMinorRule}
+              onMinorRule={(id) => { setMinorRule(id); setParameterValue(null) }}
               heroicAction={heroicAction}
               onHeroicAction={setHeroicAction}
               spellChoice={spellChoice}
@@ -3331,6 +3252,9 @@ function HeroAdvancementCard({
               improveSpellChoice={improveSpellChoice}
               onImproveSpellChoice={setImproveSpellChoice}
               member={member}
+              parameterValue={parameterValue}
+              onParameterValue={setParameterValue}
+              companyMembers={companyMembers}
             />
           )}
 
@@ -3459,7 +3383,9 @@ function HeroAdvancementCard({
               minorRuleB || undefined,
               heroicActionB || undefined,
               spellChoiceB || undefined,
-              improveSpellChoiceB || undefined
+              improveSpellChoiceB || undefined,
+              parameterValue,
+              parameterValueB
             )
           } else if (chosen === 'upgrade' && selectedUpgradeId) {
             onApplyHeroUpgrade(selectedUpgradeId)
@@ -3471,7 +3397,14 @@ function HeroAdvancementCard({
               minorRule || undefined,
               heroicAction || undefined,
               spellChoice || undefined,
-              improveSpellChoice || undefined
+              improveSpellChoice || undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              parameterValue
             )
           }
         }}
@@ -3490,7 +3423,8 @@ function needsExtraChoice(
   minorRule: string,
   heroicAction: string,
   spellChoice: string,
-  improveSpellChoice: string
+  improveSpellChoice: string,
+  parameterValue?: string | number | null
 ): boolean {
   if (!entry) return false
   if (entry.type === 'stat') {
@@ -3504,10 +3438,26 @@ function needsExtraChoice(
     const opts = entry.options as PathProgEntry[]
     const chosen = opts[optChoice]
     if (!chosen) return false
-    if (chosen.type === 'minor_special_rule') return !!minorRule
+    if (chosen.type === 'minor_special_rule') {
+      if (!minorRule) return false
+      // If the selected rule is parameterised, require a valid parameter
+      const ruleData = SPECIAL_RULES.find((r) => r.id === minorRule)
+      if (ruleData?.parameterised) {
+        return isValidParameter(parameterValue ?? null, ruleData.parameter_type ?? '')
+      }
+      return true
+    }
     if (chosen.type === 'heroic_action') return !!heroicAction
     if (chosen.type === 'magical_power') return !!spellChoice
     if (chosen.type === 'improve_casting_value') return !!improveSpellChoice
+    return true
+  }
+  if (entry.type === 'minor_special_rule') {
+    if (!minorRule) return false
+    const ruleData = SPECIAL_RULES.find((r) => r.id === minorRule)
+    if (ruleData?.parameterised) {
+      return isValidParameter(parameterValue ?? null, ruleData.parameter_type ?? '')
+    }
     return true
   }
   return true
@@ -3562,6 +3512,9 @@ function ExtraChoiceUI({
   improveSpellChoice,
   onImproveSpellChoice,
   member,
+  parameterValue,
+  onParameterValue,
+  companyMembers,
 }: {
   entry: PathProgEntry
   path: PathDef | undefined
@@ -3578,6 +3531,9 @@ function ExtraChoiceUI({
   improveSpellChoice: string
   onImproveSpellChoice: (s: string) => void
   member: Member
+  parameterValue: string | number | null
+  onParameterValue: (v: string | number | null) => void
+  companyMembers: Member[]
 }) {
   // Stat with multiple options
   if (entry.type === 'stat') {
@@ -3790,7 +3746,7 @@ function ExtraChoiceUI({
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {SPECIAL_RULES.filter(
-                (r) => r.minor && !member.specialRules.some((sr) => sr === r.label)
+                (r) => r.minor && !isRuleOwned(member, r)
               )
                 .slice(0, 14)
                 .map((r) => (
@@ -3815,6 +3771,23 @@ function ExtraChoiceUI({
                   />
                 ))}
             </Box>
+            {/* ParameterSelector for parameterised rules */}
+            {(() => {
+              const selectedRule = SPECIAL_RULES.find((r) => r.id === minorRule)
+              if (selectedRule?.parameterised) {
+                return (
+                  <ParameterSelector
+                    rule={selectedRule as SpecialRuleEntry}
+                    receivingMember={member}
+                    companyMembers={companyMembers}
+                    baseWargear={getBaseWargear(member.baseUnitId)}
+                    onParameterSelected={(value) => onParameterValue(value)}
+                    onCancel={() => onParameterValue(null)}
+                  />
+                )
+              }
+              return null
+            })()}
           </Box>
         )}
 
@@ -3945,6 +3918,64 @@ function ExtraChoiceUI({
     )
   }
 
+  // Direct minor_special_rule entry (not inside a choice)
+  if (entry.type === 'minor_special_rule') {
+    return (
+      <Box sx={{ mb: 1.5 }}>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}
+        >
+          Choose a minor special rule:
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          {SPECIAL_RULES.filter(
+            (r) => r.minor && !isRuleOwned(member, r)
+          )
+            .slice(0, 14)
+            .map((r) => (
+              <Chip
+                key={r.id}
+                label={r.label}
+                size="small"
+                onClick={() => onMinorRule(r.id)}
+                sx={{
+                  cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor:
+                    minorRule === r.id ? 'primary.main' : 'divider',
+                  background:
+                    minorRule === r.id
+                      ? 'rgba(201,168,76,0.12)'
+                      : 'transparent',
+                  color:
+                    minorRule === r.id ? 'primary.main' : 'text.secondary',
+                  fontSize: '0.58rem',
+                }}
+              />
+            ))}
+        </Box>
+        {/* ParameterSelector for parameterised rules */}
+        {(() => {
+          const selectedRule = SPECIAL_RULES.find((r) => r.id === minorRule)
+          if (selectedRule?.parameterised) {
+            return (
+              <ParameterSelector
+                rule={selectedRule as SpecialRuleEntry}
+                receivingMember={member}
+                companyMembers={companyMembers}
+                baseWargear={getBaseWargear(member.baseUnitId)}
+                onParameterSelected={(value) => onParameterValue(value)}
+                onCancel={() => onParameterValue(null)}
+              />
+            )
+          }
+          return null
+        })()}
+      </Box>
+    )
+  }
+
   return null
 }
 
@@ -4050,6 +4081,7 @@ function PathSelectionDialog({
           }}
           baseStats={baseStats}
           headerSlot={header}
+          showSelectButton
         />
       </DialogContent>
     </Dialog>

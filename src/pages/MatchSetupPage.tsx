@@ -240,6 +240,9 @@ export default function MatchSetupPage() {
     const s = rollScenario()
     setRolledScenario(s)
     setScenarioId(s.id)
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+    }, 1)
   }
 
   const handleManualScenario = (id: string) => {

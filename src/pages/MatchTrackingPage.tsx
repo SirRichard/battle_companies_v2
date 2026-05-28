@@ -17,7 +17,6 @@ import {
   Box,
   Typography,
   IconButton,
-  Chip,
   Button,
   Divider,
   Dialog,
@@ -30,49 +29,23 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import RemoveIcon from '@mui/icons-material/Remove'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
-import { motion } from 'framer-motion'
 import PageHeader from '../components/common/PageHeader'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import MemberMatchCard from '../components/match/MemberMatchCard'
+import ChipDetailPopover from '../components/match/ChipDetailPopover'
 import { useAppContext } from '../context/AppContext'
-import { getUnitLabel, getWargearLabel, formatSpecialRule } from '../utils/labels'
-import { calcEquipmentStatBonus } from '../utils/equipmentBonuses'
-import { getDwarvenBrewCourageBonus, memberOwnsDwarvenBrew, hasTemporaryDwarvenBrew, dwarvenBrewIntelligenceTestPasses } from '../utils/dwarvenBrew'
-import { isPostMatchOnlyItem } from '../utils/itemConsumption'
+import { memberOwnsDwarvenBrew, hasTemporaryDwarvenBrew, dwarvenBrewIntelligenceTestPasses } from '../utils/dwarvenBrew'
 import { calcBreakPoint, isCompanyBroken } from '../utils/companyRules'
 import type { Company, CompanyDefinition } from '../models'
-import type { ActiveMatchState, MemberMatchState, ToolkitItem } from '../models/match'
+import type { ActiveMatchState, MemberMatchState } from '../models/match'
 import type { PostMatchData } from '../models/postmatch'
+import type { ChipPopupContent } from '../utils/chipDescription'
 import wanderersData from '../data/wanderers.json'
-import wargearData from '../data/wargear.json'
-import equipmentData from '../data/equipment.json'
 import companiesData from '../data/companies.json'
 
-// ─── Toolkit helpers ──────────────────────────────────────────────────────────
 
-function isConsumable(itemId: string): boolean {
-  const wargearItem = (wargearData as Array<{ id: string; consumable?: boolean }>).find(
-    (w) => w.id === itemId
-  )
-  if (wargearItem) return wargearItem.consumable ?? false
-  const equipItem = (equipmentData as Array<{ id: string; consumable?: boolean }>).find(
-    (e) => e.id === itemId
-  )
-  return equipItem?.consumable ?? false
-}
-
-function getToolkitItemLabel(item: { itemId: string; parameter?: string }): string {
-  const baseLabel = getWargearLabel(item.itemId)
-  if (item.parameter) {
-    return `${baseLabel} (${getWargearLabel(item.parameter)})`
-  }
-  return baseLabel
-}
-
-const MotionBox = motion(Box)
 
 // ─── XP hint content ──────────────────────────────────────────────────────────
 
@@ -91,8 +64,8 @@ const ROLE_ORDER: Record<string, number> = {
   leader: 0,
   sergeant: 1,
   hero_in_making: 2,
-  wanderer: 2.5,
   warrior: 3,
+  wanderer: 4,
 }
 
 function sortMembers(members: MemberMatchState[]): MemberMatchState[] {
@@ -152,6 +125,17 @@ export default function MatchTrackingPage() {
     open: false,
     passed: false,
   })
+
+  // ── Chip popover state (page-level single instance) ─────────────────────────
+  const [chipPopover, setChipPopover] = useState<{
+    anchorEl: HTMLElement | null
+    content: ChipPopupContent | null
+  }>({ anchorEl: null, content: null })
+
+  const handleChipTap = useCallback((anchorEl: HTMLElement, content: ChipPopupContent) => {
+    // Dismiss existing popup before showing new one (req 8.8)
+    setChipPopover({ anchorEl, content })
+  }, [])
 
   // Load active match from DB on mount
   useEffect(() => {
@@ -440,7 +424,7 @@ export default function MatchTrackingPage() {
         </Box>
       )}
 
-      {/* ── Break point banner ─────────────────────────────────────────────── */}
+      {/* ── Break point banner (sticky below page header) ──────────────────── */}
       <Box
         sx={{
           px: 3,
@@ -454,6 +438,10 @@ export default function MatchTrackingPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
+          position: 'sticky',
+          top: { xs: 64, sm: 82 },
+          zIndex: 9,
+          backdropFilter: 'blur(8px)',
         }}
       >
         <Typography
@@ -489,9 +477,7 @@ export default function MatchTrackingPage() {
       </Box>
 
       {/* ── Member list ────────────────────────────────────────────────────── */}
-      <Box
-        sx={{ flex: 1, overflow: 'auto', px: { xs: 2, sm: 3 }, py: 2, pb: 12 }}
-      >
+      <Box sx={{ px: { xs: 2, sm: 3 }, py: 2, pb: 12 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {sorted.map((mm, i) => {
             const companyMember = company?.members.find(
@@ -548,6 +534,7 @@ export default function MatchTrackingPage() {
                 onRemoveToolkitItem={(itemId) =>
                   handleRemoveToolkitItem(mm.memberId, itemId)
                 }
+                onChipTap={handleChipTap}
               />
             )
           })}
@@ -868,6 +855,13 @@ export default function MatchTrackingPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Chip detail popover (single page-level instance) ─────────────── */}
+      <ChipDetailPopover
+        anchorEl={chipPopover.anchorEl}
+        content={chipPopover.content}
+        onClose={() => setChipPopover({ anchorEl: null, content: null })}
+      />
+
       {/* ── Dwarven Brew outcome snackbar ──────────────────────────────────── */}
       <Snackbar
         open={brewSnackbar.open}
@@ -889,591 +883,4 @@ export default function MatchTrackingPage() {
   )
 }
 
-// ─── MemberMatchCard ──────────────────────────────────────────────────────────
 
-interface CardProps {
-  key?: string
-  mm: MemberMatchState
-  delay: number
-  baseStats: Record<string, number> | undefined
-  statIncreases: Record<string, number>
-  statDecreases: Record<string, number>
-  specialRules: Array<string | { id: string; parameter: string | number }>
-  toolkitItems: ToolkitItem[]
-  permanentBrewUsed: boolean
-  isAtoWanderer?: boolean
-  onXpChange: (delta: number) => void
-  onCasualtyToggle: () => void
-  onMwfChange: (stat: 'might' | 'will' | 'fate', delta: number) => void
-  onUseToolkitItem: (itemId: string) => void
-  onRemoveToolkitItem: (itemId: string) => void
-}
-
-// All 9 stats in display order
-const ALL_STATS: { key: string; label: string }[] = [
-  { key: 'move', label: 'Mv' },
-  { key: 'fight', label: 'Fv' },
-  { key: 'shoot', label: 'Sv' },
-  { key: 'strength', label: 'S' },
-  { key: 'defence', label: 'D' },
-  { key: 'attacks', label: 'A' },
-  { key: 'wounds', label: 'W' },
-  { key: 'courage', label: 'C' },
-  { key: 'intelligence', label: 'I' },
-]
-
-function MemberMatchCard({
-  mm,
-  delay,
-  baseStats,
-  statIncreases,
-  statDecreases,
-  specialRules,
-  toolkitItems,
-  permanentBrewUsed,
-  isAtoWanderer,
-  onXpChange,
-  onCasualtyToggle,
-  onMwfChange,
-  onUseToolkitItem,
-  onRemoveToolkitItem,
-}: CardProps) {
-  const isHero = mm.role !== 'warrior'
-  const equipBonus = calcEquipmentStatBonus(mm.equipment, mm.baseUnitId)
-
-  const roleLabel =
-    mm.role === 'leader'
-      ? 'Leader'
-      : mm.role === 'sergeant'
-        ? 'Sgt'
-        : mm.role === 'hero_in_making'
-          ? 'Hero'
-          : mm.role === 'wanderer'
-            ? 'Wanderer'
-            : null
-
-  const hasHeroStats = isHero && mm.mightMax !== null
-
-  // Format a stat value for display — applies statIncreases, statDecreases, and equipment bonuses
-  const isTargetNumber = (key: string) =>
-    key === 'shoot' || key === 'courage' || key === 'intelligence'
-
-  const effectiveVal = (key: string, raw: number): number => {
-    const inc = statIncreases[key] ?? 0
-    const dec = statDecreases[key] ?? 0
-    const eq = key === 'defence' ? equipBonus.defence : 0
-    const brewBonus = key === 'courage' ? getDwarvenBrewCourageBonus(toolkitItems, permanentBrewUsed) : 0
-    return raw + inc - dec + eq + brewBonus
-  }
-
-  const formatStat = (key: string, raw: number): string => {
-    const val = effectiveVal(key, raw)
-    if (key === 'move') return `${val}"`
-    if (isTargetNumber(key)) return `${val}+`
-    return String(val)
-  }
-
-  const statColour = (key: string, raw: number): string | undefined => {
-    const base = raw + (key === 'defence' ? equipBonus.defence : 0)
-    const eff = effectiveVal(key, raw)
-    if (eff === base) return undefined
-    // For target-numbers: lower is better → green when eff < base
-    if (isTargetNumber(key)) return eff < base ? '#2ecc71' : '#e74c3c'
-    return eff > base ? '#2ecc71' : '#e74c3c'
-  }
-
-  return (
-    <MotionBox
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2, delay }}
-      sx={{
-        border: '1px solid',
-        borderColor: mm.isCasualty
-          ? 'error.main'
-          : mm.role === 'leader'
-            ? 'primary.main'
-            : isHero
-              ? 'primary.dark'
-              : 'divider',
-        borderRadius: 1,
-        p: { xs: 1, sm: 1.5 },
-        background: mm.isCasualty
-          ? 'rgba(192,57,43,0.06)'
-          : isHero
-            ? 'rgba(201,168,76,0.03)'
-            : 'transparent',
-        opacity: mm.isCasualty ? 0.65 : 1,
-        transition: 'all 0.15s',
-      }}
-    >
-      {/* Row 1: name + role chip + casualty toggle */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          mb: 1,
-        }}
-      >
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                lineHeight: 1.2,
-                textDecoration: mm.isCasualty ? 'line-through' : 'none',
-                opacity: mm.isCasualty ? 0.6 : 1,
-              }}
-            >
-              {mm.memberName}
-            </Typography>
-            {roleLabel && (
-              <Chip
-                label={roleLabel}
-                size="small"
-                sx={{
-                  fontSize: '0.6rem',
-                  height: 18,
-                  borderColor:
-                    mm.role === 'leader' ? 'primary.main' : 'primary.dark',
-                  color:
-                    mm.role === 'leader' ? 'primary.main' : 'primary.light',
-                  border: '1px solid',
-                  background: 'transparent',
-                }}
-              />
-            )}
-            {isAtoWanderer && (
-              <Chip
-                label="Temporary"
-                size="small"
-                sx={{
-                  fontSize: '0.6rem',
-                  height: 18,
-                  background: 'rgba(52,152,219,0.12)',
-                  color: 'info.light',
-                  border: '1px solid',
-                  borderColor: 'info.dark',
-                }}
-              />
-            )}
-            {mm.isCasualty && (
-              <Chip
-                label="Casualty"
-                size="small"
-                sx={{
-                  fontSize: '0.6rem',
-                  height: 18,
-                  background: 'rgba(192,57,43,0.15)',
-                  color: 'error.light',
-                  border: '1px solid',
-                  borderColor: 'error.main',
-                }}
-              />
-            )}
-          </Box>
-          <Typography
-            variant="caption"
-            sx={{ fontStyle: 'italic', color: 'text.secondary' }}
-          >
-            {getUnitLabel(mm.baseUnitId)}
-          </Typography>
-        </Box>
-
-        <Button
-          size="small"
-          variant={mm.isCasualty ? 'contained' : 'outlined'}
-          color={mm.isCasualty ? 'error' : 'inherit'}
-          onClick={onCasualtyToggle}
-          sx={{
-            fontSize: '0.6rem',
-            py: 0.25,
-            px: 1,
-            minHeight: 0,
-            flexShrink: 0,
-            ml: 1,
-          }}
-        >
-          {mm.isCasualty ? 'Revive' : 'Casualty'}
-        </Button>
-      </Box>
-
-      {/* Row 2: Full stat block */}
-      {baseStats && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-          {ALL_STATS.map(({ key, label }) => {
-            const raw = baseStats[key]
-            if (raw === undefined || raw === null) return null
-            const display = formatStat(key, raw)
-            const colour = statColour(key, raw)
-            const highlighted =
-              !!colour || (key === 'defence' && equipBonus.defence > 0)
-            return (
-              <Box
-                key={key}
-                sx={{
-                  textAlign: 'center',
-                  minWidth: { xs: 32, sm: 30 },
-                  flex: { xs: '0 0 calc(20% - 4px)', sm: 1 },
-                  px: 0.5,
-                  py: 0.25,
-                  border: '1px solid',
-                  borderColor: colour
-                    ? colour === '#2ecc71'
-                      ? 'success.dark'
-                      : 'error.dark'
-                    : highlighted
-                      ? 'primary.dark'
-                      : 'divider',
-                  borderRadius: 0.5,
-                  background: colour
-                    ? colour === '#2ecc71'
-                      ? 'rgba(46,204,113,0.08)'
-                      : 'rgba(231,76,60,0.08)'
-                    : highlighted
-                      ? 'rgba(201,168,76,0.08)'
-                      : 'rgba(0,0,0,0.2)',
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: '0.5rem',
-                    opacity: 0.5,
-                    display: 'block',
-                    lineHeight: 1,
-                  }}
-                >
-                  {label}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: '"Cinzel Decorative", serif',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    lineHeight: 1.3,
-                    color: colour ?? 'inherit',
-                  }}
-                >
-                  {display}
-                </Typography>
-              </Box>
-            )
-          })}
-        </Box>
-      )}
-
-      {/* Row 3: M/W/F for heroes — interactive */}
-      {hasHeroStats && (
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, mb: 1, maxWidth: 440 }}>
-          {(['might', 'will', 'fate'] as const).map((stat) => {
-            const curKey = `${stat}Current` as keyof MemberMatchState
-            const maxKey = `${stat}Max` as keyof MemberMatchState
-            const cur = mm[curKey] as number
-            const max = mm[maxKey] as number
-            const label =
-              stat === 'might' ? 'Might' : stat === 'will' ? 'Will' : 'Fate'
-            const depleted = cur === 0
-            const full = cur === max
-            return (
-              <Box
-                key={stat}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  flex: 1,
-                  border: '1px solid',
-                  borderColor: depleted
-                    ? 'rgba(192,57,43,0.5)'
-                    : 'primary.dark',
-                  borderRadius: 1,
-                  py: { xs: 0.5, sm: 0.75 },
-                  px: { xs: 0.25, sm: 0.5 },
-                  background: depleted
-                    ? 'rgba(192,57,43,0.06)'
-                    : 'rgba(201,168,76,0.04)',
-                  minWidth: 0,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: '0.55rem',
-                    opacity: 0.55,
-                    lineHeight: 1,
-                    mb: 0.5,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {label}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 0.5 } }}>
-                  <IconButton
-                    onClick={() => onMwfChange(stat, -1)}
-                    disabled={cur <= 0}
-                    sx={{
-                      p: 0,
-                      width: { xs: 28, sm: 36 },
-                      height: { xs: 28, sm: 36 },
-                      border: '1px solid',
-                      borderColor:
-                        cur <= 0
-                          ? 'rgba(255,255,255,0.1)'
-                          : 'rgba(192,57,43,0.4)',
-                      borderRadius: 0.75,
-                      color: 'error.light',
-                      '&:hover': { background: 'rgba(192,57,43,0.15)' },
-                      '&.Mui-disabled': { opacity: 0.25 },
-                    }}
-                  >
-                    <RemoveIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
-                  </IconButton>
-                  <Box sx={{ textAlign: 'center', minWidth: { xs: 24, sm: 32 } }}>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Cinzel Decorative", serif',
-                        fontSize: { xs: '0.9rem', sm: '1.1rem' },
-                        fontWeight: 700,
-                        color: depleted
-                          ? 'error.light'
-                          : full
-                            ? 'primary.main'
-                            : 'text.primary',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {cur}
-                    </Typography>
-                    <Typography
-                      sx={{ fontSize: '0.55rem', opacity: 0.4, lineHeight: 1 }}
-                    >
-                      / {max}
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    onClick={() => onMwfChange(stat, 1)}
-                    disabled={cur >= max}
-                    sx={{
-                      p: 0,
-                      width: { xs: 28, sm: 36 },
-                      height: { xs: 28, sm: 36 },
-                      border: '1px solid',
-                      borderColor:
-                        cur >= max
-                          ? 'rgba(255,255,255,0.1)'
-                          : 'rgba(201,168,76,0.4)',
-                      borderRadius: 0.75,
-                      color: 'primary.light',
-                      '&:hover': { background: 'rgba(201,168,76,0.15)' },
-                      '&.Mui-disabled': { opacity: 0.25 },
-                    }}
-                  >
-                    <AddIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
-                  </IconButton>
-                </Box>
-              </Box>
-            )
-          })}
-        </Box>
-      )}
-
-      {/* Row 4: equipment chips */}
-      {mm.equipment.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-          {mm.equipment.map((eq) => (
-            <Chip
-              key={eq}
-              label={getWargearLabel(eq)}
-              size="small"
-              sx={{ fontSize: '0.6rem', height: 18 }}
-            />
-          ))}
-        </Box>
-      )}
-
-      {/* Row 4b: special rules */}
-      {specialRules.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-          {specialRules.map((r, idx) => {
-            const label = formatSpecialRule(r)
-            const key = typeof r === 'string' ? r : `${r.id}-${idx}`
-            return (
-              <Chip
-                key={key}
-                label={label}
-                size="small"
-                sx={{
-                  fontSize: '0.6rem',
-                  height: 18,
-                  borderColor: 'primary.dark',
-                  color: 'primary.light',
-                  border: '1px solid',
-                  background: 'rgba(201,168,76,0.05)',
-                }}
-              />
-            )
-          })}
-        </Box>
-      )}
-
-      {/* Row 5: Toolkit items */}
-      {(() => {
-        const memberToolkit = toolkitItems.filter((t) => t.memberId === mm.memberId)
-        if (memberToolkit.length === 0) return null
-        return (
-          <Box sx={{ mb: 1 }}>
-            <Typography
-              variant="caption"
-              sx={{ opacity: 0.55, display: 'block', mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}
-            >
-              Toolkit
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {memberToolkit.map((item) => {
-                const used = mm.usedToolkitItems?.includes(item.itemId) ?? false
-                if (isPostMatchOnlyItem(item.itemId)) {
-                  return (
-                    <Chip
-                      key={item.itemId}
-                      label={getToolkitItemLabel(item)}
-                      size="small"
-                      sx={{
-                        fontSize: '0.6rem',
-                        height: 18,
-                        borderColor: 'primary.dark',
-                        color: 'primary.light',
-                        border: '1px solid',
-                        background: 'rgba(201,168,76,0.05)',
-                      }}
-                    />
-                  )
-                }
-                if (isConsumable(item.itemId)) {
-                  if (used) {
-                    return (
-                      <Box key={item.itemId} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography sx={{ fontSize: '0.6rem', textDecoration: 'line-through', opacity: 0.5, color: 'text.secondary' }}>
-                          {getToolkitItemLabel(item)}
-                        </Typography>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => onRemoveToolkitItem(item.itemId)}
-                          sx={{ fontSize: '0.55rem', py: 0.25, px: 0.75, minHeight: 0 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    )
-                  }
-                  return (
-                    <Button
-                      key={item.itemId}
-                      size="small"
-                      variant="outlined"
-                      onClick={() => onUseToolkitItem(item.itemId)}
-                      sx={{
-                        fontSize: '0.6rem',
-                        py: 0.25,
-                        px: 1,
-                        minHeight: 0,
-                        borderColor: 'primary.dark',
-                        color: 'primary.light',
-                      }}
-                    >
-                      {getToolkitItemLabel(item)} · Use
-                    </Button>
-                  )
-                }
-                return (
-                  <Chip
-                    key={item.itemId}
-                    label={getToolkitItemLabel(item)}
-                    size="small"
-                    sx={{ fontSize: '0.6rem', height: 18 }}
-                  />
-                )
-              })}
-            </Box>
-          </Box>
-        )
-      })()}
-
-      {!isAtoWanderer && (
-        <>
-          <Divider sx={{ opacity: 0.2, mb: 1 }} />
-
-          {/* Row 5: XP counter */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: { xs: 'flex-start', sm: 'center' },
-              justifyContent: 'space-between',
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: { xs: 0.5, sm: 0 },
-            }}
-          >
-            <Typography variant="caption" sx={{ opacity: 0.6 }}>
-              XP gained this match
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{ opacity: 0.45, ml: 0.5 }}
-              >
-                (+1 participation added at end)
-              </Typography>
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <IconButton
-                size="small"
-                onClick={() => onXpChange(-1)}
-                disabled={mm.xpCounterGains === 0}
-                sx={{
-                  p: 0.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 0.5,
-                }}
-              >
-                <RemoveIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-              <Typography
-                sx={{
-                  fontFamily: '"Cinzel Decorative", serif',
-                  fontSize: '1.1rem',
-                  color: mm.xpCounterGains > 0 ? 'primary.main' : 'text.secondary',
-                  minWidth: 28,
-                  textAlign: 'center',
-                  lineHeight: 1,
-                }}
-              >
-                {mm.xpCounterGains}
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={() => onXpChange(1)}
-                sx={{
-                  p: 0.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 0.5,
-                }}
-              >
-                <AddIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Box>
-          </Box>
-        </>
-      )}
-    </MotionBox>
-  )
-}

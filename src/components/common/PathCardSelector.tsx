@@ -45,6 +45,8 @@ interface Props {
   headerSlot?: React.ReactNode
   cardIndex?: number
   onCardIndexChange?: (index: number) => void
+  /** Show an inline "Choose This Path" button on each card (used by post-match dialog) */
+  showSelectButton?: boolean
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -204,14 +206,35 @@ function getUniqueRules(
     .map((e) => ({ label: e.label!, description: e.description! }))
 }
 
-function getMasterAbility(path: PathDef): string | null {
+interface MasterOption {
+  label: string
+  description?: string
+}
+
+function getMasterAbility(path: PathDef): MasterOption[] | null {
   const roll7 = path.progression.find((e) => e.roll === 7)
   if (!roll7) return null
   if (roll7.type === 'choice' && Array.isArray(roll7.options)) {
-    const first = roll7.options[0] as { label?: string }
-    return first?.label ?? null
+    const results: MasterOption[] = []
+    for (const opt of roll7.options as Array<Record<string, unknown>>) {
+      if (opt.label) {
+        results.push({ label: opt.label as string, description: opt.description as string | undefined })
+      } else if (opt.type === 'stat' && Array.isArray(opt.options)) {
+        const statNames = (opt.options as string[]).map(
+          (s) => s.charAt(0).toUpperCase() + s.slice(1)
+        )
+        results.push({ label: `+1 ${statNames.join(' or ')}` })
+      } else if (opt.type === 'choice' && Array.isArray(opt.options)) {
+        const subDescs = (opt.options as Array<{ description?: string }>)
+          .map((sub) => sub.description)
+          .filter(Boolean)
+        results.push({ label: subDescs.join(' / ') || 'Choice' })
+      }
+    }
+    return results.length > 0 ? results : null
   }
-  return roll7.label ?? null
+  if (roll7.label) return [{ label: roll7.label, description: roll7.description }]
+  return null
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -224,6 +247,7 @@ export default function PathCardSelector({
   headerSlot,
   cardIndex: controlledIndex,
   onCardIndexChange,
+  showSelectButton = false,
 }: Props) {
   // Controlled mode: both cardIndex and onCardIndexChange provided
   const isControlled = controlledIndex !== undefined && onCardIndexChange !== undefined
@@ -448,7 +472,7 @@ export default function PathCardSelector({
 
               {/* Card body */}
               <Box sx={{ px: 2.5, py: 1.5 }}>
-                {masterAbility && (
+                {masterAbility && masterAbility.length > 0 && (
                   <Box sx={{ mb: 1.5 }}>
                     <Typography
                       sx={{
@@ -460,20 +484,30 @@ export default function PathCardSelector({
                         fontFamily: '"IM Fell English", serif',
                       }}
                     >
-                      Signature
+                      Signature{masterAbility.length > 1 ? ' (choose one)' : ''}
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'primary.light', fontStyle: 'italic' }}
-                    >
-                      {masterAbility}
-                      {SIGNATURE_STAT[path.id] && (
-                        <Box component="span" sx={{ opacity: 0.6 }}>
-                          {' '}
-                          · improves {SIGNATURE_STAT[path.id]}
-                        </Box>
-                      )}
-                    </Typography>
+                    {masterAbility.map((opt, idx) => (
+                      <Typography
+                        key={idx}
+                        variant="body2"
+                        sx={{ color: 'primary.light', fontStyle: 'italic', mb: idx < masterAbility.length - 1 ? 0.5 : 0 }}
+                      >
+                        {masterAbility.length > 1 && (
+                          <Box component="span" sx={{ opacity: 0.5 }}>
+                            {'• '}
+                          </Box>
+                        )}
+                        {opt.label}
+                      </Typography>
+                    ))}
+                    {SIGNATURE_STAT[path.id] && (
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', mt: 0.5, opacity: 0.5, fontStyle: 'normal' }}
+                      >
+                        Improves {SIGNATURE_STAT[path.id]}
+                      </Typography>
+                    )}
                   </Box>
                 )}
 
@@ -610,6 +644,20 @@ export default function PathCardSelector({
                   ))}
                 </Box>
               </Box>
+
+              {/* Select button (post-match dialog only) */}
+              {showSelectButton && (
+                <Box sx={{ px: 2.5, pb: 2, pt: 1 }}>
+                  <Button
+                    fullWidth
+                    variant={isSelected ? 'outlined' : 'contained'}
+                    onClick={() => onSelect(path.id)}
+                    sx={{ minHeight: 44 }}
+                  >
+                    {isSelected ? 'Path Chosen ✔' : 'Choose This Path'}
+                  </Button>
+                </Box>
+              )}
             </Box>
           </motion.div>
         </AnimatePresence>
