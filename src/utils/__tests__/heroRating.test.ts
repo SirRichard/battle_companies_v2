@@ -13,12 +13,12 @@
  *           + specialRuleCost   (min(minorRules*5, 10) + majorRules*5)
  *
  * Key data facts used below:
- *   ranger_of_the_north  pointsCost = 25,  baseEquipment = ["bow"]
+ *   ranger_of_the_north  pointsCost = 25,  baseWargear = ["bow"]
  *   bow                  rating = [1, 5]   (warrior cost = 1, hero cost = 5)
  *   armour               rating = [2, 5]   (warrior cost = 2, hero cost = 5)
  *   heroStats factory default: { might: 1, will: 1, fate: 1 }  → 15 pts
  *
- * NOTE: baseEquipment items are in the freeWargear set and always use the
+ * NOTE: baseWargear items are in the freeWargear set and always use the
  * warrior cost (rating[0]), but they are only charged if they appear in
  * member.equipment.  The Shire starting roster does NOT include equipment on
  * the leader entry, so the Ranger starts with equipment = [].
@@ -71,7 +71,7 @@ describe('Hero rating — Ranger of the North', () => {
   /**
    * Helm's Deep starting leader: equipment = ["armour"]
    *
-   * "armour" is in the unit's equipmentOptions, so it is in freeWargear and
+   * "armour" is in the unit's wargearOptions, so it is in freeWargear and
    * always uses the warrior cost: armour rating[0] = 2.
    *
    * Breakdown:
@@ -87,9 +87,9 @@ describe('Hero rating — Ranger of the North', () => {
   })
 
   /**
-   * Ranger with a bow (baseEquipment item, warrior cost applies)
+   * Ranger with a bow (baseWargear item, warrior cost applies)
    *
-   * "bow" is in baseEquipment, so freeWargear → warrior cost: bow rating[0] = 1.
+   * "bow" is in baseWargear, so freeWargear → warrior cost: bow rating[0] = 1.
    *
    * Breakdown:
    *   25 (base)
@@ -98,15 +98,15 @@ describe('Hero rating — Ranger of the North', () => {
    * ─────
    *   41 pts
    */
-  it('Ranger with bow (baseEquipment) costs 41 pts', () => {
+  it('Ranger with bow (baseWargear) costs 41 pts', () => {
     const member = makeRangerLeader(['bow'])
     expect(calcMemberRating(member, undefined)).toBe(41)
   })
 
   /**
-   * Ranger with a spear (equipmentOptions item, warrior cost applies)
+   * Ranger with a spear (wargearOptions item, warrior cost applies)
    *
-   * "spear" is in equipmentOptions, so freeWargear → warrior cost: spear rating[0] = 1.
+   * "spear" is in wargearOptions, so freeWargear → warrior cost: spear rating[0] = 1.
    *
    * Breakdown:
    *   25 (base)
@@ -115,7 +115,7 @@ describe('Hero rating — Ranger of the North', () => {
    * ─────
    *   41 pts
    */
-  it('Ranger with spear (equipmentOptions) costs 41 pts', () => {
+  it('Ranger with spear (wargearOptions) costs 41 pts', () => {
     const member = makeRangerLeader(['spear'])
     expect(calcMemberRating(member, undefined)).toBe(41)
   })

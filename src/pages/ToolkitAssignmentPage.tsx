@@ -57,7 +57,7 @@ const WARGEAR_RAW = wargearData as Array<{
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
   label: string
-  baseEquipment?: string[]
+  baseWargear?: string[]
 }>
 
 function getItemLabel(id: string): string {
@@ -78,8 +78,8 @@ function rankLabel(role: string): string {
 
 function memberWargear(member: Member): string {
   const baseUnit = BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-  const baseEquipment = baseUnit?.baseEquipment ?? []
-  const allIds = Array.from(new Set([...baseEquipment, ...member.equipment]))
+  const baseWargear = baseUnit?.baseWargear ?? []
+  const allIds = Array.from(new Set([...baseWargear, ...member.equipment]))
   return allIds.map(getWargearLabel).join(', ')
 }
 
@@ -95,13 +95,13 @@ const NON_WEAPON_CATEGORIES = new Set([
 ])
 
 /**
- * Returns all weapon-category items carried by a member (union of baseEquipment
+ * Returns all weapon-category items carried by a member (union of baseWargear
  * and member.equipment, filtered to weapon categories from wargear.json).
  */
 function getMemberWeapons(member: Member): string[] {
   const baseUnit = BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-  const baseEquipment = baseUnit?.baseEquipment ?? []
-  const allEquipment = Array.from(new Set([...baseEquipment, ...member.equipment]))
+  const baseWargear = baseUnit?.baseWargear ?? []
+  const allEquipment = Array.from(new Set([...baseWargear, ...member.equipment]))
   return allEquipment.filter((itemId) => {
     const wgEntry = WARGEAR_RAW.find((w) => w.id === itemId)
     if (!wgEntry) return false

@@ -42,6 +42,7 @@ import {
   getWarriorAdvancements,
   applyWarriorPromotion,
   applyHeroInTheMaking,
+  applyHeroPromotionSwap,
   isOnTheirOwnPath,
   applyStatIncrease,
   applySpecialRule,
@@ -72,6 +73,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { CHANNELING_SPELLS } from '../components/wizard/StepSpellSelection'
 import PathCardSelector from '../components/common/PathCardSelector'
 import { getEligibleHeroUpgrades } from '../utils/companyRules'
+import { getUnitRosterOverrides } from '../utils/limitCheckers'
 
 const MotionBox = motion(Box)
 const COMPANIES = companiesData as CompanyDefinition[]
@@ -734,7 +736,15 @@ export default function PostMatchSummaryPage() {
     )
     if (!member) return
 
-    const outcome = casualty.isHero
+    // Warg Marauder override: units with unitRosterOverrides always use warrior
+    // injury table regardless of role. Single roll determines entire model outcome.
+    const rosterOverrides = companyDef ? getUnitRosterOverrides(companyDef) : []
+    const hasRosterOverride = rosterOverrides.some(
+      (o) => o.baseUnitId === casualty.baseUnitId
+    )
+    const useHeroTable = casualty.isHero && !hasRosterOverride
+
+    const outcome = useHeroTable
       ? resolveHeroInjury(diceValue, member)
       : resolveWarriorInjury(diceValue)
 
@@ -742,7 +752,7 @@ export default function PostMatchSummaryPage() {
     const newRecord: InjuryRecord = {
       memberId: casualty.memberId,
       memberName: casualty.memberName,
-      isHero: casualty.isHero,
+      isHero: useHeroTable,
       roll: diceValue,
       die1: pd1,
       die2: pd2,
@@ -1258,7 +1268,9 @@ export default function PostMatchSummaryPage() {
           getStatsForUnit
         )
       } else if (record.result === 'hero_in_making') {
-        updated = applyHeroInTheMaking(m)
+        // Try profile swap first (e.g. Arnor Ranger → Ranger of the North)
+        const swapped = applyHeroPromotionSwap(m, companyDef)
+        updated = swapped ?? applyHeroInTheMaking(m)
       } else {
         // no_change: still subtract XP
         updated = { ...m, experience: Math.max(0, m.experience - 5) }

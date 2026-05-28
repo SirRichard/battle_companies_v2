@@ -92,8 +92,8 @@ const ALL_CREATURES = creaturesData as unknown as CreatureEntry[]
 
 type BaseUnitEntry = {
   id: string
-  baseEquipment?: string[]
-  equipmentOptions?: { options: Array<{ equipment: string[] }> }
+  baseWargear?: string[]
+  wargearOptions?: { options: Array<{ wargear: string[] }> }
 }
 
 const BASE_UNITS_MAP = Object.fromEntries(
@@ -101,7 +101,7 @@ const BASE_UNITS_MAP = Object.fromEntries(
 )
 
 export function getMemberWeapons(baseUnitId: string, memberEquipment: string[]): string[] {
-  const baseEquip = BASE_UNITS_MAP[baseUnitId]?.baseEquipment ?? []
+  const baseEquip = BASE_UNITS_MAP[baseUnitId]?.baseWargear ?? []
   const combined = new Set([...baseEquip, ...memberEquipment])
   return [...combined].filter(id => {
     const wg = WARGEAR_MAP[id]
@@ -116,9 +116,9 @@ function collectFromUnit(
 ) {
   const unit = BASE_UNITS_MAP[unitId]
   if (!unit) return
-  if (includeBase) (unit.baseEquipment ?? []).forEach((e) => out.add(e))
-  for (const opt of unit.equipmentOptions?.options ?? []) {
-    opt.equipment.forEach((e) => out.add(e))
+  if (includeBase) (unit.baseWargear ?? []).forEach((e) => out.add(e))
+  for (const opt of unit.wargearOptions?.options ?? []) {
+    opt.wargear.forEach((e) => out.add(e))
   }
 }
 

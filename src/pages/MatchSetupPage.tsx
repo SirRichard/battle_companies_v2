@@ -148,7 +148,7 @@ const ATO_BONUSES: {
     id: 'wanderer',
     label: 'Wanderer',
     desc: 'Temporarily recruit a Wanderer for the match.',
-    ratingValue: 15,
+    ratingValue: 45,
   },
   {
     id: 'ambush',

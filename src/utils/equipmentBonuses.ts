@@ -19,7 +19,7 @@ import baseUnitsData from '../data/baseUnits.json'
 const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment?: string[]
+  baseWargear?: string[]
 }>
 
 // Armour tiers in ascending order
@@ -45,9 +45,9 @@ function getWargearCategory(id: string): string {
 
 function getBaseArmourTier(baseUnitId: string): number {
   const unit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
-  if (!unit?.baseEquipment) return 0
+  if (!unit?.baseWargear) return 0
   let highest = 0
-  for (const eq of unit.baseEquipment) {
+  for (const eq of unit.baseWargear) {
     const tier = ARMOUR_TIERS[getWargearCategory(eq)]
     if (tier && tier > highest) highest = tier
   }

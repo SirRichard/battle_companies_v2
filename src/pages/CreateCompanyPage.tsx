@@ -44,17 +44,17 @@ import pathsData from '../data/paths.json'
 
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment: string[]
+  baseWargear: string[]
 }>
 const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
 
 const WIZARD_DRAFT_KEY = 'bc_wizard_draft'
 
-/** Returns mount IDs embedded in a unit's baseEquipment list. */
+/** Returns mount IDs embedded in a unit's baseWargear list. */
 function getMountsForUnit(unitId: string): string[] {
   const unit = BASE_UNITS_RAW.find((u) => u.id === unitId)
-  if (!unit || !unit.baseEquipment) return []
-  return unit.baseEquipment.filter((eq) =>
+  if (!unit || !unit.baseWargear) return []
+  return unit.baseWargear.filter((eq) =>
     WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount')
   )
 }

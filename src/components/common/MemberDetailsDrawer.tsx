@@ -36,6 +36,8 @@ import baseUnitsData from '../../data/baseUnits.json'
 import specialRulesData from '../../data/specialRules.json'
 import heroicActionsData from '../../data/heroicActions.json'
 import { calcEquipmentStatBonus } from '../../utils/equipmentBonuses'
+import { getGrantedSpecialRules } from '../../utils/grantedRules'
+import { resolveParameterisedLabel } from '../../utils/paramLabel'
 import { CHANNELING_SPELLS } from '../wizard/StepSpellSelection'
 import wargearData from '../../data/wargear.json'
 import equipmentData from '../../data/equipment.json'
@@ -57,10 +59,22 @@ const WARGEAR_CATEGORY_MAP = (
 
 // ─── Equipment label lookup ───────────────────────────────────────────────────
 
-const EQUIPMENT_LABEL_MAP = (
-  equipmentData as Array<{ id: string; label: string }>
-).reduce<Record<string, string>>((acc, e) => {
+interface EquipmentDataEntry {
+  id: string
+  label: string
+  description?: string
+  grantsSpecialRules?: Array<string | { id: string; parameter: string | number }>
+}
+
+const EQUIPMENT_ALL = equipmentData as EquipmentDataEntry[]
+
+const EQUIPMENT_LABEL_MAP = EQUIPMENT_ALL.reduce<Record<string, string>>((acc, e) => {
   acc[e.id] = e.label
+  return acc
+}, {})
+
+const EQUIPMENT_BY_ID = EQUIPMENT_ALL.reduce<Record<string, EquipmentDataEntry>>((acc, e) => {
+  acc[e.id] = e
   return acc
 }, {})
 
@@ -119,11 +133,11 @@ function getPathLabel(pathId: string): string {
 
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment?: string[]
+  baseWargear?: string[]
 }>
 
 function getBaseEquipment(baseUnitId: string): string[] {
-  return BASE_UNITS_RAW.find((u) => u.id === baseUnitId)?.baseEquipment ?? []
+  return BASE_UNITS_RAW.find((u) => u.id === baseUnitId)?.baseWargear ?? []
 }
 
 /**
@@ -391,6 +405,12 @@ export default function MemberDetailsDrawer({
   const [rulePopup, setRulePopup] = useState<{
     label: string
     description: string
+  } | null>(null)
+
+  // ── Equipment info popup state ──────────────────────────────────────────────
+  const [equipPopup, setEquipPopup] = useState<{
+    label: string
+    body: string
   } | null>(null)
 
   // ── Wargear edit mode state ───────────────────────────────────────────────
@@ -1191,18 +1211,30 @@ export default function MemberDetailsDrawer({
               return true
             }
           )
-          if (specialRules.length === 0) return null
+
+          // Granted special rules from equipment (e.g. torching_brand → Terror, Dominant)
+          const grantedRules = getGrantedSpecialRules(member.ownedEquipment ?? [])
+
+          if (specialRules.length === 0 && grantedRules.length === 0) return null
           return (
             <Box sx={{ mb: 2.5 }}>
               <SectionLabel>Special Rules</SectionLabel>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
                 {specialRules.map((r, idx) => {
-                  const displayLabel = formatSpecialRule(r)
+                  // For parameterised rules, use resolveParameterisedLabel to get concrete values
+                  // For plain string rules, use formatSpecialRule as before
+                  const displayLabel = typeof r === 'object'
+                    ? resolveParameterisedLabel(r, company?.members)
+                    : formatSpecialRule(r)
                   // For object entries, look up description by ID; for plain strings, by label
                   const ruleId = typeof r === 'string' ? undefined : r.id
                   const desc = ruleId
                     ? SPECIAL_RULES_BY_ID[ruleId]
                     : (SPECIAL_RULES_MAP[displayLabel] ?? HEROIC_ACTIONS_MAP[displayLabel])
+                  // For parameterised rules, append parameter context to description
+                  const popupDesc = desc && typeof r === 'object' && r.parameter !== undefined
+                    ? `${desc}\n\nParameter: ${r.parameter}`
+                    : desc
                   const key = typeof r === 'string' ? r : `${r.id}-${idx}`
                   return (
                     <Chip
@@ -1210,8 +1242,8 @@ export default function MemberDetailsDrawer({
                       label={displayLabel}
                       size="small"
                       onClick={
-                        desc
-                          ? () => setRulePopup({ label: displayLabel, description: desc })
+                        popupDesc
+                          ? () => setRulePopup({ label: displayLabel, description: popupDesc })
                           : undefined
                       }
                       sx={{
@@ -1220,7 +1252,43 @@ export default function MemberDetailsDrawer({
                         color: 'primary.light',
                         border: '1px solid',
                         background: 'rgba(201,168,76,0.05)',
-                        cursor: desc ? 'pointer' : 'default',
+                        cursor: popupDesc ? 'pointer' : 'default',
+                      }}
+                    />
+                  )
+                })}
+                {/* Granted special rules from equipment — dashed border, source annotation */}
+                {grantedRules.map((g, idx) => {
+                  // Resolve display label: parameterised rules use resolveParameterisedLabel,
+                  // plain rules look up label from specialRules.json
+                  const displayLabel = g.parameter !== undefined
+                    ? resolveParameterisedLabel({ id: g.ruleId, parameter: g.parameter }, company?.members)
+                    : (specialRulesData as Array<{ id: string; label: string }>).find((r) => r.id === g.ruleId)?.label ?? g.ruleId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+
+                  const desc = SPECIAL_RULES_BY_ID[g.ruleId]
+                  // For parameterised granted rules, append parameter context to description
+                  const popupDesc = desc && g.parameter !== undefined
+                    ? `${desc}\n\nParameter: ${g.parameter}`
+                    : desc
+                  const key = `granted-${g.ruleId}-${g.parameter ?? ''}-${idx}`
+
+                  return (
+                    <Chip
+                      key={key}
+                      label={`${displayLabel} (from ${g.sourceEquipmentLabel})`}
+                      size="small"
+                      onClick={
+                        popupDesc
+                          ? () => setRulePopup({ label: displayLabel, description: popupDesc })
+                          : undefined
+                      }
+                      sx={{
+                        fontSize: '0.72rem',
+                        borderColor: 'rgba(200,164,90,0.4)',
+                        color: 'primary.light',
+                        border: '1px dashed rgba(200,164,90,0.4)',
+                        background: 'rgba(201,168,76,0.05)',
+                        cursor: popupDesc ? 'pointer' : 'default',
                       }}
                     />
                   )
@@ -1257,7 +1325,7 @@ export default function MemberDetailsDrawer({
             <DialogContent>
               <Typography
                 variant="body2"
-                sx={{ opacity: 0.85, lineHeight: 1.65 }}
+                sx={{ opacity: 0.85, lineHeight: 1.65, whiteSpace: 'pre-line' }}
               >
                 {rulePopup.description}
               </Typography>
@@ -1267,6 +1335,60 @@ export default function MemberDetailsDrawer({
                 size="small"
                 variant="outlined"
                 onClick={() => setRulePopup(null)}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )}
+
+        {/* ── Equipment info popup ─────────────────────────────────────────── */}
+        {equipPopup && (
+          <Dialog
+            open
+            onClose={() => setEquipPopup(null)}
+            PaperProps={{
+              sx: {
+                background: 'linear-gradient(160deg,#1a1008 0%,#110a03 100%)',
+                border: '1px solid rgba(200,164,90,0.25)',
+                borderRadius: 2,
+                maxWidth: 340,
+              },
+            }}
+          >
+            <DialogTitle
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                fontSize: '0.8rem',
+                color: 'primary.main',
+                pb: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              {equipPopup.label}
+              <IconButton
+                size="small"
+                onClick={() => setEquipPopup(null)}
+                sx={{ color: 'text.secondary', ml: 1 }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Typography
+                variant="body2"
+                sx={{ opacity: 0.85, lineHeight: 1.65, whiteSpace: 'pre-line' }}
+              >
+                {equipPopup.body}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setEquipPopup(null)}
               >
                 Close
               </Button>
@@ -1384,12 +1506,28 @@ export default function MemberDetailsDrawer({
                   <Chip
                     label={EQUIPMENT_LABEL_MAP[eq] ?? eq.replace(/_/g, ' ')}
                     size="small"
+                    onClick={() => {
+                      const item = EQUIPMENT_BY_ID[eq]
+                      if (!item) return
+                      if (item.description) {
+                        setEquipPopup({ label: item.label, body: item.description })
+                      } else if (item.grantsSpecialRules && item.grantsSpecialRules.length > 0) {
+                        const granted = getGrantedSpecialRules([eq])
+                        const lines = granted.map((g) =>
+                          g.parameter !== undefined
+                            ? resolveParameterisedLabel({ id: g.ruleId, parameter: g.parameter })
+                            : (specialRulesData as Array<{ id: string; label: string }>).find((r) => r.id === g.ruleId)?.label ?? g.ruleId.replace(/_/g, ' ')
+                        )
+                        setEquipPopup({ label: item.label, body: lines.join('\n') })
+                      }
+                    }}
                     sx={{
                       fontSize: '0.72rem',
                       borderColor: equipEditMode && onSaveCompany ? 'error.main' : 'divider',
                       color: equipEditMode && onSaveCompany ? 'error.light' : 'text.secondary',
                       border: '1px solid',
                       background: 'transparent',
+                      cursor: 'pointer',
                     }}
                   />
                   {equipEditMode && onSaveCompany && (

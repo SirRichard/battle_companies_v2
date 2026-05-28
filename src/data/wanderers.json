@@ -3,7 +3,7 @@
     "id": "wandering_swordsman",
     "label": "Wandering Swordsman",
     "keywords": ["man"],
-    "pointsCost": 70,
+    "pointsCost": 60,
     "influenceCost": 9,
     "stats": {
       "move": 6,
@@ -32,7 +32,7 @@
     "id": "wandering_marksman",
     "label": "Wandering Marksman",
     "keywords": ["man"],
-    "pointsCost": 70,
+    "pointsCost": 60,
     "influenceCost": 9,
     "stats": {
       "move": 6,
@@ -57,7 +57,7 @@
     "id": "wandering_scavenger",
     "label": "Wandering Scavenger",
     "keywords": ["man"],
-    "pointsCost": 70,
+    "pointsCost": 60,
     "influenceCost": 9,
     "stats": {
       "move": 6,
@@ -82,7 +82,7 @@
     "id": "wandering_sage",
     "label": "Wandering Sage",
     "keywords": ["man"],
-    "pointsCost": 70,
+    "pointsCost": 60,
     "influenceCost": 9,
     "stats": {
       "move": 6,

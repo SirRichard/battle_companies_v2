@@ -11,18 +11,22 @@ import baseUnitsData from '../data/baseUnits.json'
 import specialRulesData from '../data/specialRules.json'
 import wargearData from '../data/wargear.json'
 import type { Member, MemberStats, StoredBaseUnitStats } from '../models'
+import { getGrantedRuleIds } from './grantedRules'
+
+const SPECIAL_RULES = specialRulesData as Array<{ id: string; label: string; minor: boolean }>
 
 const MINOR_RULE_LABELS = new Set(
-  (specialRulesData as Array<{ label: string; minor: boolean }>)
-    .filter((r) => r.minor)
-    .map((r) => r.label)
+  SPECIAL_RULES.filter((r) => r.minor).map((r) => r.label)
 )
+
+/** Map from rule label → rule ID for exclusion matching */
+const LABEL_TO_ID = new Map(SPECIAL_RULES.map((r) => [r.label, r.id]))
 
 const BASE_UNITS = baseUnitsData as Array<{
   id: string
   pointsCost: number
-  baseEquipment?: string[]
-  equipmentOptions?: { options: Array<{ equipment: string[] }> }
+  baseWargear?: string[]
+  wargearOptions?: { options: Array<{ wargear: string[] }> }
 }>
 const WARGEAR = wargearData as Array<{
   id: string
@@ -31,15 +35,15 @@ const WARGEAR = wargearData as Array<{
 
 /**
  * Returns the set of wargear IDs that are "free" for rating purposes on a given
- * base unit — i.e. items in baseEquipment or any equipmentOptions entry.
+ * base unit — i.e. items in baseWargear or any wargearOptions entry.
  * These always use the lower wargear cost (rating[0]) regardless of A+W total.
  */
 function getFreeWargearIds(baseUnitId: string): Set<string> {
   const unit = BASE_UNITS.find((u) => u.id === baseUnitId)
   if (!unit) return new Set()
-  const ids = new Set<string>(unit.baseEquipment ?? [])
-  for (const opt of unit.equipmentOptions?.options ?? []) {
-    for (const eq of opt.equipment) ids.add(eq)
+  const ids = new Set<string>(unit.baseWargear ?? [])
+  for (const opt of unit.wargearOptions?.options ?? []) {
+    for (const eq of opt.wargear) ids.add(eq)
   }
   return ids
 }
@@ -147,7 +151,7 @@ export function calcMemberRating(
   const freeWargear = getFreeWargearIds(member.baseUnitId)
 
   const equipCost = member.equipment.reduce((s, eq) => {
-    // baseEquipment and equipmentOptions items always use lower cost
+    // baseWargear and wargearOptions items always use lower cost
     if (freeWargear.has(eq)) return s + wargearWarriorCost(eq)
     // Armoury / extra purchases: lower cost if A+W < 3, higher if A+W >= 3
     return s + (currentAW >= 3 ? wargearHeroCost(eq) : wargearWarriorCost(eq))
@@ -170,12 +174,41 @@ export function calcMemberRating(
     'Heroic Shoot',
     'Heroic Combat',
   ])
-  const countableSpecialRules = member.specialRules.filter(
-    (r) => typeof r === 'string' && !HEROIC_ACTION_LABELS.has(r)
+
+  // Compute exclusion set: rules granted by equipment should not add to rating
+  const grantedExclusion = getGrantedRuleIds(member.ownedEquipment ?? [])
+
+  const countableSpecialRules = member.specialRules.filter((r) => {
+    if (typeof r === 'string') {
+      if (HEROIC_ACTION_LABELS.has(r)) return false
+      // Check if this label's rule ID is in the granted exclusion set
+      const ruleId = LABEL_TO_ID.get(r)
+      if (ruleId && grantedExclusion.has(ruleId)) return false
+      return true
+    } else {
+      // Parameterised rule { id, parameter } — build composite key
+      const key = `${r.id}:${String(r.parameter).toLowerCase()}`
+      if (grantedExclusion.has(key)) return false
+      return true
+    }
+  })
+
+  const stringRules = countableSpecialRules.filter(
+    (r) => typeof r === 'string'
   ) as string[]
-  const minorRules = countableSpecialRules.filter((r) => MINOR_RULE_LABELS.has(r))
-  const majorRules = countableSpecialRules.filter((r) => !MINOR_RULE_LABELS.has(r))
-  heroPoints += Math.min(minorRules.length * 5, 10) + majorRules.length * 5
+  const paramRules = countableSpecialRules.filter(
+    (r) => typeof r !== 'string'
+  ) as Array<{ id: string; parameter: string | number }>
+
+  // For string rules, split into minor/major
+  const minorRules = stringRules.filter((r) => MINOR_RULE_LABELS.has(r))
+  const majorRules = stringRules.filter((r) => !MINOR_RULE_LABELS.has(r))
+
+  // Parameterised rules count as major (5pts each)
+  heroPoints +=
+    Math.min(minorRules.length * 5, 10) +
+    majorRules.length * 5 +
+    paramRules.length * 5
 
   return base + equipCost + heroPoints
 }

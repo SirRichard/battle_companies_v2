@@ -5,7 +5,7 @@
  * Validates: Requirements 36.1, 36.3, 36.7
  *
  * For any member, the weapon options presented in the Envenom Weapon dialog SHALL be
- * a subset of the union of `baseEquipment` (from `baseUnits.json`) and `member.equipment`,
+ * a subset of the union of `baseWargear` (from `baseUnits.json`) and `member.equipment`,
  * filtered to items whose `category` in `wargear.json` is not `armour_*`, `mount`, `shield`,
  * or `special`. Already-envenomed weapons SHALL be excluded from subsequent options.
  */
@@ -26,7 +26,7 @@ const WARGEAR_RAW = wargearData as Array<{
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
   label: string
-  baseEquipment?: string[]
+  baseWargear?: string[]
 }>
 
 const ALL_WARGEAR_IDS = WARGEAR_RAW.map((w) => w.id)
@@ -48,7 +48,7 @@ const NON_WEAPON_CATEGORIES = new Set([
 // ── Logic under test (mirrors ToolkitAssignmentPage.tsx) ──────────────────────
 
 /**
- * Returns all weapon-category items carried by a member (union of baseEquipment
+ * Returns all weapon-category items carried by a member (union of baseWargear
  * and member.equipment, filtered to weapon categories from wargear.json).
  */
 function getMemberWeapons(
@@ -56,8 +56,8 @@ function getMemberWeapons(
   memberEquipment: string[]
 ): string[] {
   const baseUnit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
-  const baseEquipment = baseUnit?.baseEquipment ?? []
-  const allEquipment = Array.from(new Set([...baseEquipment, ...memberEquipment]))
+  const baseWargear = baseUnit?.baseWargear ?? []
+  const allEquipment = Array.from(new Set([...baseWargear, ...memberEquipment]))
   return allEquipment.filter((itemId) => {
     const wgEntry = WARGEAR_RAW.find((w) => w.id === itemId)
     if (!wgEntry) return false
@@ -111,8 +111,8 @@ describe('Property 31: Envenom Weapon options are a subset of the member\'s carr
 
         // Every returned item must be in the combined equipment
         const baseUnit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
-        const baseEquipment = baseUnit?.baseEquipment ?? []
-        const combinedEquipment = new Set([...baseEquipment, ...memberEquipment])
+        const baseWargear = baseUnit?.baseWargear ?? []
+        const combinedEquipment = new Set([...baseWargear, ...memberEquipment])
 
         for (const weaponId of weapons) {
           expect(combinedEquipment.has(weaponId)).toBe(true)
@@ -144,8 +144,8 @@ describe('Property 31: Envenom Weapon options are a subset of the member\'s carr
       fc.property(validBaseUnitIdArb, equipmentArrayArb, (baseUnitId, memberEquipment) => {
         const weapons = getMemberWeapons(baseUnitId, memberEquipment)
         const baseUnit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
-        const baseEquipment = baseUnit?.baseEquipment ?? []
-        const combinedEquipment = new Set([...baseEquipment, ...memberEquipment])
+        const baseWargear = baseUnit?.baseWargear ?? []
+        const combinedEquipment = new Set([...baseWargear, ...memberEquipment])
 
         // Weapons must be a subset of combined equipment
         for (const w of weapons) {
@@ -353,8 +353,8 @@ describe('Property 2: Envenom weapon options are valid weapons minus already-env
         const weapons = getMemberWeaponsReal(baseUnitId, memberEquipment)
 
         const baseUnit = BASE_UNITS_RAW.find((u) => u.id === baseUnitId)
-        const baseEquipment = baseUnit?.baseEquipment ?? []
-        const combined = new Set([...baseEquipment, ...memberEquipment])
+        const baseWargear = baseUnit?.baseWargear ?? []
+        const combined = new Set([...baseWargear, ...memberEquipment])
 
         for (const w of weapons) {
           expect(combined.has(w)).toBe(true)

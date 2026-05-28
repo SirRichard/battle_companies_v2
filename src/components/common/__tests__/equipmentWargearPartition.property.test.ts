@@ -24,7 +24,7 @@ interface SpecialRule {
 interface MemberLike {
   ownedEquipment: string[]
   equipment: string[]
-  baseEquipment: string[]
+  baseWargear: string[]
   specialRules: SpecialRule[]
 }
 
@@ -108,9 +108,9 @@ const arbSpecialRules = fc.array(
 
 // Combined member-like generator
 const arbMember = fc.tuple(arbOwnedEquipment, arbBaseEquip, arbAssignedEquip, arbSpecialRules)
-  .map(([ownedEquipment, baseEquipment, equipment, specialRules]) => ({
+  .map(([ownedEquipment, baseWargear, equipment, specialRules]) => ({
     ownedEquipment,
-    baseEquipment,
+    baseWargear,
     equipment,
     specialRules
   }))
@@ -153,7 +153,7 @@ describe('Property 7: Equipment/Wargear partition correctness', () => {
           member.specialRules
         )
         const allWargear = computeAllWargear(
-          member.baseEquipment,
+          member.baseWargear,
           member.equipment,
           envenomEntries,
           displayEquipment
@@ -177,7 +177,7 @@ describe('Property 7: Equipment/Wargear partition correctness', () => {
           member.specialRules
         )
         const allWargear = computeAllWargear(
-          member.baseEquipment,
+          member.baseWargear,
           member.equipment,
           envenomEntries,
           displayEquipment
@@ -201,7 +201,7 @@ describe('Property 7: Equipment/Wargear partition correctness', () => {
           member.specialRules
         )
         const allWargear = computeAllWargear(
-          member.baseEquipment,
+          member.baseWargear,
           member.equipment,
           envenomEntries,
           displayEquipment

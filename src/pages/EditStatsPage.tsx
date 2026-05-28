@@ -56,11 +56,11 @@ function getMountLabel(id: string): string {
   )
 }
 
-/** Returns mount IDs used by a base unit (via its baseEquipment list). */
+/** Returns mount IDs used by a base unit (via its baseWargear list). */
 function getMountsForUnit(unitId: string): string[] {
   const unit = BASE_UNITS.find((u) => u.id === unitId)
   if (!unit) return []
-  return (unit.baseEquipment ?? []).filter((eq) =>
+  return (unit.baseWargear ?? []).filter((eq) =>
     WARGEAR.some((w) => w.id === eq && w.category === 'mount')
   )
 }

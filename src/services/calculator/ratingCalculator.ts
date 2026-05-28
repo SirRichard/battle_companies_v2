@@ -1,12 +1,16 @@
 import type { Company, Member, StoredBaseUnitStats } from '../../models'
 import { AVERAGE_PROFILE, RATING_POINTS } from '../../constants'
 import specialRulesData from '../../data/specialRules.json'
+import { getGrantedRuleIds } from '../../utils/grantedRules'
+
+const SPECIAL_RULES = specialRulesData as Array<{ id: string; label: string; minor: boolean }>
 
 const MINOR_RULE_LABELS = new Set(
-  (specialRulesData as Array<{ label: string; minor: boolean }>)
-    .filter((r) => r.minor)
-    .map((r) => r.label)
+  SPECIAL_RULES.filter((r) => r.minor).map((r) => r.label)
 )
+
+/** Map from rule label → rule ID for exclusion matching */
+const LABEL_TO_ID = new Map(SPECIAL_RULES.map((r) => [r.label, r.id]))
 
 /**
  * Calculates a single member's point rating per SRS §4.8.1.
@@ -90,16 +94,41 @@ export function calcMemberRating(
       'Heroic Shoot',
       'Heroic Combat',
     ])
-    const countableSpecialRules = member.specialRules.filter(
-      (r) => typeof r === 'string' && !HEROIC_ACTION_LABELS.has(r)
+
+    // Compute exclusion set: rules granted by equipment should not add to rating
+    const grantedExclusion = getGrantedRuleIds(member.ownedEquipment ?? [])
+
+    const countableSpecialRules = member.specialRules.filter((r) => {
+      if (typeof r === 'string') {
+        if (HEROIC_ACTION_LABELS.has(r)) return false
+        // Check if this label's rule ID is in the granted exclusion set
+        const ruleId = LABEL_TO_ID.get(r)
+        if (ruleId && grantedExclusion.has(ruleId)) return false
+        return true
+      } else {
+        // Parameterised rule { id, parameter } — build composite key
+        const key = `${r.id}:${String(r.parameter).toLowerCase()}`
+        if (grantedExclusion.has(key)) return false
+        return true
+      }
+    })
+
+    const stringRules = countableSpecialRules.filter(
+      (r) => typeof r === 'string'
     ) as string[]
-    const minorRules = countableSpecialRules.filter((r) =>
-      MINOR_RULE_LABELS.has(r)
-    )
-    const majorRules = countableSpecialRules.filter(
-      (r) => !MINOR_RULE_LABELS.has(r)
-    )
-    rating += Math.min(minorRules.length * 5, 10) + majorRules.length * 5
+    const paramRules = countableSpecialRules.filter(
+      (r) => typeof r !== 'string'
+    ) as Array<{ id: string; parameter: string | number }>
+
+    // For string rules, split into minor/major
+    const minorRules = stringRules.filter((r) => MINOR_RULE_LABELS.has(r))
+    const majorRules = stringRules.filter((r) => !MINOR_RULE_LABELS.has(r))
+
+    // Parameterised rules count as major (5pts each)
+    rating +=
+      Math.min(minorRules.length * 5, 10) +
+      majorRules.length * 5 +
+      paramRules.length * 5
   }
 
   return rating

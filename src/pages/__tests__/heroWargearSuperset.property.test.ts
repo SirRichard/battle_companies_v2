@@ -18,8 +18,8 @@ import baseUnitsData from '../../data/baseUnits.json'
 
 const BASE_UNITS = baseUnitsData as Array<{
   id: string
-  baseEquipment?: string[]
-  equipmentOptions?: { options: Array<{ equipment: string[] }> }
+  baseWargear?: string[]
+  wargearOptions?: { options: Array<{ wargear: string[] }> }
 }>
 
 /** Collect all wargear IDs accessible from a single baseUnitId profile */
@@ -27,9 +27,9 @@ function getProfileWargearIds(unitId: string): Set<string> {
   const unit = BASE_UNITS.find((u) => u.id === unitId)
   if (!unit) return new Set()
   const ids = new Set<string>()
-  for (const e of unit.baseEquipment ?? []) ids.add(e)
-  for (const opt of unit.equipmentOptions?.options ?? []) {
-    for (const e of opt.equipment) ids.add(e)
+  for (const e of unit.baseWargear ?? []) ids.add(e)
+  for (const opt of unit.wargearOptions?.options ?? []) {
+    for (const e of opt.wargear) ids.add(e)
   }
   return ids
 }

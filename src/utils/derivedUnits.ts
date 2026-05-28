@@ -6,7 +6,7 @@ export interface BaseUnitDef {
   label: string
   pointsCost?: number
   keywords?: string[]
-  baseEquipment?: string[]
+  baseWargear?: string[]
   derivedFrom?: string
   statOverrides?: Partial<MemberStats>
   riderCount?: number

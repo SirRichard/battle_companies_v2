@@ -149,7 +149,7 @@
   {
     "id": "whip",
     "label": "Whip",
-    "category": "weapon",
+    "category": "throwing",
     "influenceCost": 1,
     "rating": [2, 5]
   },

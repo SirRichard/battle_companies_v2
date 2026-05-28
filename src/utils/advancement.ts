@@ -14,7 +14,7 @@ const BASE_UNITS = baseUnitsData as Array<{
   id: string
   label: string
   pointsCost: number
-  baseEquipment?: string[]
+  baseWargear?: string[]
   onTheirOwnPath?: boolean | { condition: string; requiredEquipment: string[] }
 }>
 
@@ -120,7 +120,7 @@ export function applyWarriorPromotion(
   getStatsForUnit: (id: string) => StoredBaseUnitStats | undefined
 ): Member {
   const newUnit = BASE_UNITS.find((u) => u.id === toBaseUnitId)
-  const baseEquipment = newUnit?.baseEquipment ?? []
+  const baseWargear = newUnit?.baseWargear ?? []
   let equipment: string[]
   if (retainWargear) {
     // Keep existing wargear that was added BEYOND the old base profile
@@ -131,7 +131,7 @@ export function applyWarriorPromotion(
     equipment = [...(newEquipment ?? [])]
   }
   // Ensure we don't double-store items already in the new base profile
-  const baseSet = new Set(baseEquipment)
+  const baseSet = new Set(baseWargear)
   equipment = equipment.filter((e) => !baseSet.has(e))
   return {
     ...member,
@@ -140,6 +140,51 @@ export function applyWarriorPromotion(
     experience: Math.max(0, member.experience - 5),
     statIncreases: {},
     statDecreases: {},
+  }
+}
+
+/**
+ * Apply hero promotion profile swap for companies with heroPromotionOnly advancements.
+ * Checks if the member's baseUnitId matches any heroPromotionOnly advancement's fromBaseUnitId.
+ * If match: swaps baseUnitId, filters equipment to equipmentCarryOver list, sets role to hero_in_making,
+ * grants heroStats {might:1, will:1, fate:1}.
+ * If no match: returns null (caller falls back to standard applyHeroInTheMaking).
+ */
+export function applyHeroPromotionSwap(
+  member: Member,
+  companyDef: CompanyDefinition
+): Member | null {
+  const matchingAdvancement = companyDef.advancements.find(
+    (a) => a.heroPromotionOnly && a.fromBaseUnitId === member.baseUnitId
+  )
+
+  if (!matchingAdvancement) return null
+
+  const carryOverList = matchingAdvancement.equipmentCarryOver ?? []
+  const filteredEquipment = member.equipment.filter((eq) =>
+    carryOverList.includes(eq)
+  )
+
+  return {
+    ...member,
+    baseUnitId: matchingAdvancement.toBaseUnitId,
+    equipment: filteredEquipment,
+    role: 'hero_in_making',
+    heroStats: { might: 1, will: 1, fate: 1 },
+    experience: Math.max(0, member.experience - 5),
+  }
+}
+
+/**
+ * Apply Company of Heroes auto-promotion to a newly recruited member.
+ * Sets role to hero_in_making and grants heroStats {might:1, will:1, fate:1}.
+ * Used by Wanderers in the Wild when adding reinforcements.
+ */
+export function applyCompanyOfHeroesPromotion(member: Member): Member {
+  return {
+    ...member,
+    role: 'hero_in_making',
+    heroStats: { might: 1, will: 1, fate: 1 },
   }
 }
 

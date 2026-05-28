@@ -25,7 +25,7 @@ import wargearData from '../data/wargear.json'
 const COMPANIES_DEF = companiesData as CompanyDefinition[]
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment: string[]
+  baseWargear: string[]
 }>
 const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
 
@@ -46,8 +46,8 @@ function companyHasMissingStats(
   }
   for (const uid of Array.from(ids)) {
     const unit = BASE_UNITS_RAW.find((u) => u.id === uid)
-    if (unit?.baseEquipment) {
-      for (const eq of unit.baseEquipment) {
+    if (unit?.baseWargear) {
+      for (const eq of unit.baseWargear) {
         if (WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount'))
           ids.add(eq)
       }

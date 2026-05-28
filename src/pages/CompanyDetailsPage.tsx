@@ -23,6 +23,8 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import AddIcon from '@mui/icons-material/Add'
 import PageHeader from '../components/common/PageHeader'
 import MemberDetailsDrawer from '../components/common/MemberDetailsDrawer'
+import CreatureDetailsDrawer from '../components/common/CreatureDetailsDrawer'
+import PathCardSelector from '../components/common/PathCardSelector'
 import { useAppContext } from '../context/AppContext'
 import type {
   Company,
@@ -34,6 +36,19 @@ import type {
 import { getCompanyLabel, getUnitLabel, getWargearLabel } from '../utils/labels'
 import { calcCompanyRating, calcMemberRating } from '../utils/rating'
 import { getEligibleUniqueWargear, getApplicableSubstitution } from '../utils/companyRules'
+import { getPath } from '../utils/advancement'
+import { isShieldExclusive } from '../utils/shieldExclusivity'
+import {
+  buildLimitCheckContext,
+  getEffectiveRosterSlots,
+  countBowMembers as countBowMembersUtil,
+  countThrowingMembers as countThrowingMembersUtil,
+  countCavalryMembers as countCavalryMembersUtil,
+  wouldExceedDwarfDaleRatio,
+  wouldExceedElfLimit,
+} from '../utils/limitCheckers'
+import { resolveParameterisedLabel } from '../utils/paramLabel'
+import specialRulesData from '../data/specialRules.json'
 import companiesData from '../data/companies.json'
 import baseUnitsData from '../data/baseUnits.json'
 import wargearData from '../data/wargear.json'
@@ -44,7 +59,7 @@ import wanderersData from '../data/wanderers.json'
 const COMPANIES_DEF = companiesData as CompanyDefinition[]
 const BASE_UNITS_RAW = baseUnitsData as Array<{
   id: string
-  baseEquipment?: string[]
+  baseWargear?: string[]
 }>
 const WARGEAR_RAW = wargearData as Array<{ id: string; category: string }>
 
@@ -65,7 +80,7 @@ function getRequiredUnitIds(companyTypeId: string): string[] {
   for (const uid of Array.from(ids)) {
     const unit = BASE_UNITS_RAW.find((u) => u.id === uid)
     if (unit) {
-      for (const eq of (unit.baseEquipment ?? [])) {
+      for (const eq of (unit.baseWargear ?? [])) {
         if (WARGEAR_RAW.some((w) => w.id === eq && w.category === 'mount'))
           ids.add(eq)
       }
@@ -148,6 +163,9 @@ export default function CompanyDetailsPage() {
 
   const [activeTab, setActiveTab] = useState(0)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null)
+  const [creatureDrawerOpen, setCreatureDrawerOpen] = useState(false)
+  const [wandererDetailOpen, setWandererDetailOpen] = useState(false)
 
   const company: Company | null =
     companies.find((c) => c.id === companyId) ?? activeCompany
@@ -196,7 +214,9 @@ export default function CompanyDetailsPage() {
   )
 
   const wandererCount = company?.wandererId ? 1 : 0
-  const totalMembers = (company?.members.length ?? 0) + wandererCount
+  const totalMembers = (companyDef
+    ? getEffectiveRosterSlots(company?.members ?? [], companyDef)
+    : (company?.members.length ?? 0)) + wandererCount
   const maxSize = companyDef?.maxCompanySize ?? 15
   const isAtMax = totalMembers >= maxSize
 
@@ -339,16 +359,69 @@ export default function CompanyDetailsPage() {
                 </Typography>
                 <Divider sx={{ mb: 2, opacity: 0.4 }} />
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {heroes.map((member, i) => (
-                    <MemberRow
-                      key={member.id}
-                      member={member}
-                      isHero={true}
-                      delay={i * 0.05}
-                      onClick={() => setSelectedMemberId(member.id)}
-                      baseStats={getStatsForUnit(member.baseUnitId)}
-                    />
-                  ))}
+                  {heroes.map((member, i) => {
+                    const creature = member.creatureId
+                      ? (creaturesData as Array<{ id: string; label: string; pointsCost: number; stats: { move: number; fight: number; strength: number; defence: number; attacks: number; wounds: number } }>).find((c) => c.id === member.creatureId)
+                      : null
+                    return (
+                      <Box key={member.id}>
+                        <MemberRow
+                          member={member}
+                          isHero={true}
+                          delay={i * 0.05}
+                          onClick={() => setSelectedMemberId(member.id)}
+                          baseStats={getStatsForUnit(member.baseUnitId)}
+                        />
+                        {creature && (
+                          <Box
+                            onClick={() => {
+                              setSelectedCreatureId(creature.id)
+                              setCreatureDrawerOpen(true)
+                            }}
+                            sx={{
+                              ml: 3,
+                              mt: 0.5,
+                              p: 1.25,
+                              borderLeft: '3px solid',
+                              borderColor: 'primary.dark',
+                              borderRadius: '0 4px 4px 0',
+                              background: 'rgba(201,168,76,0.03)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.5,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s, border-color 0.15s',
+                              '&:hover': {
+                                background: 'rgba(201,168,76,0.08)',
+                                borderColor: 'primary.main',
+                              },
+                            }}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: '0.78rem',
+                                  fontFamily: '"Cinzel Decorative", serif',
+                                  color: 'primary.light',
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                {creature.label}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1, mt: 0.25, flexWrap: 'wrap' }}>
+                                <Typography variant="caption" sx={{ opacity: 0.6, fontSize: '0.6rem' }}>
+                                  {creature.pointsCost} pts
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.6rem' }}>
+                                  Mv {creature.stats.move}" | F {creature.stats.fight} | S {creature.stats.strength} | D {creature.stats.defence} | A {creature.stats.attacks} | W {creature.stats.wounds}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                    )
+                  })}
                 </Box>
               </MotionBox>
             )}
@@ -381,6 +454,123 @@ export default function CompanyDetailsPage() {
                 </Box>
               </MotionBox>
             )}
+
+            {/* ── WANDERERS ── */}
+            {(() => {
+              if (!company.wandererId) return null
+              const wanderer = (wanderersData as Array<{
+                id: string
+                label: string
+                keywords: string[]
+                pointsCost: number
+                influenceCost: number
+                stats: Record<string, number | null>
+                equipment: string[]
+                heroicActions: string[]
+                specialRules: Array<string | { id: string; parameter: string | number }>
+                keywordNote?: string
+              }>).find((w) => w.id === company.wandererId)
+              if (!wanderer) return null
+              return (
+                <MotionBox
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.25,
+                    delay: (heroes.length > 0 || warriors.length > 0) ? 0.15 : 0,
+                  }}
+                  sx={{ mt: 3 }}
+                >
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      mb: 1.5,
+                      color: 'info.light',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    Wanderers
+                  </Typography>
+                  <Divider sx={{ mb: 2, opacity: 0.4, borderColor: 'info.dark' }} />
+                  <Box
+                    onClick={() => setWandererDetailOpen(true)}
+                    sx={{
+                      p: 2,
+                      border: '1px dashed',
+                      borderColor: 'info.dark',
+                      borderRadius: 1,
+                      background: 'rgba(41,121,255,0.04)',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, background 0.15s',
+                      '&:hover': {
+                        borderColor: 'info.main',
+                        background: 'rgba(41,121,255,0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="h6" sx={{ lineHeight: 1.3 }}>
+                          {wanderer.label}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.6rem' }}>
+                          Mv {wanderer.stats.move}" | F {wanderer.stats.fight}/{wanderer.stats.shoot ?? '-'}+ | S {wanderer.stats.strength} | D {wanderer.stats.defence} | A {wanderer.stats.attacks} | W {wanderer.stats.wounds} | C {wanderer.stats.courage}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          color: 'info.light',
+                          fontSize: '0.65rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {wanderer.pointsCost} pts
+                      </Typography>
+                    </Box>
+                    {/* Equipment */}
+                    {wanderer.equipment.length > 0 && (
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 1 }}>
+                        {wanderer.equipment.map((eq) => (
+                          <Chip
+                            key={eq}
+                            label={getWargearLabel(eq)}
+                            size="small"
+                            sx={{ fontSize: '0.6rem', height: 20 }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                    {/* Special Rules */}
+                    {wanderer.specialRules.length > 0 && (
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.75 }}>
+                        {wanderer.specialRules.map((rule, idx) => {
+                          const label = typeof rule === 'string'
+                            ? ((specialRulesData as Array<{ id: string; label: string }>).find((r) => r.id === rule)?.label ?? rule.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()))
+                            : resolveParameterisedLabel(rule as { id: string; parameter: string | number })
+                          return (
+                            <Chip
+                              key={idx}
+                              label={label}
+                              size="small"
+                              sx={{
+                                fontSize: '0.58rem',
+                                height: 18,
+                                border: '1px solid',
+                                borderColor: 'info.dark',
+                                background: 'transparent',
+                                color: 'text.secondary',
+                              }}
+                            />
+                          )
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                </MotionBox>
+              )
+            })()}
           </Box>
         )}
 
@@ -439,6 +629,177 @@ export default function CompanyDetailsPage() {
         company={company}
         onSaveCompany={saveCompany}
       />
+
+      <CreatureDetailsDrawer
+        creatureId={selectedCreatureId}
+        open={creatureDrawerOpen}
+        onClose={() => setCreatureDrawerOpen(false)}
+      />
+
+      {/* Wanderer Detail Dialog */}
+      {(() => {
+        if (!company.wandererId) return null
+        const wanderer = (wanderersData as Array<{
+          id: string
+          label: string
+          keywords: string[]
+          pointsCost: number
+          influenceCost: number
+          stats: Record<string, number | null>
+          equipment: string[]
+          heroicActions: string[]
+          specialRules: Array<string | { id: string; parameter: string | number }>
+          keywordNote?: string
+        }>).find((w) => w.id === company.wandererId)
+        if (!wanderer) return null
+        return (
+          <Dialog
+            open={wandererDetailOpen}
+            onClose={() => setWandererDetailOpen(false)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              sx: {
+                background: 'linear-gradient(180deg, #1A1A2E 0%, #16213E 100%)',
+                border: '1px solid',
+                borderColor: 'info.dark',
+              },
+            }}
+          >
+            <DialogTitle
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                color: 'info.light',
+                fontSize: '1rem',
+                pb: 0.5,
+              }}
+            >
+              {wanderer.label}
+              <Typography variant="caption" sx={{ display: 'block', opacity: 0.6, mt: 0.25 }}>
+                {wanderer.keywords.join(', ')} · {wanderer.pointsCost} pts
+              </Typography>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 1 }}>
+              {/* Stats Grid */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 0.75,
+                  mb: 2,
+                  p: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  background: 'rgba(0,0,0,0.2)',
+                }}
+              >
+                {[
+                  { key: 'move', label: 'Mv' },
+                  { key: 'fight', label: 'F' },
+                  { key: 'shoot', label: 'S/' },
+                  { key: 'strength', label: 'S' },
+                  { key: 'defence', label: 'D' },
+                  { key: 'attacks', label: 'A' },
+                  { key: 'wounds', label: 'W' },
+                  { key: 'courage', label: 'C' },
+                  { key: 'might', label: 'Mi' },
+                  { key: 'will', label: 'Wi' },
+                  { key: 'fate', label: 'Ft' },
+                  { key: 'intelligence', label: 'I' },
+                ].map(({ key, label }) => {
+                  const val = wanderer.stats[key]
+                  if (val === undefined) return null
+                  return (
+                    <Box key={key} sx={{ textAlign: 'center' }}>
+                      <Typography sx={{ fontSize: '0.55rem', opacity: 0.5, textTransform: 'uppercase' }}>
+                        {label}
+                      </Typography>
+                      <Typography sx={{ fontFamily: '"Cinzel Decorative", serif', fontSize: '0.85rem', color: 'info.light' }}>
+                        {val ?? '-'}
+                      </Typography>
+                    </Box>
+                  )
+                })}
+              </Box>
+
+              {/* Equipment */}
+              {wanderer.equipment.length > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}>
+                    Equipment
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {wanderer.equipment.map((eq) => (
+                      <Chip key={eq} label={getWargearLabel(eq)} size="small" sx={{ fontSize: '0.62rem' }} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Heroic Actions */}
+              {wanderer.heroicActions.length > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}>
+                    Heroic Actions
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {wanderer.heroicActions.map((ha) => (
+                      <Chip
+                        key={ha}
+                        label={ha.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                        size="small"
+                        sx={{ fontSize: '0.62rem', borderColor: 'primary.dark', border: '1px solid', background: 'transparent' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Special Rules */}
+              {wanderer.specialRules.length > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.6, display: 'block', mb: 0.5 }}>
+                    Special Rules
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {wanderer.specialRules.map((rule, idx) => {
+                      const label = typeof rule === 'string'
+                        ? ((specialRulesData as Array<{ id: string; label: string }>).find((r) => r.id === rule)?.label ?? rule.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()))
+                        : resolveParameterisedLabel(rule as { id: string; parameter: string | number })
+                      return (
+                        <Chip
+                          key={idx}
+                          label={label}
+                          size="small"
+                          sx={{
+                            fontSize: '0.62rem',
+                            border: '1px solid',
+                            borderColor: 'info.dark',
+                            background: 'transparent',
+                          }}
+                        />
+                      )
+                    })}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Keyword Note */}
+              {wanderer.keywordNote && (
+                <Typography variant="caption" sx={{ opacity: 0.45, fontStyle: 'italic', display: 'block', mt: 1 }}>
+                  {wanderer.keywordNote}
+                </Typography>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setWandererDetailOpen(false)} size="small">
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )
+      })()}
     </Box>
   )
 }
@@ -628,7 +989,7 @@ function MemberRow({
             // Heroes: show base equipment + any purchased/assigned equipment
             const baseEquip =
               BASE_UNITS_RAW.find((u) => u.id === member.baseUnitId)
-                ?.baseEquipment ?? []
+                ?.baseWargear ?? []
             // Synthesize envenom weapon entries from ownedEquipment + specialRules
             const envenomEntries: string[] = []
             if ((member.ownedEquipment ?? []).includes('envenom_weapon')) {
@@ -650,13 +1011,13 @@ function MemberRow({
             const baseUnit = (
               baseUnitsData as Array<{
                 id: string
-                baseEquipment?: string[]
-                equipmentOptions?: { options: Array<{ equipment: string[] }> }
+                baseWargear?: string[]
+                wargearOptions?: { options: Array<{ wargear: string[] }> }
               }>
             ).find((u) => u.id === member.baseUnitId)
             const allOptionEquipment =
-              baseUnit?.equipmentOptions?.options.flatMap(
-                (o: { equipment: string[] }) => o.equipment
+              baseUnit?.wargearOptions?.options.flatMap(
+                (o: { wargear: string[] }) => o.wargear
               ) ?? []
             displayWargear = (member.equipment ?? []).filter((e) =>
               allOptionEquipment.includes(e)
@@ -1543,6 +1904,12 @@ function StoreTab({
   const [specialBaseRoll, setSpecialBaseRoll] = useState<number | null>(null)
   const [specialAdjust, setSpecialAdjust] = useState(0) // adjust spent on special table
   const [substitutionDeclined, setSubstitutionDeclined] = useState(false)
+  const [vaultWardenSubDeclined, setVaultWardenSubDeclined] = useState(false)
+  const [rangerSubstitutionDeclined, setRangerSubstitutionDeclined] = useState(false)
+  const [rangerRoleSelectPending, setRangerRoleSelectPending] = useState<{
+    baseUnitId: string
+    heroRoleOptions: string[]
+  } | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
 
   // Wargear purchase state
@@ -1555,13 +1922,20 @@ function StoreTab({
   } | null>(null)
   const [pendingNames, setPendingNames] = useState<string[]>([])
   const [limitWarning, setLimitWarning] = useState<string | null>(null)
+  const [lowerRollAlternatives, setLowerRollAlternatives] = useState<ReinforcementResult[]>([])
+
+  // Path selection state for Company of Heroes auto-promotion
+  const [pathSelectPending, setPathSelectPending] = useState<{
+    members: import('../models').Member[]
+    currentIndex: number
+  } | null>(null)
 
   if (!companyDef) return null
 
   const cost = companyDef.reinforcementCost
   const canAffordRoll = company.influence >= cost
   const maxCompanySize = companyDef.maxCompanySize ?? 15
-  const atMax = company.members.length >= maxCompanySize
+  const atMax = getEffectiveRosterSlots(company.members, companyDef) >= maxCompanySize
 
   // ── Roll on reinforcement table ─────────────────────────────────────────────
 
@@ -1654,6 +2028,7 @@ function StoreTab({
     setOnSpecialTable(true)
     setSpecialBaseRoll(specialRoll)
     setSpecialAdjust(0)
+    setVaultWardenSubDeclined(false)
     setRollResult({ ...specialResult, fromSpecial: true })
   }
 
@@ -1665,6 +2040,7 @@ function StoreTab({
       companyDef.specialTable as import('../models').ReinforcementEntry[],
       finalRoll
     )
+    setVaultWardenSubDeclined(false)
     setRollResult({ ...specialResult, fromSpecial: true })
   }
 
@@ -1674,6 +2050,9 @@ function StoreTab({
     setAdjustAmount(0)
     setSpecialPending(false)
     setSubstitutionDeclined(false)
+    setVaultWardenSubDeclined(false)
+    setRangerSubstitutionDeclined(false)
+    setRangerRoleSelectPending(null)
     setOnSpecialTable(false)
     setSpecialBaseRoll(null)
     setSpecialAdjust(0)
@@ -1689,6 +2068,9 @@ function StoreTab({
     setBaseRollValue(null)
     setSpecialPending(false)
     setSubstitutionDeclined(false)
+    setVaultWardenSubDeclined(false)
+    setRangerSubstitutionDeclined(false)
+    setRangerRoleSelectPending(null)
     setOnSpecialTable(false)
     setSpecialBaseRoll(null)
     setSpecialAdjust(0)
@@ -1707,13 +2089,13 @@ function StoreTab({
   const BASE_UNITS_MAP = (
     baseUnitsData as Array<{
       id: string
-      baseEquipment?: string[]
+      baseWargear?: string[]
       keywords?: string[]
     }>
-  ).reduce<Record<string, { baseEquipment: string[]; keywords: string[] }>>(
+  ).reduce<Record<string, { baseWargear: string[]; keywords: string[] }>>(
     (acc, u) => {
       acc[u.id] = {
-        baseEquipment: u.baseEquipment ?? [],
+        baseWargear: u.baseWargear ?? [],
         keywords: u.keywords ?? [],
       }
       return acc
@@ -1739,75 +2121,24 @@ function StoreTab({
     return 1 / 3
   }
 
-  const getBowExemptions = (): string[] => {
-    for (const rule of companyDef?.companySpecialRules ?? []) {
-      const ex = (rule as any).limitExemptions?.bow
-      if (ex) return ex
-    }
-    return []
-  }
-
-  const getCavalryExemptions = (): string[] => {
-    for (const rule of companyDef?.companySpecialRules ?? []) {
-      const ex = (rule as any).limitExemptions?.cavalry
-      if (ex) return ex
-    }
-    return []
-  }
-
-  const hasBowEquipment = (
-    baseUnitId: string,
-    equipment: string[]
-  ): boolean => {
-    const baseEquip = BASE_UNITS_MAP[baseUnitId]?.baseEquipment ?? []
-    return [...baseEquip, ...equipment].some(
-      (e) => WARGEAR_RAW_MAP[e] === 'bow'
-    )
-  }
-
-  const hasCavalryKeyword = (
-    baseUnitId: string,
-    equipment: string[]
-  ): boolean => {
-    const isMount = equipment.some((e) => WARGEAR_RAW_MAP[e] === 'mount')
-    const keywords = BASE_UNITS_MAP[baseUnitId]?.keywords ?? []
-    return isMount || keywords.includes('cavalry')
-  }
-
   const countBowMembers = (
     extraMembers: Array<{ baseUnitId: string; equipment: string[] }> = []
   ): number => {
-    const exemptions = getBowExemptions()
-    const all = [
-      ...company.members.map((m) => ({
-        baseUnitId: m.baseUnitId,
-        equipment: m.equipment,
-      })),
-      ...extraMembers,
-    ]
-    return all.filter(
-      (m) =>
-        !exemptions.includes(m.baseUnitId) &&
-        hasBowEquipment(m.baseUnitId, m.equipment)
-    ).length
+    const ctx = buildLimitCheckContext(
+      company.members.map((m) => ({ baseUnitId: m.baseUnitId, equipment: m.equipment })),
+      companyDef
+    )
+    return countBowMembersUtil(ctx, extraMembers)
   }
 
   const countCavalryMembers = (
     extraMembers: Array<{ baseUnitId: string; equipment: string[] }> = []
   ): number => {
-    const exemptions = getCavalryExemptions()
-    const all = [
-      ...company.members.map((m) => ({
-        baseUnitId: m.baseUnitId,
-        equipment: m.equipment,
-      })),
-      ...extraMembers,
-    ]
-    return all.filter(
-      (m) =>
-        !exemptions.includes(m.baseUnitId) &&
-        hasCavalryKeyword(m.baseUnitId, m.equipment)
-    ).length
+    const ctx = buildLimitCheckContext(
+      company.members.map((m) => ({ baseUnitId: m.baseUnitId, equipment: m.equipment })),
+      companyDef
+    )
+    return countCavalryMembersUtil(ctx, extraMembers)
   }
 
   const wouldExceedBowLimit = (
@@ -1829,19 +2160,12 @@ function StoreTab({
   const wouldExceedThrowingLimit = (
     newMembers: Array<{ baseUnitId: string; equipment: string[] }>
   ): boolean => {
+    const ctx = buildLimitCheckContext(
+      company.members.map((m) => ({ baseUnitId: m.baseUnitId, equipment: m.equipment })),
+      companyDef
+    )
     const total = company.members.length + newMembers.length
-    const throwing = [
-      ...company.members.map((m) => ({
-        baseUnitId: m.baseUnitId,
-        equipment: m.equipment,
-      })),
-      ...newMembers,
-    ].filter((m) => {
-      const baseEquip = BASE_UNITS_MAP[m.baseUnitId]?.baseEquipment ?? []
-      return [...baseEquip, ...m.equipment].some(
-        (e) => WARGEAR_RAW_MAP[e] === 'throwing'
-      )
-    }).length
+    const throwing = countThrowingMembersUtil(ctx, newMembers)
     return throwing / total > 1 / 3 + 0.001
   }
 
@@ -1849,6 +2173,132 @@ function StoreTab({
     if (!rollResult) return
     setRollResult({ type: 'unit', roll: rollResult.roll, baseUnitId, equipment: [] })
     setSubstitutionDeclined(false)
+  }
+
+  // ── Vault Warden overflow & replacement substitution ─────────────────────────
+  const vaultWardenConfig = (() => {
+    for (const rule of companyDef.companySpecialRules ?? []) {
+      if (rule.vaultWardenConfig) return rule.vaultWardenConfig
+    }
+    return null
+  })()
+
+  // Determine if the current special chart roll is a Vault Warden pair
+  const isVaultWardenPairResult = !!(
+    vaultWardenConfig &&
+    rollResult?.fromSpecial &&
+    rollResult.type === 'pair' &&
+    rollResult.units?.some((uid) => vaultWardenConfig.pairBaseUnitIds.includes(uid))
+  )
+
+  // Overflow: adding the pair would exceed maxCompanySize
+  const vaultWardenOverflow = !!(
+    isVaultWardenPairResult &&
+    rollResult?.units &&
+    getEffectiveRosterSlots(company.members, companyDef) + rollResult.units.length > maxCompanySize
+  )
+
+  // Expected vault warden count: count how many times the pair appears in the special table
+  // Each pair entry means 2 expected members (1 of each pairBaseUnitId per pair recruited)
+  const vaultWardenExpectedCount = (() => {
+    if (!vaultWardenConfig) return 0
+    // Count how many vault warden members exist (including those from multiple pair recruitments)
+    // The expected count is based on the rare limit from the special table entry
+    const specialTable = companyDef.specialTable ?? []
+    for (const entry of specialTable) {
+      if (
+        entry.result === 'pair' &&
+        (entry as any).units?.some((u: any) =>
+          vaultWardenConfig.pairBaseUnitIds.includes(u.baseUnitId)
+        )
+      ) {
+        // Each pair has a rare limit per unit; expected = rare × pairBaseUnitIds.length
+        const rareLimit = (entry as any).units?.[0]?.rare ?? 0
+        return rareLimit * vaultWardenConfig.pairBaseUnitIds.length
+      }
+    }
+    return 0
+  })()
+
+  // Current count of vault warden members
+  const vaultWardenCurrentCount = vaultWardenConfig
+    ? company.members.filter((m) =>
+        vaultWardenConfig.pairBaseUnitIds.includes(m.baseUnitId)
+      ).length
+    : 0
+
+  // Missing member: current count < expected count (some have been slain)
+  const vaultWardenMissing = vaultWardenConfig?.replacementSubstitution
+    ? vaultWardenCurrentCount < vaultWardenExpectedCount && vaultWardenExpectedCount > 0
+    : false
+
+  // Determine which vault warden unit IDs are missing for replacement
+  const vaultWardenMissingUnitIds = (() => {
+    if (!vaultWardenConfig || !vaultWardenMissing) return []
+    const missing: string[] = []
+    for (const uid of vaultWardenConfig.pairBaseUnitIds) {
+      const currentCount = company.members.filter((m) => m.baseUnitId === uid).length
+      // Expected per unit type = total expected / number of pair unit types
+      const expectedPerType = Math.ceil(vaultWardenExpectedCount / vaultWardenConfig.pairBaseUnitIds.length)
+      if (currentCount < expectedPerType) {
+        missing.push(uid)
+      }
+    }
+    return missing
+  })()
+
+  // Replacement substitution available: on special table, vault warden member missing, not declined
+  const vaultWardenReplacementAvailable = !!(
+    vaultWardenConfig?.replacementSubstitution &&
+    vaultWardenMissing &&
+    rollResult?.fromSpecial &&
+    onSpecialTable &&
+    !isVaultWardenPairResult &&
+    !vaultWardenSubDeclined
+  )
+
+  // Get other special chart options (for overflow handling)
+  const getOtherSpecialOptions = (): ReinforcementResult[] => {
+    if (!companyDef.specialTable) return []
+    const options: ReinforcementResult[] = []
+    for (const entry of companyDef.specialTable) {
+      // Skip the vault warden pair entry
+      if (
+        entry.result === 'pair' &&
+        (entry as any).units?.some((u: any) =>
+          vaultWardenConfig?.pairBaseUnitIds.includes(u.baseUnitId)
+        )
+      ) {
+        continue
+      }
+      const result = rollOnTable(
+        companyDef.specialTable as import('../models').ReinforcementEntry[],
+        entry.roll[0]
+      )
+      if (result.type !== 'none') {
+        options.push({ ...result, fromSpecial: true })
+      }
+    }
+    return options
+  }
+
+  // Handle accepting vault warden replacement substitution
+  const handleAcceptVaultWardenReplacement = (baseUnitId: string) => {
+    if (!rollResult) return
+    setRollResult({ type: 'unit', roll: rollResult.roll, baseUnitId, equipment: [], fromSpecial: true })
+    setVaultWardenSubDeclined(false)
+  }
+
+  // Handle choosing an alternative special chart option (overflow)
+  const handleChooseAlternativeSpecial = (option: ReinforcementResult) => {
+    setRollResult(option)
+  }
+
+  // Handle choosing a lower roll alternative (Dwarf-Dale ratio violation)
+  const handleChooseLowerRollAlternative = (option: ReinforcementResult) => {
+    setRollResult(option)
+    setLimitWarning(null)
+    setLowerRollAlternatives([])
   }
 
   const isRareLimitReached = (result: ReinforcementResult) => {
@@ -1891,7 +2341,7 @@ function StoreTab({
     }
 
     // Check limits
-    if (company.members.length + candidates.length > maxCompanySize) {
+    if (getEffectiveRosterSlots(company.members, companyDef) + candidates.length > maxCompanySize) {
       setLimitWarning(
         `Adding ${candidates.length > 1 ? `${candidates.length} units` : 'this unit'} would exceed the maximum company size (${maxCompanySize}).`
       )
@@ -1916,8 +2366,54 @@ function StoreTab({
       return
     }
 
+    // Dwarf-Dale ratio check for Defenders of the North (we_stand_together rule)
+    const hasWeStandTogether = companyDef.companySpecialRules?.some(
+      (rule: any) => rule.id === 'we_stand_together'
+    )
+    if (hasWeStandTogether) {
+      const ctx = buildLimitCheckContext(
+        company.members.map((m) => ({ baseUnitId: m.baseUnitId, equipment: m.equipment })),
+        companyDef
+      )
+      if (wouldExceedDwarfDaleRatio(ctx, candidates)) {
+        // Offer lower roll alternatives from the reinforcement table
+        const currentRoll = finalResult.roll
+        const alternatives: ReinforcementResult[] = []
+        for (let r = currentRoll - 1; r >= 1; r--) {
+          const alt = rollOnTable(companyDef.reinforcementTable, r)
+          if (alt.type !== 'none' && alt.type !== 'special') {
+            alternatives.push(alt)
+          }
+        }
+        setLowerRollAlternatives(alternatives)
+        setLimitWarning(
+          'Adding this unit would cause the number of Dwarf models to exceed the number of Dale models (We Stand Together rule). You may choose any lower roll result instead.'
+        )
+        return
+      }
+    }
+
+    // Elf keyword limit check for Helm's Deep (elf_limit rule)
+    const hasElfLimit = companyDef.companySpecialRules?.some(
+      (rule: any) => rule.id === 'elf_limit'
+    )
+    if (hasElfLimit) {
+      const ctx = buildLimitCheckContext(
+        company.members.map((m) => ({ baseUnitId: m.baseUnitId, equipment: m.equipment })),
+        companyDef
+      )
+      if (wouldExceedElfLimit(ctx, candidates)) {
+        setLowerRollAlternatives([])
+        setLimitWarning(
+          'Adding this unit would exceed the Elf keyword limit (max 33% of company). This reinforcement cannot be recruited.'
+        )
+        return
+      }
+    }
+
     // Open name dialog
     setLimitWarning(null)
+    setLowerRollAlternatives([])
     setPendingNames(candidates.map((c) => getUnitLabel(c.baseUnitId)))
     setNameDialog({
       members: candidates,
@@ -1930,34 +2426,102 @@ function StoreTab({
     if (!nameDialog) return
     const { v4: uuidv4 } = await import('uuid')
 
-    const newMembers: import('../models').Member[] = nameDialog.members.map(
-      (c, i) => ({
-        id: uuidv4(),
-        name: pendingNames[i]?.trim() || getUnitLabel(c.baseUnitId),
-        baseUnitId: c.baseUnitId,
-        role: 'warrior' as import('../models').MemberRole,
-        equipment: c.equipment,
-        experience: 0,
-        lifetimeExperience: 0,
-        injuries: [],
-        specialRules: [],
-        statIncreases: {},
-        statDecreases: {},
-      })
+    // Check if company has company_of_heroes rule
+    const hasCompanyOfHeroes = companyDef.companySpecialRules?.some(
+      (rule: any) => rule.id === 'company_of_heroes'
     )
 
-    await saveCompany({
-      ...company,
-      influence: company.influence - cost - totalAdjustSpent,
-      members: [...company.members, ...newMembers],
-    })
-    setNameDialog(null)
-    setPendingNames([])
-    setRollResult(null)
-    setAdjustAmount(0)
-    setBaseRollValue(null)
-    setMsg(`Recruited ${newMembers.map((m) => m.name).join(' & ')}!`)
-    setTimeout(() => setMsg(null), 3000)
+    // Check if this is a ranger substitution with assigned role
+    const assignedRole = nameDialog.pendingResult?._assignedRole as string | undefined
+
+    const newMembers: import('../models').Member[] = nameDialog.members.map(
+      (c, i) => {
+        // Determine role: ranger substitution role > company_of_heroes > warrior
+        const role = assignedRole
+          ? (assignedRole as import('../models').MemberRole)
+          : hasCompanyOfHeroes
+            ? 'hero_in_making'
+            : 'warrior'
+        const isHeroRole = role === 'leader' || role === 'sergeant' || role === 'hero_in_making'
+        return {
+          id: uuidv4(),
+          name: pendingNames[i]?.trim() || getUnitLabel(c.baseUnitId),
+          baseUnitId: c.baseUnitId,
+          role: role as import('../models').MemberRole,
+          equipment: c.equipment,
+          experience: 0,
+          lifetimeExperience: 0,
+          injuries: [],
+          specialRules: [],
+          statIncreases: {},
+          statDecreases: {},
+          ...(isHeroRole ? { heroStats: { might: 1, will: 1, fate: 1 } } : {}),
+        }
+      }
+    )
+
+    if (hasCompanyOfHeroes) {
+      // Trigger path selection before finalizing — store members for path selection
+      setNameDialog(null)
+      setPendingNames([])
+      setPathSelectPending({ members: newMembers, currentIndex: 0 })
+    } else {
+      await saveCompany({
+        ...company,
+        influence: company.influence - cost - totalAdjustSpent,
+        members: [...company.members, ...newMembers],
+      })
+      setNameDialog(null)
+      setPendingNames([])
+      setRollResult(null)
+      setAdjustAmount(0)
+      setBaseRollValue(null)
+      setMsg(`Recruited ${newMembers.map((m) => m.name).join(' & ')}!`)
+      setTimeout(() => setMsg(null), 3000)
+    }
+  }
+
+  // Apply path selection for Company of Heroes auto-promoted recruits
+  const applyRecruitPath = async (pathId: string) => {
+    if (!pathSelectPending) return
+    const { members, currentIndex } = pathSelectPending
+    const path = getPath(pathId)
+    const heroicAction = path?.heroicAction
+    const actionLabel = heroicAction
+      ? heroicAction.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+      : null
+
+    const updatedMembers = members.map((m, i) =>
+      i === currentIndex
+        ? {
+            ...m,
+            pathId,
+            specialRules:
+              actionLabel && !m.specialRules.some((r) => r === actionLabel)
+                ? [...m.specialRules, actionLabel]
+                : m.specialRules,
+          }
+        : m
+    )
+
+    const nextIndex = currentIndex + 1
+    if (nextIndex < members.length) {
+      // More members need path selection
+      setPathSelectPending({ members: updatedMembers, currentIndex: nextIndex })
+    } else {
+      // All paths selected — finalize recruitment
+      setPathSelectPending(null)
+      await saveCompany({
+        ...company,
+        influence: company.influence - cost - totalAdjustSpent,
+        members: [...company.members, ...updatedMembers],
+      })
+      setRollResult(null)
+      setAdjustAmount(0)
+      setBaseRollValue(null)
+      setMsg(`Recruited ${updatedMembers.map((m) => m.name).join(' & ')}!`)
+      setTimeout(() => setMsg(null), 3000)
+    }
   }
 
   // ── Wargear purchase ────────────────────────────────────────────────────────
@@ -2017,12 +2581,12 @@ function StoreTab({
   }
 
   // Get the wargear IDs accessible to a member (options-only for warriors,
-  // all baseEquipment+options across all company units for heroes)
+  // all baseWargear+options across all company units for heroes)
   const getAccessibleWargearIds = (member: Member): Set<string> => {
     const BASE_UNITS_FULL = baseUnitsData as Array<{
       id: string
-      baseEquipment?: string[]
-      equipmentOptions?: { options: Array<{ equipment: string[] }> }
+      baseWargear?: string[]
+      wargearOptions?: { options: Array<{ wargear: string[] }> }
     }>
 
     const collectFromUnit = (
@@ -2032,9 +2596,9 @@ function StoreTab({
     ) => {
       const unit = BASE_UNITS_FULL.find((u) => u.id === unitId)
       if (!unit) return
-      if (includeBase) (unit.baseEquipment ?? []).forEach((e) => out.add(e))
-      for (const opt of unit.equipmentOptions?.options ?? []) {
-        opt.equipment.forEach((e) => out.add(e))
+      if (includeBase) (unit.baseWargear ?? []).forEach((e) => out.add(e))
+      for (const opt of unit.wargearOptions?.options ?? []) {
+        opt.wargear.forEach((e) => out.add(e))
       }
     }
 
@@ -2042,10 +2606,10 @@ function StoreTab({
     const accessible = new Set<string>()
 
     if (!isHero) {
-      // Warriors: only their own equipmentOptions
+      // Warriors: only their own wargearOptions
       collectFromUnit(member.baseUnitId, false, accessible)
     } else {
-      // Heroes: baseEquipment + options from all profiles in the company's
+      // Heroes: baseWargear + options from all profiles in the company's
       // reinforcement/special charts (Req 11.1, 11.2, 11.6)
       const profileIds = getAllCompanyProfileIds(companyDef)
       const seen = new Set<string>()
@@ -2066,7 +2630,7 @@ function StoreTab({
   ): string | null => {
     // Current highest armour tier on the member
     const allEquip = [
-      ...(BASE_UNITS_MAP[member.baseUnitId]?.baseEquipment ?? []),
+      ...(BASE_UNITS_MAP[member.baseUnitId]?.baseWargear ?? []),
       ...member.equipment,
     ]
     const currentTier = allEquip.reduce(
@@ -2101,9 +2665,13 @@ function StoreTab({
     const isArmourUpgrade = ARMOUR_TIER[wargearId] !== undefined
     const newEquipment = [...member.equipment, wargearId]
     const candidate = { baseUnitId: member.baseUnitId, equipment: newEquipment }
+    // Resolve category — fall back to uniqueWargear entry if not in global wargear list
+    const wargearCategory =
+      WARGEAR_RAW_MAP[wargearId] ??
+      companyDef?.uniqueWargear?.find((e) => e.equipmentId === wargearId)?.category
     // Enforce bow/throwing/cavalry limits
     if (
-      WARGEAR_RAW_MAP[wargearId] === 'bow' &&
+      wargearCategory === 'bow' &&
       wouldExceedBowLimit([
         { baseUnitId: member.baseUnitId, equipment: [wargearId] },
       ])
@@ -2113,7 +2681,7 @@ function StoreTab({
       return
     }
     if (
-      WARGEAR_RAW_MAP[wargearId] === 'throwing' &&
+      wargearCategory === 'throwing' &&
       wouldExceedThrowingLimit([
         { baseUnitId: member.baseUnitId, equipment: [wargearId] },
       ])
@@ -2125,11 +2693,17 @@ function StoreTab({
       return
     }
     if (
-      WARGEAR_RAW_MAP[wargearId] === 'mount' &&
+      wargearCategory === 'mount' &&
       wouldExceedCavalryLimit([candidate])
     ) {
       setMsg('Cannot purchase — would exceed cavalry limit (1/3 of company).')
       setTimeout(() => setMsg(null), 3500)
+      return
+    }
+    // Shield mutual exclusivity check
+    if (isShieldExclusive(wargearId, member.equipment, member.ownedEquipment ?? [])) {
+      setMsg('Cannot equip this item. The Small Shield cannot be used in conjunction with another shield.')
+      setTimeout(() => setMsg(null), 4000)
       return
     }
     void candidate
@@ -2162,6 +2736,31 @@ function StoreTab({
     rollResult && !specialPending
       ? getApplicableSubstitution(companyDef, rollResult.roll)
       : null
+
+  // Derive Led By the Ranger substitution availability
+  const rangerSubstitution = (() => {
+    if (!rollResult || specialPending || rollResult.type === 'none') return null
+    // Find a rule with a substitution field
+    const rule = companyDef.companySpecialRules?.find(
+      (r: any) => r.id === 'led_by_the_ranger' && r.substitution
+    )
+    if (!rule || !rule.substitution) return null
+    const sub = rule.substitution
+    // Check roll meets minRoll threshold
+    if (rollResult.roll < sub.minRoll) return null
+    // Check limit: no living member with the substitution unitId
+    const livingCount = company.members.filter(
+      (m) => m.baseUnitId === sub.unitId
+    ).length
+    if (livingCount >= sub.limit) return null
+    // Check condition: the unit specified in condition.unitSlain must not be alive
+    // (i.e., the ranger has been slain — no living ranger_of_the_north)
+    const conditionUnitAlive = company.members.some(
+      (m) => m.baseUnitId === sub.condition.unitSlain
+    )
+    if (conditionUnitAlive) return null
+    return sub
+  })()
 
   return (
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3, maxWidth: 600, mx: 'auto' }}>
@@ -2283,7 +2882,7 @@ function StoreTab({
                   fontWeight: 700,
                 }}
               >
-                {company.members.length} / {maxCompanySize}
+                {getEffectiveRosterSlots(company.members, companyDef)} / {maxCompanySize}
               </Typography>
             </Box>
           </Box>
@@ -2330,12 +2929,44 @@ function StoreTab({
                 </Typography>
                 <Button
                   size="small"
-                  onClick={() => setLimitWarning(null)}
+                  onClick={() => { setLimitWarning(null); setLowerRollAlternatives([]) }}
                   sx={{ minWidth: 0, ml: 1, p: 0.25, opacity: 0.6 }}
                 >
                   ✕
                 </Button>
               </Box>
+              {lowerRollAlternatives.length > 0 && (
+                <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                    Available lower roll results:
+                  </Typography>
+                  {lowerRollAlternatives.map((alt, idx) => {
+                    const label = alt.baseUnitId
+                      ? getUnitLabel(alt.baseUnitId)
+                      : `Roll ${alt.roll}`
+                    const altRareBlocked = isRareLimitReached(alt)
+                    return (
+                      <Button
+                        key={idx}
+                        variant="outlined"
+                        size="small"
+                        disabled={altRareBlocked}
+                        onClick={() => handleChooseLowerRollAlternative(alt)}
+                        sx={{
+                          fontFamily: '"Cinzel Decorative", serif',
+                          fontSize: '0.6rem',
+                          textTransform: 'none',
+                          justifyContent: 'flex-start',
+                        }}
+                      >
+                        Roll {alt.roll}: {label}
+                        {alt.rare ? ` (Rare ${alt.rare})` : ''}
+                        {altRareBlocked ? ' — limit reached' : ''}
+                      </Button>
+                    )
+                  })}
+                </Box>
+              )}
             </Box>
           )}
 
@@ -2414,7 +3045,7 @@ function StoreTab({
                   {/* ── Substitution prompt (shown when applicable and not declined) ── */}
                   {substitution && !substitutionDeclined && (() => {
                     const subCandidate = [{ baseUnitId: substitution.baseUnitId, equipment: [] as string[] }]
-                    const subAtMax = company.members.length >= maxCompanySize
+                    const subAtMax = getEffectiveRosterSlots(company.members, companyDef) >= maxCompanySize
                     const subBowBlocked = wouldExceedBowLimit(subCandidate)
                     const subThrowingBlocked = wouldExceedThrowingLimit(subCandidate)
                     const subCavalryBlocked = wouldExceedCavalryLimit(subCandidate)
@@ -2484,6 +3115,261 @@ function StoreTab({
                       </Box>
                     )
                   })()}
+                  {/* ── Vault Warden overflow: choose other special chart option ── */}
+                  {vaultWardenOverflow && (() => {
+                    const alternatives = getOtherSpecialOptions()
+                    return (
+                      <Box
+                        sx={{
+                          mb: 1.5,
+                          p: 1.5,
+                          border: '1px solid',
+                          borderColor: 'warning.dark',
+                          borderRadius: 1,
+                          background: 'rgba(201,168,76,0.06)',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 0.5, fontWeight: 600, color: 'warning.main' }}
+                        >
+                          Vault Warden Team — Company Limit Exceeded
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
+                        >
+                          Recruiting a Vault Warden Team would exceed your company limit of {maxCompanySize}. You may choose any other option from the Special chart instead.
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                          {alternatives.map((alt, idx) => {
+                            const label = alt.baseUnitId
+                              ? getUnitLabel(alt.baseUnitId)
+                              : alt.units?.map((u) => getUnitLabel(u)).join(' & ') ?? 'Unknown'
+                            const altRareBlocked = isRareLimitReached(alt)
+                            return (
+                              <Button
+                                key={idx}
+                                variant="outlined"
+                                size="small"
+                                disabled={altRareBlocked}
+                                onClick={() => handleChooseAlternativeSpecial(alt)}
+                                sx={{
+                                  fontFamily: '"Cinzel Decorative", serif',
+                                  fontSize: '0.6rem',
+                                  justifyContent: 'flex-start',
+                                  textAlign: 'left',
+                                }}
+                              >
+                                {label}{altRareBlocked ? ' (Rare limit reached)' : ''}
+                              </Button>
+                            )
+                          })}
+                        </Box>
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={handleDismissRoll}
+                          sx={{ mt: 1, fontSize: '0.6rem', opacity: 0.7 }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    )
+                  })()}
+                  {/* ── Vault Warden replacement substitution ── */}
+                  {vaultWardenReplacementAvailable && (() => {
+                    const missingLabel = vaultWardenMissingUnitIds.map((uid) => getUnitLabel(uid)).join(' / ')
+                    return (
+                      <Box
+                        sx={{
+                          mb: 1.5,
+                          p: 1.5,
+                          border: '1px solid',
+                          borderColor: 'primary.dark',
+                          borderRadius: 1,
+                          background: 'rgba(201,168,76,0.06)',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 0.5, fontWeight: 600, color: 'primary.main' }}
+                        >
+                          Vault Warden Replacement Available
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
+                        >
+                          A Vault Warden Team member has been slain. You may substitute this roll for a replacement: {missingLabel}.
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                          {vaultWardenMissingUnitIds.map((uid) => (
+                            <Button
+                              key={uid}
+                              variant="contained"
+                              size="small"
+                              onClick={() => handleAcceptVaultWardenReplacement(uid)}
+                              sx={{
+                                fontFamily: '"Cinzel Decorative", serif',
+                                fontSize: '0.6rem',
+                              }}
+                            >
+                              {getUnitLabel(uid)}
+                            </Button>
+                          ))}
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setVaultWardenSubDeclined(true)}
+                            sx={{ fontSize: '0.6rem', opacity: 0.7 }}
+                          >
+                            Decline
+                          </Button>
+                        </Box>
+                      </Box>
+                    )
+                  })()}
+                  {/* ── Led By the Ranger substitution prompt ── */}
+                  {rangerSubstitution && !rangerSubstitutionDeclined && !rangerRoleSelectPending && (() => {
+                    const rangerCandidate = [{ baseUnitId: rangerSubstitution.unitId, equipment: [] as string[] }]
+                    const rangerAtMax = getEffectiveRosterSlots(company.members, companyDef) >= maxCompanySize
+                    const rangerBowBlocked = wouldExceedBowLimit(rangerCandidate)
+                    const rangerThrowingBlocked = wouldExceedThrowingLimit(rangerCandidate)
+                    const rangerCavalryBlocked = wouldExceedCavalryLimit(rangerCandidate)
+                    const rangerDisabled = rangerAtMax || rangerBowBlocked || rangerThrowingBlocked || rangerCavalryBlocked
+                    const rangerDisabledMsg = rangerAtMax
+                      ? 'Company is at maximum size.'
+                      : rangerBowBlocked
+                        ? 'Would exceed bow limit (max 1/3 of company).'
+                        : rangerThrowingBlocked
+                          ? 'Would exceed throwing weapon limit (max 1/3 of company).'
+                          : rangerCavalryBlocked
+                            ? 'Would exceed cavalry limit (max 1/3 of company).'
+                            : null
+                    return (
+                      <Box
+                        sx={{
+                          mb: 1.5,
+                          p: 1.5,
+                          border: '1px solid',
+                          borderColor: 'info.dark',
+                          borderRadius: 1,
+                          background: 'rgba(41,121,255,0.06)',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 0.5, fontWeight: 600, color: 'info.light' }}
+                        >
+                          Led By the Ranger
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
+                        >
+                          Your Ranger of the North has been slain. You may swap this result for a Ranger of the North, who may take the role of Leader or Sergeant.
+                        </Typography>
+                        {rangerDisabled && rangerDisabledMsg && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: 'warning.light', display: 'block', mb: 1 }}
+                          >
+                            {rangerDisabledMsg}
+                          </Typography>
+                        )}
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={rangerDisabled}
+                            onClick={() => setRangerRoleSelectPending({
+                              baseUnitId: rangerSubstitution.unitId,
+                              heroRoleOptions: rangerSubstitution.heroRoleOptions,
+                            })}
+                            sx={{
+                              fontFamily: '"Cinzel Decorative", serif',
+                              fontSize: '0.6rem',
+                            }}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setRangerSubstitutionDeclined(true)}
+                            sx={{ fontSize: '0.6rem', opacity: 0.7 }}
+                          >
+                            Decline
+                          </Button>
+                        </Box>
+                      </Box>
+                    )
+                  })()}
+                  {/* ── Ranger role selection prompt ── */}
+                  {rangerRoleSelectPending && (
+                    <Box
+                      sx={{
+                        mb: 1.5,
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor: 'info.dark',
+                        borderRadius: 1,
+                        background: 'rgba(41,121,255,0.06)',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ mb: 0.5, fontWeight: 600, color: 'info.light' }}
+                      >
+                        Assign Role
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ opacity: 0.8, display: 'block', mb: 1.5 }}
+                      >
+                        Choose a role for the Ranger of the North:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        {rangerRoleSelectPending.heroRoleOptions.map((role) => (
+                          <Button
+                            key={role}
+                            variant="contained"
+                            size="small"
+                            onClick={() => {
+                              // Replace roll result with ranger and set role
+                              setRollResult({
+                                type: 'unit',
+                                roll: rollResult!.roll,
+                                baseUnitId: rangerRoleSelectPending.baseUnitId,
+                                equipment: [],
+                                _assignedRole: role,
+                              })
+                              setRangerRoleSelectPending(null)
+                              setRangerSubstitutionDeclined(true) // prevent re-showing
+                            }}
+                            sx={{
+                              fontFamily: '"Cinzel Decorative", serif',
+                              fontSize: '0.6rem',
+                            }}
+                          >
+                            {role === 'leader' ? 'Leader' : role === 'sergeant' ? 'Sergeant' : role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setRangerRoleSelectPending(null)
+                            // Go back to showing the substitution offer
+                          }}
+                          sx={{ fontSize: '0.6rem', opacity: 0.7 }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
                   <ReinforcementResultCard
                     result={rollResult}
                     company={company}
@@ -2787,6 +3673,58 @@ function StoreTab({
             </Dialog>
           )}
 
+          {/* Path selection dialog for Company of Heroes auto-promotion */}
+          {pathSelectPending && (
+            <Dialog
+              open
+              maxWidth="sm"
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: 'linear-gradient(160deg, #1a1008 0%, #110a03 100%)',
+                  border: '1px solid rgba(200,164,90,0.25)',
+                  borderRadius: 2,
+                  maxHeight: '90vh',
+                },
+              }}
+            >
+              <DialogTitle
+                sx={{
+                  fontFamily: '"Cinzel Decorative", serif',
+                  fontSize: '0.85rem',
+                  color: 'primary.main',
+                }}
+              >
+                Choose a Heroic Path
+              </DialogTitle>
+              <DialogContent>
+                <PathCardSelector
+                  selectedPathId={null}
+                  onSelect={(pathId) => applyRecruitPath(pathId)}
+                  baseStats={getStatsForUnit(pathSelectPending.members[pathSelectPending.currentIndex].baseUnitId)?.stats}
+                  headerSlot={
+                    <Box sx={{ mb: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main', mb: 0.25 }}>
+                        {pathSelectPending.members[pathSelectPending.currentIndex].name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                        {getUnitLabel(pathSelectPending.members[pathSelectPending.currentIndex].baseUnitId)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1, opacity: 0.65 }}>
+                        A Hero in the Making — choose their path. This cannot be changed later.
+                      </Typography>
+                      {pathSelectPending.members.length > 1 && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.5 }}>
+                          Recruit {pathSelectPending.currentIndex + 1} of {pathSelectPending.members.length}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+
           {/* Reinforcement table reference */}
           <Box sx={{ mt: 3 }}>
             <Typography
@@ -2988,7 +3926,7 @@ function StoreTab({
               {(() => {
                 const currentEquip = [
                   ...(BASE_UNITS_MAP[selectedMember.baseUnitId]
-                    ?.baseEquipment ?? []),
+                    ?.baseWargear ?? []),
                   ...selectedMember.equipment,
                 ]
                 return currentEquip.length > 0 ? (
@@ -3051,7 +3989,7 @@ function StoreTab({
                   )
                   const allMemberEquip = [
                     ...(BASE_UNITS_MAP[selectedMember.baseUnitId]
-                      ?.baseEquipment ?? []),
+                      ?.baseWargear ?? []),
                     ...selectedMember.equipment,
                   ]
 
@@ -3060,11 +3998,15 @@ function StoreTab({
                     if (!accessible.has(w.id)) return false
                     // Already equipped (base or chosen)
                     if (allMemberEquip.includes(w.id)) return false
-                    // Only one mount
+                    // Only one mount — check both global wargear and unique wargear categories
                     if (
                       w.category === 'mount' &&
                       selectedMember.equipment.some(
-                        (e) => WARGEAR_RAW_MAP[e] === 'mount'
+                        (e) =>
+                          WARGEAR_RAW_MAP[e] === 'mount' ||
+                          companyDef?.uniqueWargear?.some(
+                            (u) => u.equipmentId === e && u.category === 'mount'
+                          )
                       )
                     )
                       return false
@@ -3785,6 +4727,7 @@ interface ReinforcementResult {
   units?: string[]
   options?: ReinforcementResult[]
   fromSpecial?: boolean
+  _assignedRole?: string // Role assigned via conditional substitution (e.g., Led By the Ranger)
 }
 
 // ─── ReinforcementResultCard ──────────────────────────────────────────────────
@@ -3815,13 +4758,13 @@ function ReinforcementResultCard({
   const BASE_UNITS_DATA = baseUnitsData as Array<{
     id: string
     label: string
-    baseEquipment?: string[]
-    equipmentOptions?: {
+    baseWargear?: string[]
+    wargearOptions?: {
       selectionRule: string
       options: Array<{
         id: string
         label: string
-        equipment: string[]
+        wargear: string[]
         pointsCost: number
       }>
     }
@@ -3831,7 +4774,7 @@ function ReinforcementResultCard({
     result.type === 'choice'
       ? BASE_UNITS_DATA.find((u) => u.id === result.baseUnitId)
       : null
-  const choiceOptions = unitForChoice?.equipmentOptions?.options ?? []
+  const choiceOptions = unitForChoice?.wargearOptions?.options ?? []
   const isRareLimited = isRareLimitReached(result)
 
   const activeResult: ReinforcementResult =
@@ -3957,7 +4900,7 @@ function ReinforcementResultCard({
                 {choiceOptions.map((opt) => (
                   <Box
                     key={opt.id}
-                    onClick={() => setChosenEquipment(opt.equipment)}
+                    onClick={() => setChosenEquipment(opt.wargear)}
                     sx={{
                       px: 1.25,
                       py: 0.75,
@@ -3966,12 +4909,12 @@ function ReinforcementResultCard({
                       cursor: 'pointer',
                       borderColor:
                         JSON.stringify(chosenEquipment) ===
-                        JSON.stringify(opt.equipment)
+                        JSON.stringify(opt.wargear)
                           ? 'primary.main'
                           : 'divider',
                       background:
                         JSON.stringify(chosenEquipment) ===
-                        JSON.stringify(opt.equipment)
+                        JSON.stringify(opt.wargear)
                           ? 'rgba(201,168,76,0.08)'
                           : 'rgba(0,0,0,0.15)',
                       transition: 'all 0.15s',
@@ -4129,6 +5072,13 @@ function EquipmentSection({
     if (eq.size === 'small' && currentSmall >= maxSmall) {
       setMsg(`Cannot purchase — already carrying ${maxSmall} Small item(s).`)
       setTimeout(() => setMsg(null), 3000)
+      return
+    }
+
+    // Shield mutual exclusivity check
+    if (isShieldExclusive(equipId, member.equipment, member.ownedEquipment ?? [])) {
+      setMsg('Cannot equip this item. The Small Shield cannot be used in conjunction with another shield.')
+      setTimeout(() => setMsg(null), 4000)
       return
     }
 

@@ -7,13 +7,13 @@ export interface BaseUnit {
   label: string
   pointsCost: number
   keywords: string[]
-  baseEquipment: string[]
-  equipmentOptions?: {
+  baseWargear: string[]
+  wargearOptions?: {
     selectionRule: string
     options: Array<{
       id: string
       label: string
-      equipment: string[]
+      wargear: string[]
       pointsCost: number
     }>
   }
@@ -52,6 +52,7 @@ export interface ReinforcementEntry {
 export interface UniqueWargearEntry {
   equipmentId: string
   label: string
+  category?: string
   influenceCost: number
   rating: [number, number]
   allowedKeywords?: string[]
@@ -83,6 +84,25 @@ export interface CompanySpecialRule {
   }>
   heroRestrictions?: Array<{ allowedBaseUnitIds: string[] }>
   parameters?: Record<string, unknown>
+  throwingExemptions?: string[]
+  unitRosterOverrides?: Array<{
+    baseUnitId: string
+    rosterSlots: number
+    bowLimitCount: number
+  }>
+  substitution?: {
+    unitId: string
+    condition: { unitSlain: string }
+    replacesAnyRoll?: boolean
+    minRoll: number
+    limit: number
+    heroRoleOptions: string[]
+  }
+  vaultWardenConfig?: {
+    pairBaseUnitIds: string[]
+    overflowBehavior: string
+    replacementSubstitution: boolean
+  }
 }
 
 export interface StartingRosterEntry {

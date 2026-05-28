@@ -4,28 +4,28 @@
     "label": "Warrior of Arnor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["spear", "shield", "heavy_armour", "hand_weapon"]
+    "baseWargear": ["spear", "shield", "heavy_armour", "hand_weapon"]
   },
   {
     "id": "knight_of_arnor",
     "label": "Knight of Arnor",
     "pointsCost": 15,
     "keywords": ["man"],
-    "baseEquipment": ["shield", "war_spear", "horse", "heavy_armour", "hand_weapon"]
+    "baseWargear": ["shield", "war_spear", "horse", "heavy_armour", "hand_weapon"]
   },
   {
     "id": "ranger_of_arnor",
     "label": "Ranger of Arnor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "bow", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -36,21 +36,21 @@
     "label": "Clansman of Lamedon",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "two_handed_weapon"]
+    "baseWargear": ["armour", "two_handed_weapon"]
   },
   {
     "id": "blackroot_vale_archer",
     "label": "Blackroot Vale Archer",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "bow", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -61,28 +61,28 @@
     "label": "Axeman of Lossarnach",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "axe_of_lossarnach", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "axe_of_lossarnach", "hand_weapon"]
   },
   {
     "id": "man_at_arms_of_dol_amroth",
     "label": "Man at Arms of Dol Amroth",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "pike", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "pike", "hand_weapon"]
   },
   {
     "id": "knight_of_dol_amroth",
     "label": "Knight of Dol Amroth",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "shield", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_armoured_horse_lance",
           "label": "Armoured Horse and Lance",
-          "equipment": ["armoured_horse", "lance"],
+          "wargear": ["armoured_horse", "lance"],
           "pointsCost": 9
         }
       ]
@@ -93,26 +93,26 @@
     "label": "Warrior of Minas Tirith",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_spear_shield",
           "label": "Spear & Shield",
-          "equipment": ["spear", "shield"],
+          "wargear": ["spear", "shield"],
           "pointsCost": 2
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -123,27 +123,27 @@
     "label": "Knight of Minas Tirith",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "lance", "horse", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "shield", "lance", "horse", "hand_weapon"]
   },
   {
     "id": "citadel_guard",
     "label": "Citadel Guard",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_longbow",
           "label": "Longbow",
-          "equipment": ["longbow"],
+          "wargear": ["longbow"],
           "pointsCost": 1
         }
       ]
@@ -154,33 +154,33 @@
     "label": "Guard of the Fountain Court",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "spear", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "spear", "hand_weapon"]
   },
   {
     "id": "osgiliath_veteran",
     "label": "Osgiliath Veteran",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -191,14 +191,14 @@
     "label": "Ranger of Gondor",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "bow", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -221,26 +221,26 @@
     "label": "Warrior of Numenor",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_spear_shield",
           "label": "Spear & Shield",
-          "equipment": ["spear", "shield"],
+          "wargear": ["spear", "shield"],
           "pointsCost": 2
         },
         {
           "id": "option_longbow",
           "label": "Longbow",
-          "equipment": ["longbow"],
+          "wargear": ["longbow"],
           "pointsCost": 1
         }
       ]
@@ -251,14 +251,14 @@
     "label": "Rider of Rohan",
     "pointsCost": 14,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "shield", "bow", "horse", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "shield", "bow", "horse", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_throwing_spears",
           "label": "Throwing Spears",
-          "equipment": ["throwing_spears"],
+          "wargear": ["throwing_spears"],
           "pointsCost": 1
         }
       ]
@@ -269,26 +269,26 @@
     "label": "Warrior of Rohan",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_shield_throwing_spears",
           "label": "Shield & Throwing Spears",
-          "equipment": ["shield", "throwing_spears"],
+          "wargear": ["shield", "throwing_spears"],
           "pointsCost": 3
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -299,14 +299,14 @@
     "label": "Rohan Outrider",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "bow", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "bow", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_horse",
           "label": "Horse",
-          "equipment": ["horse"],
+          "wargear": ["horse"],
           "pointsCost": 5
         }
       ]
@@ -317,26 +317,26 @@
     "label": "Rohan Royal Guard",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_horse_throwing_spears",
           "label": "Horse & Throwing Spears",
-          "equipment": ["horse", "throwing_spears"],
+          "wargear": ["horse", "throwing_spears"],
           "pointsCost": 7
         },
         {
           "id": "option_horse",
           "label": "Horse",
-          "equipment": ["horse"],
+          "wargear": ["horse"],
           "pointsCost": 5
         },
         {
           "id": "option_throwing_spears",
           "label": "Throwing Spears",
-          "equipment": ["throwing_spears"],
+          "wargear": ["throwing_spears"],
           "pointsCost": 2
         }
       ]
@@ -347,7 +347,7 @@
     "label": "Son of Eorl",
     "pointsCost": 20,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"],
+    "baseWargear": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -367,33 +367,33 @@
     "label": "Woses Warrior",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["spear", "blowpipe", "hand_weapon"]
+    "baseWargear": ["spear", "blowpipe", "hand_weapon"]
   },
   {
     "id": "mirkwood_elf_warrior",
     "label": "Mirkwood Elf Warrior",
     "pointsCost": 9,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "elven_hand_and_half_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "elven_hand_and_half_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_elven_glaive",
           "label": "Elven Glaive",
-          "equipment": ["elven_glaive"],
+          "wargear": ["elven_glaive"],
           "pointsCost": 2
         },
         {
           "id": "option_elf_bow",
           "label": "Elf Bow",
-          "equipment": ["elf_bow"],
+          "wargear": ["elf_bow"],
           "pointsCost": 2
         }
       ]
@@ -404,26 +404,26 @@
     "label": "Palace Guard",
     "pointsCost": 12,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "elven_hand_and_half_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "elven_hand_and_half_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_and_elven_spear",
           "label": "Shield & Elven Spear",
-          "equipment": ["shield", "elven_spear"],
+          "wargear": ["shield", "elven_spear"],
           "pointsCost": 2
         },
         {
           "id": "option_elven_spear",
           "label": "Elven Spear",
-          "equipment": ["elven_spear"],
+          "wargear": ["elven_spear"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -434,40 +434,40 @@
     "label": "Mirkwood Ranger",
     "pointsCost": 14,
     "keywords": ["elf"],
-    "baseEquipment": ["elf_bow", "elven_cloak", "elven_hand_weapon"]
+    "baseWargear": ["elf_bow", "elven_cloak", "elven_hand_weapon"]
   },
   {
     "id": "mirkwood_elf_knight",
     "label": "Mirkwood Elf Knight",
     "pointsCost": 16,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "horse", "elven_hand_and_half_weapon"]
+    "baseWargear": ["heavy_armour", "horse", "elven_hand_and_half_weapon"]
   },
   {
     "id": "lothlorien_warrior",
     "label": "Lothlorien Warrior",
     "pointsCost": 8,
     "keywords": ["elf"],
-    "baseEquipment": ["elven_cloak", "elven_hand_and_half_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["elven_cloak", "elven_hand_and_half_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_wood_elf_spear",
           "label": "Wood Elf Spear",
-          "equipment": ["wood_elf_spear"],
+          "wargear": ["wood_elf_spear"],
           "pointsCost": 1
         },
         {
           "id": "option_elven_throwing_weapons",
           "label": "Elven Throwing Weapons",
-          "equipment": ["elven_throwing_weapons"],
+          "wargear": ["elven_throwing_weapons"],
           "pointsCost": 2
         },
         {
           "id": "option_elf_bow",
           "label": "Elf Bow",
-          "equipment": ["elf_bow"],
+          "wargear": ["elf_bow"],
           "pointsCost": 2
         }
       ]
@@ -478,32 +478,32 @@
     "label": "Galadhrim Warrior",
     "pointsCost": 9,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "elven_hand_and_half_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "elven_hand_and_half_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_shield_and_elven_spear",
           "label": "Shield & Elven Spear",
-          "equipment": ["shield", "elven_spear"],
+          "wargear": ["shield", "elven_spear"],
           "pointsCost": 2
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_elven_spear",
           "label": "Elven Spear",
-          "equipment": ["elven_spear"],
+          "wargear": ["elven_spear"],
           "pointsCost": 1
         },
         {
           "id": "option_elf_bow",
           "label": "Elf Bow",
-          "equipment": ["elf_bow"],
+          "wargear": ["elf_bow"],
           "pointsCost": 2
         }
       ]
@@ -514,24 +514,24 @@
     "label": "Galadhrim Knight",
     "pointsCost": 18,
     "keywords": ["elf"],
-    "baseEquipment": [
+    "baseWargear": [
       "heavy_armour",
       "galadhrim_steed",
       "elven_hand_and_half_weapon"
     ],
-    "equipmentOptions": {
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_elf_bow",
           "label": "Elf Bow",
-          "equipment": ["elf_bow"],
+          "wargear": ["elf_bow"],
           "pointsCost": 2
         }
       ]
@@ -542,14 +542,14 @@
     "label": "Guard of the Galadhrim Court",
     "pointsCost": 12,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "elven_pike"]
+    "baseWargear": ["heavy_armour", "elven_pike"]
   },
   {
     "id": "wood_elf_sentinel",
     "label": "Wood Elf Sentinel",
     "pointsCost": 25,
     "keywords": ["elf"],
-    "baseEquipment": ["elf_bow", "elven_cloak", "elven_hand_weapon"],
+    "baseWargear": ["elf_bow", "elven_cloak", "elven_hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -569,26 +569,26 @@
     "label": "Rivendell Warrior",
     "pointsCost": 9,
     "keywords": ["elf"],
-    "baseEquipment": ["heavy_armour", "elven_hand_and_half_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "elven_hand_and_half_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_shield_and_elven_spear",
           "label": "Shield & Elven Spear",
-          "equipment": ["shield", "elven_spear"],
+          "wargear": ["shield", "elven_spear"],
           "pointsCost": 2
         },
         {
           "id": "option_elf_bow",
           "label": "Elf Bow",
-          "equipment": ["elf_bow"],
+          "wargear": ["elf_bow"],
           "pointsCost": 2
         }
       ]
@@ -599,20 +599,20 @@
     "label": "Rivendell Knight",
     "pointsCost": 20,
     "keywords": ["elf"],
-    "baseEquipment": [
+    "baseWargear": [
       "heavy_armour",
       "elven_lance",
       "elf_bow",
       "horse",
       "elven_hand_and_half_weapon"
     ],
-    "equipmentOptions": {
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -635,26 +635,26 @@
     "label": "Erebor Dwarf Warrior",
     "pointsCost": 9,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_spear",
           "label": "Shield & Spear",
-          "equipment": ["shield", "spear"],
+          "wargear": ["shield", "spear"],
           "pointsCost": 2
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -665,33 +665,33 @@
     "label": "Grim Hammer Warrior",
     "pointsCost": 11,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_dwarf_armour", "mattock", "throwing_weapons"]
+    "baseWargear": ["heavy_dwarf_armour", "mattock", "throwing_weapons"]
   },
   {
     "id": "dwarf_warrior",
     "label": "Dwarf Warrior",
     "pointsCost": 8,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two-Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_dwarf_bow",
           "label": "Dwarf Bow",
-          "equipment": ["dwarf_bow"],
+          "wargear": ["dwarf_bow"],
           "pointsCost": 1
         }
       ]
@@ -702,26 +702,26 @@
     "label": "Dwarf Ranger",
     "pointsCost": 8,
     "keywords": ["dwarf"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two-Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         },
         {
           "id": "option_throwing_weapons",
           "label": "Throwing Weapons",
-          "equipment": ["throwing_weapons"],
+          "wargear": ["throwing_weapons"],
           "pointsCost": 1
         },
         {
           "id": "option_dwarf_longbow",
           "label": "Dwarf Longbow",
-          "equipment": ["dwarf_longbow"],
+          "wargear": ["dwarf_longbow"],
           "pointsCost": 1
         }
       ]
@@ -732,14 +732,14 @@
     "label": "Khazad Guard",
     "pointsCost": 12,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_dwarf_armour", "two_handed_weapon", "hand_weapon"]
+    "baseWargear": ["heavy_dwarf_armour", "two_handed_weapon", "hand_weapon"]
   },
   {
     "id": "iron_guard",
     "label": "Iron Guard",
     "pointsCost": 15,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "throwing_weapons", "hand_weapon"],
+    "baseWargear": ["heavy_armour", "throwing_weapons", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -747,40 +747,40 @@
     "label": "Vault Warden Iron Shield Bearer",
     "pointsCost": 13,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "iron_shield", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "iron_shield", "hand_weapon"]
   },
   {
     "id": "vault_warden_foe_spear",
     "label": "Vault Warden Foe Spear Wielder",
     "pointsCost": 12,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "foe_spear"]
+    "baseWargear": ["heavy_armour", "foe_spear"]
   },
   {
     "id": "iron_hills_warrior",
     "label": "Iron Hills Warrior",
     "pointsCost": 10,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_mattock",
           "label": "Mattock",
-          "equipment": ["mattock"],
+          "wargear": ["mattock"],
           "pointsCost": 1
         },
         {
           "id": "option_shield_spear",
           "label": "Shield & Spear",
-          "equipment": ["shield", "spear"],
+          "wargear": ["shield", "spear"],
           "pointsCost": 2
         },
         {
           "id": "option_crossbow",
           "label": "Crossbow",
-          "equipment": ["crossbow"],
+          "wargear": ["crossbow"],
           "pointsCost": 2
         }
       ]
@@ -791,27 +791,27 @@
     "label": "Iron Hills Goat Rider",
     "pointsCost": 20,
     "keywords": ["dwarf"],
-    "baseEquipment": ["heavy_armour", "war_spear", "war_goat", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "war_spear", "war_goat", "hand_weapon"]
   },
   {
     "id": "lake_town_guard",
     "label": "Lake Town Guard",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
-    "equipmentOptions": {
+    "baseWargear": ["armour"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -822,26 +822,26 @@
     "label": "Lake-Town Militia",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": ["light_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["light_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield",
           "label": "Light Shield",
-          "equipment": ["light_shield"],
+          "wargear": ["light_shield"],
           "pointsCost": 1
         }
       ]
@@ -851,27 +851,27 @@
     "id": "warrior_of_dale",
     "label": "Warrior of Dale",
     "pointsCost": 7,
-    "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "keywords": ["man", "dale"],
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_spear",
           "label": "Shield & Spear",
-          "equipment": ["shield", "spear"],
+          "wargear": ["shield", "spear"],
           "pointsCost": 2
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_esgaroth_bow",
           "label": "Esgaroth Bow",
-          "equipment": ["esgaroth_bow"],
+          "wargear": ["esgaroth_bow"],
           "pointsCost": 2
         }
       ]
@@ -881,28 +881,28 @@
     "id": "knight_of_dale",
     "label": "Knight of Dale",
     "pointsCost": 11,
-    "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "spear", "hand_weapon"]
+    "keywords": ["man", "dale"],
+    "baseWargear": ["heavy_armour", "shield", "spear", "hand_weapon"]
   },
   {
     "id": "ranger_of_the_north",
     "label": "Ranger of the North",
     "pointsCost": 25,
     "keywords": ["man"],
-    "baseEquipment": ["bow", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["bow", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_armour",
           "label": "Armour",
-          "equipment": ["armour"],
+          "wargear": ["armour"],
           "pointsCost": 5
         }
       ]
@@ -913,21 +913,21 @@
     "label": "Hobbit Militia",
     "pointsCost": 4,
     "keywords": ["hobbit"],
-    "baseEquipment": ["hand_weapon"]
+    "baseWargear": ["hand_weapon"]
   },
   {
     "id": "hobbit_archer",
     "label": "Hobbit Archer",
     "pointsCost": 5,
     "keywords": ["hobbit"],
-    "baseEquipment": ["short_bow", "hand_weapon"]
+    "baseWargear": ["short_bow", "hand_weapon"]
   },
   {
     "id": "hobbit_shirriff",
     "label": "Hobbit Shirriff",
     "pointsCost": 5,
     "keywords": ["hobbit"],
-    "baseEquipment": ["hand_and_half_weapon"]
+    "baseWargear": ["hand_and_half_weapon"]
   },
   {
     "id": "battlin_brandybuck",
@@ -958,32 +958,32 @@
     "label": "Mordor Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -994,26 +994,26 @@
     "label": "Morannon Orc Warrior",
     "pointsCost": 8,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_spear_shield",
           "label": "Spear & Shield",
-          "equipment": ["spear", "shield"],
+          "wargear": ["spear", "shield"],
           "pointsCost": 2
         }
       ]
@@ -1024,14 +1024,14 @@
     "label": "Mordor Uruk-Hai",
     "pointsCost": 8,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -1042,32 +1042,32 @@
     "label": "Mordor Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "warg", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_throwing_spears",
           "label": "Throwing Spears",
-          "equipment": ["throwing_spears"],
+          "wargear": ["throwing_spears"],
           "pointsCost": 1
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_shield_throwing_spears",
           "label": "Shield & Throwing Spears",
-          "equipment": ["shield", "throwing_spears"],
+          "wargear": ["shield", "throwing_spears"],
           "pointsCost": 2
         }
       ]
@@ -1078,49 +1078,49 @@
     "label": "Black Guard of Barad Dur",
     "pointsCost": 12,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "shield", "hand_weapon"]
   },
   {
     "id": "orc_tracker",
     "label": "Orc Tracker",
     "pointsCost": 6,
     "keywords": ["orc"],
-    "baseEquipment": ["orc_bow", "hand_weapon"]
+    "baseWargear": ["orc_bow", "hand_weapon"]
   },
   {
     "id": "black_numenorean_warrior",
     "label": "Black Numenorean Warrior",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "shield", "hand_weapon"]
   },
   {
     "id": "black_numenorean_knight",
     "label": "Black Numenorean Knight",
     "pointsCost": 20,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "lance", "armoured_horse", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "shield", "lance", "armoured_horse", "hand_weapon"]
   },
   {
     "id": "mirkwood_giant_spider",
     "label": "Mirkwood Giant Spider",
     "pointsCost": 20,
     "keywords": ["spider"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "mirkwood_hunting_spider",
     "label": "Mirkwood Hunting Spider",
     "pointsCost": 20,
     "keywords": ["spider"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "spectre",
     "label": "Spectre",
     "pointsCost": 15,
     "keywords": ["spirit"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
+    "baseWargear": ["heavy_armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1128,7 +1128,7 @@
     "label": "Morgul Stalker",
     "pointsCost": 10,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
+    "baseWargear": ["armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1136,32 +1136,32 @@
     "label": "Angmar Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -1172,39 +1172,39 @@
     "label": "Wild Warg",
     "pointsCost": 7,
     "keywords": ["warg"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "angmar_warg_rider",
     "label": "Angmar Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "warg", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_throwing_spears",
           "label": "Shield & Throwing Spears",
-          "equipment": ["shield", "throwing_spears"],
+          "wargear": ["shield", "throwing_spears"],
           "pointsCost": 2
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_throwing_spears",
           "label": "Throwing Spears",
-          "equipment": ["throwing_spears"],
+          "wargear": ["throwing_spears"],
           "pointsCost": 1
         }
       ]
@@ -1215,7 +1215,7 @@
     "label": "Werewolf",
     "pointsCost": 25,
     "keywords": ["spirit"],
-    "baseEquipment": [],
+    "baseWargear": [],
     "onTheirOwnPath": true
   },
   {
@@ -1223,14 +1223,14 @@
     "label": "Warrior of Carn Dum",
     "pointsCost": 9,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -1241,27 +1241,27 @@
     "label": "Fell Warg",
     "pointsCost": 8,
     "keywords": ["warg"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "uruk_hai_scout",
     "label": "Uruk-Hai Scout",
     "pointsCost": 8,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_uruk_hai_crossbow",
           "label": "Uruk-Hai Crossbow",
-          "equipment": ["uruk_hai_crossbow"],
+          "wargear": ["uruk_hai_crossbow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -1272,51 +1272,51 @@
     "label": "Crebain",
     "pointsCost": 20,
     "keywords": ["bird"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "wild_man_of_dunland",
     "label": "Wild Man of Dunland",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": ["hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield",
           "label": "Light Shield",
-          "equipment": ["light_shield"],
+          "wargear": ["light_shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         },
         {
           "id": "option_flaming_brand",
           "label": "Flaming Brand",
-          "equipment": ["flaming_brand"],
+          "wargear": ["flaming_brand"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield_flaming_brand",
           "label": "Light Shield & Flaming Brand",
-          "equipment": ["light_shield", "flaming_brand"],
+          "wargear": ["light_shield", "flaming_brand"],
           "pointsCost": 2
         }
       ]
@@ -1327,32 +1327,32 @@
     "label": "Isengard Orc Warrior",
     "pointsCost": 5,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -1363,7 +1363,7 @@
     "label": "Feral Uruk-Hai",
     "pointsCost": 13,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["light_armour", "hand_weapon"],
+    "baseWargear": ["light_armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1371,26 +1371,26 @@
     "label": "Dunlending Warrior",
     "pointsCost": 7,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -1401,26 +1401,26 @@
     "label": "Uruk-Hai Warrior",
     "pointsCost": 9,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_pike",
           "label": "Pike",
-          "equipment": ["pike"],
+          "wargear": ["pike"],
           "pointsCost": 1
         },
         {
           "id": "option_crossbow",
           "label": "Crossbow",
-          "equipment": ["crossbow"],
+          "wargear": ["crossbow"],
           "pointsCost": 2
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -1431,7 +1431,7 @@
     "label": "Uruk-Hai Berserker",
     "pointsCost": 15,
     "keywords": ["uruk_hai"],
-    "baseEquipment": ["light_armour", "berserker_blade"],
+    "baseWargear": ["light_armour", "berserker_blade"],
     "onTheirOwnPath": true
   },
   {
@@ -1439,39 +1439,39 @@
     "label": "Isengard Warg",
     "pointsCost": 7,
     "keywords": ["warg"],
-    "baseEquipment": []
+    "baseWargear": []
   },
   {
     "id": "isengard_warg_rider",
     "label": "Isengard Warg Rider",
     "pointsCost": 11,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "warg", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "warg", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_throwing_spears",
           "label": "Shield & Throwing Spears",
-          "equipment": ["shield", "throwing_spears"],
+          "wargear": ["shield", "throwing_spears"],
           "pointsCost": 2
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         },
         {
           "id": "option_throwing_spears",
           "label": "Throwing Spears",
-          "equipment": ["throwing_spears"],
+          "wargear": ["throwing_spears"],
           "pointsCost": 1
         }
       ]
@@ -1482,44 +1482,44 @@
     "label": "Hill Tribesman",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": ["hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield",
           "label": "Light Shield",
-          "equipment": ["light_shield"],
+          "wargear": ["light_shield"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         },
         {
           "id": "option_flaming_brand",
           "label": "Flaming Brand",
-          "equipment": ["flaming_brand"],
+          "wargear": ["flaming_brand"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield_flaming_brand",
           "label": "Light Shield & Flaming Brand",
-          "equipment": ["light_shield", "flaming_brand"],
+          "wargear": ["light_shield", "flaming_brand"],
           "pointsCost": 2
         }
       ]
@@ -1530,34 +1530,34 @@
     "label": "Dunlending Huscarl",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "dunlending_war_axe"]
+    "baseWargear": ["heavy_armour", "dunlending_war_axe"]
   },
   {
     "id": "dunlending_horseman",
     "label": "Dunlending Horseman",
     "pointsCost": 12,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "shield", "horse", "hand_weapon"]
+    "baseWargear": ["armour", "shield", "horse", "hand_weapon"]
   },
   {
     "id": "ruffian",
     "label": "Ruffian",
     "pointsCost": 5,
     "keywords": ["man"],
-    "baseEquipment": ["hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -1568,26 +1568,26 @@
     "label": "Rohirrim Traitor",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_shield_throwing_spears",
           "label": "Shield & Throwing Spears",
-          "equipment": ["shield", "throwing_spears"],
+          "wargear": ["shield", "throwing_spears"],
           "pointsCost": 3
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -1598,26 +1598,26 @@
     "label": "Moria Goblin Warrior",
     "pointsCost": 4,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -1628,21 +1628,21 @@
     "label": "Moria Goblin Prowler",
     "pointsCost": 7,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour", "two_handed_weapon", "throwing_weapons", "hand_weapon"]
+    "baseWargear": ["armour", "two_handed_weapon", "throwing_weapons", "hand_weapon"]
   },
   {
     "id": "moria_blackshield_warrior",
     "label": "Moria Blackshield Warrior",
     "pointsCost": 8,
     "keywords": ["goblin"],
-    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "shield", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         }
       ]
@@ -1653,21 +1653,21 @@
     "label": "Cave Troll",
     "pointsCost": 75,
     "keywords": ["troll"],
-    "baseEquipment": ["troll_chain"],
+    "baseWargear": ["troll_chain"],
     "onTheirOwnPath": true,
-    "equipmentOptions": {
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_troll_spear",
           "label": "Troll Spear",
-          "equipment": ["troll_spear"],
+          "wargear": ["troll_spear"],
           "pointsCost": 5
         },
         {
           "id": "option_hand_and_half_weapon",
           "label": "Hand and a Half Weapon",
-          "equipment": ["hand_and_half_weapon"],
+          "wargear": ["hand_and_half_weapon"],
           "pointsCost": 5
         }
       ]
@@ -1678,7 +1678,7 @@
     "label": "Bat Swarm",
     "pointsCost": 35,
     "keywords": ["bat"],
-    "baseEquipment": [],
+    "baseWargear": [],
     "onTheirOwnPath": true
   },
   {
@@ -1690,18 +1690,18 @@
       "orc"
     ],
     "riderCount": 3,
-    "baseEquipment": [
+    "baseWargear": [
       "shield",
       "warg"
     ],
     "additionalRiders": [
       {
-        "equipment": [
+        "wargear": [
           "orc_bow"
         ]
       },
       {
-        "equipment": [
+        "wargear": [
           "orc_bow"
         ]
       }
@@ -1713,20 +1713,20 @@
     "label": "Haradrim Warrior",
     "pointsCost": 6,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         }
       ]
@@ -1737,26 +1737,26 @@
     "label": "Haradrim Raider",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "horse", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "horse", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_bow_war_spear",
           "label": "Bow & War Spear",
-          "equipment": ["bow", "war_spear"],
+          "wargear": ["bow", "war_spear"],
           "pointsCost": 2
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_war_spear",
           "label": "War Spear",
-          "equipment": ["war_spear"],
+          "wargear": ["war_spear"],
           "pointsCost": 1
         }
       ]
@@ -1767,45 +1767,45 @@
     "label": "Serpent Guard",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "spear", "hand_weapon"]
+    "baseWargear": ["armour", "spear", "hand_weapon"]
   },
   {
     "id": "serpent_rider",
     "label": "Serpent Rider",
     "pointsCost": 14,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "war_spear", "horse"]
+    "baseWargear": ["armour", "war_spear", "horse"]
   },
   {
     "id": "watcher_of_karna",
     "label": "Watcher of Karna",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["light_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["light_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_twin_blades",
           "label": "Twin Blades",
-          "equipment": ["twin_blades"],
+          "wargear": ["twin_blades"],
           "pointsCost": 1
         }
       ]
     },
     "onTheirOwnPath": {
-      "condition": "equipment",
-      "requiredEquipment": ["twin_blades"]
+      "condition": "wargear",
+      "requiredwargear": ["twin_blades"]
     },
     "statOverrides": {
-      "condition": "equipment",
-      "requiredEquipment": ["twin_blades"],
+      "condition": "wargear",
+      "requiredwargear": ["twin_blades"],
       "stats": { "attacks": 2 }
     }
   },
@@ -1814,33 +1814,33 @@
     "label": "Abrakhan Merchant Guard",
     "pointsCost": 9,
     "keywords": ["man"],
-    "baseEquipment": ["two_handed_weapon"]
+    "baseWargear": ["two_handed_weapon"]
   },
   {
     "id": "corsair_of_umbar",
     "label": "Corsair of Umbar",
     "pointsCost": 8,
     "keywords": ["man", "corsair"],
-    "baseEquipment": ["light_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["light_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_light_shield_throwing_weapons",
           "label": "Light Shield & Throwing Weapons",
-          "equipment": ["light_shield", "throwing_weapons"],
+          "wargear": ["light_shield", "throwing_weapons"],
           "pointsCost": 1
         }
       ]
@@ -1851,14 +1851,14 @@
     "label": "Corsair Crossbowman",
     "pointsCost": 10,
     "keywords": ["man", "corsair"],
-    "baseEquipment": ["crossbow", "pavise", "hand_weapon"]
+    "baseWargear": ["crossbow", "pavise", "hand_weapon"]
   },
   {
     "id": "corsair_reaver",
     "label": "Corsair Reaver",
     "pointsCost": 9,
     "keywords": ["man", "corsair"],
-    "baseEquipment": ["hand_weapon"],
+    "baseWargear": ["hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1866,26 +1866,26 @@
     "label": "Easterling Warrior",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_halberd_shield",
           "label": "Easterling Halberd & Shield",
-          "equipment": ["easterling_halberd", "shield"],
+          "wargear": ["easterling_halberd", "shield"],
           "pointsCost": 2
         },
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -1896,14 +1896,14 @@
     "label": "Black Dragon Warrior",
     "pointsCost": 10,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "shield", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_easterling_halberd",
           "label": "Easterling Halberd",
-          "equipment": ["easterling_halberd"],
+          "wargear": ["easterling_halberd"],
           "pointsCost": 1
         }
       ]
@@ -1914,14 +1914,14 @@
     "label": "Easterling Kataphrakt",
     "pointsCost": 15,
     "keywords": ["man"],
-    "baseEquipment": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"]
+    "baseWargear": ["heavy_armour", "shield", "armoured_horse", "hand_weapon"]
   },
   {
     "id": "dragon_cult_acolyte",
     "label": "Dragon Cult Acolyte",
     "pointsCost": 11,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "throwing_weapons", "hand_weapon"],
+    "baseWargear": ["armour", "throwing_weapons", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1929,7 +1929,7 @@
     "label": "War Drake of Rhun",
     "pointsCost": 20,
     "keywords": ["drake"],
-    "baseEquipment": ["armour", "hand_weapon"],
+    "baseWargear": ["armour", "hand_weapon"],
     "onTheirOwnPath": true
   },
   {
@@ -1937,20 +1937,20 @@
     "label": "Mahud Warrior",
     "pointsCost": 8,
     "keywords": ["man", "mahud"],
-    "baseEquipment": ["armour", "shield", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "shield", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_blowpipe",
           "label": "Blowpipe",
-          "equipment": ["blowpipe"],
+          "wargear": ["blowpipe"],
           "pointsCost": 1
         }
       ]
@@ -1961,14 +1961,14 @@
     "label": "Khandish Warrior",
     "pointsCost": 8,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "hand_and_half_weapon", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_and_half_weapon", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_bow",
           "label": "Bow",
-          "equipment": ["bow"],
+          "wargear": ["bow"],
           "pointsCost": 0
         }
       ]
@@ -1979,27 +1979,27 @@
     "label": "Khandish Horseman",
     "pointsCost": 14,
     "keywords": ["man"],
-    "baseEquipment": ["armour", "horse", "hand_and_half_weapon", "hand_weapon"]
+    "baseWargear": ["armour", "horse", "hand_and_half_weapon", "hand_weapon"]
   },
   {
     "id": "half_troll",
     "label": "Half Troll",
     "pointsCost": 25,
     "keywords": ["man"],
-    "baseEquipment": ["armour"],
-    "equipmentOptions": {
+    "baseWargear": ["armour"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 0
         },
         {
           "id": "option_hand_weapon",
           "label": "Hand Weapon",
-          "equipment": ["hand_weapon"],
+          "wargear": ["hand_weapon"],
           "pointsCost": 0
         }
       ]
@@ -2010,20 +2010,20 @@
     "label": "Hunter Orc Warrior",
     "pointsCost": 8,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -2034,20 +2034,20 @@
     "label": "Hunter Orc Warg Rider",
     "pointsCost": 15,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "fell_warg", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "fell_warg", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_orc_bow",
           "label": "Orc Bow",
-          "equipment": ["orc_bow"],
+          "wargear": ["orc_bow"],
           "pointsCost": 1
         },
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -2058,14 +2058,14 @@
     "label": "Goblin Warrior",
     "pointsCost": 5,
     "keywords": ["goblin"],
-    "baseEquipment": ["hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -2076,27 +2076,27 @@
     "label": "Goblin Mercenary",
     "pointsCost": 6,
     "keywords": ["goblin"],
-    "baseEquipment": ["armour", "hand_weapon"]
+    "baseWargear": ["armour", "hand_weapon"]
   },
   {
     "id": "gundabad_orc_warrior",
     "label": "Gundabad Orc Warrior",
     "pointsCost": 9,
     "keywords": ["orc"],
-    "baseEquipment": ["heavy_armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["heavy_armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mustChooseOne",
       "options": [
         {
           "id": "option_spear",
           "label": "Spear",
-          "equipment": ["spear"],
+          "wargear": ["spear"],
           "pointsCost": 1
         },
         {
           "id": "option_shield",
           "label": "Shield",
-          "equipment": ["shield"],
+          "wargear": ["shield"],
           "pointsCost": 1
         }
       ]
@@ -2107,14 +2107,14 @@
     "label": "Gundabad Berserker",
     "pointsCost": 15,
     "keywords": ["orc"],
-    "baseEquipment": ["armour", "hand_weapon"],
-    "equipmentOptions": {
+    "baseWargear": ["armour", "hand_weapon"],
+    "wargearOptions": {
       "selectionRule": "mayChooseOne",
       "options": [
         {
           "id": "option_two_handed_weapon",
           "label": "Two Handed Weapon",
-          "equipment": ["two_handed_weapon"],
+          "wargear": ["two_handed_weapon"],
           "pointsCost": 1
         }
       ]
@@ -2125,7 +2125,7 @@
     "label": "War Bat",
     "pointsCost": 25,
     "keywords": ["bat"],
-    "baseEquipment": [],
+    "baseWargear": [],
     "onTheirOwnPath": true
   },
   {
@@ -2133,7 +2133,7 @@
     "label": "Gundabad Ogre",
     "pointsCost": 60,
     "keywords": ["ogre"],
-    "baseEquipment": [],
+    "baseWargear": [],
     "onTheirOwnPath": true
   },
   {
