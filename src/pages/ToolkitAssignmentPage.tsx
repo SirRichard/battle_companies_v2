@@ -210,9 +210,20 @@ export default function ToolkitAssignmentPage() {
       </Box>
     )
 
-  const activeMembers = company.members.filter(
-    (m) => !m.injuries.some((i) => i.type === 'missing_next_game')
-  )
+  const ROLE_ORDER: Record<string, number> = {
+    leader: 0,
+    sergeant: 1,
+    hero_in_making: 2,
+    warrior: 3,
+  }
+
+  const activeMembers = company.members
+    .filter((m) => !m.injuries.some((i) => i.type === 'missing_next_game'))
+    .sort((a, b) => {
+      const roleDiff = (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99)
+      if (roleDiff !== 0) return roleDiff
+      return a.name.localeCompare(b.name)
+    })
 
   const buttonLabel = getProceedButtonLabel(match?.atoBonuses ?? [])
 
@@ -540,10 +551,14 @@ export default function ToolkitAssignmentPage() {
 
                           // Check duplicate/ownership eligibility (skip if already disabled by envenom logic)
                           if (!disabledReason) {
-                            const currentAssignments = assignments.map((asg, idx) => ({
-                              memberId: asg.memberId,
-                              itemId: kit.items[idx],
-                            }))
+                            // Exclude current row's assignment so the actively-assigned member
+                            // doesn't show "Already assigned" on their own row
+                            const currentAssignments = assignments
+                              .map((asg, idx) => ({
+                                memberId: asg.memberId,
+                                itemId: kit.items[idx],
+                              }))
+                              .filter((_, idx) => idx !== i)
                             const memberOwned = m.ownedEquipment ?? []
                             const ineligibility = getItemIneligibilityReason(
                               m.id,
