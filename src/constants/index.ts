@@ -1,19 +1,19 @@
-import type { Faction } from '../models'
+import type { Alignment, Faction } from '../models'
+import alignmentsData from '../data/alignments.json'
 
-export const FACTIONS: Faction[] = [
-  // Good
-  { id: 'gondor', label: 'Gondor', alignment: 'good' },
-  { id: 'rohan', label: 'Rohan', alignment: 'good' },
-  { id: 'elven_realms', label: 'Elven Realms', alignment: 'good' },
-  { id: 'dwarven_realms', label: 'Dwarven Realms', alignment: 'good' },
-  { id: 'hobbits', label: 'The Shire & Allies', alignment: 'good' },
-  // Evil
-  { id: 'mordor', label: 'Mordor', alignment: 'evil' },
-  { id: 'isengard', label: 'Isengard', alignment: 'evil' },
-  { id: 'misty_mountains', label: 'Misty Mountains', alignment: 'evil' },
-  { id: 'mirkwood', label: 'Mirkwood', alignment: 'evil' },
-  { id: 'the_far_east', label: 'The Far East', alignment: 'evil' },
-]
+export interface AlignmentEntry {
+  id: Alignment
+  label: string
+  flavour: string
+  colour: string
+  factions: Array<{ id: string; label: string }>
+}
+
+export const ALIGNMENTS: AlignmentEntry[] = alignmentsData as AlignmentEntry[]
+
+export const FACTIONS: Faction[] = ALIGNMENTS.flatMap((a) =>
+  a.factions.map((f) => ({ id: f.id, label: f.label, alignment: a.id }))
+)
 
 /**
  * Per-stat validation ranges based on MESBG profiles.

@@ -1,18 +1,22 @@
 [
   {
     "id": "good",
-    "label": "Good",
+    "label": "Free Peoples",
+    "flavour": "Men, Elves, Dwarves & Hobbits — defenders of Middle-earth against the encroaching shadow.",
+    "colour": "#4a7c59",
     "factions": [
       { "id": "gondor", "label": "Gondor" },
       { "id": "rohan", "label": "Rohan" },
       { "id": "elven_realms", "label": "Elven Realms" },
       { "id": "dwarven_realms", "label": "Dwarven Realms" },
-      { "id": "hobbits", "label": "Hobbits" }
+      { "id": "hobbits", "label": "The Shire & Allies" }
     ]
   },
   {
     "id": "evil",
-    "label": "Evil",
+    "label": "Shadow",
+    "flavour": "Servants of Morgoth and Sauron — spreading darkness and ruin across the lands of the free.",
+    "colour": "#8B3A2A",
     "factions": [
       { "id": "mordor", "label": "Mordor" },
       { "id": "isengard", "label": "Isengard" },

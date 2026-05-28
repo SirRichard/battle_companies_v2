@@ -1,34 +1,13 @@
 import { Box, Typography, Button } from '@mui/material'
 import { motion } from 'framer-motion'
 import type { Alignment } from '../../models'
+import { ALIGNMENTS } from '../../constants'
 
 interface Props {
   value: Alignment | null
   onChange: (alignment: Alignment) => void
   onAdvance?: () => void
 }
-
-const OPTIONS: {
-  value: Alignment
-  label: string
-  flavour: string
-  colour: string
-}[] = [
-  {
-    value: 'good',
-    label: 'Free Peoples',
-    flavour:
-      'Men, Elves, Dwarves & Hobbits — defenders of Middle-earth against the encroaching shadow.',
-    colour: '#4a7c59',
-  },
-  {
-    value: 'evil',
-    label: 'Shadow',
-    flavour:
-      'Servants of Morgoth and Sauron — spreading darkness and ruin across the lands of the free.',
-    colour: '#8B3A2A',
-  },
-]
 
 export default function StepAlignment({ value, onChange, onAdvance }: Props) {
   const handleSelect = (alignment: Alignment) => {
@@ -46,16 +25,16 @@ export default function StepAlignment({ value, onChange, onAdvance }: Props) {
         Shadow. This determines which factions are available to you.
       </Typography>
 
-      {OPTIONS.map((opt, i) => (
+      {ALIGNMENTS.map((opt, i) => (
         <motion.div
-          key={opt.value}
+          key={opt.id}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1, duration: 0.3 }}
         >
           <Button
             fullWidth
-            onClick={() => handleSelect(opt.value)}
+            onClick={() => handleSelect(opt.id)}
             sx={{
               py: 2.5,
               px: 3,
@@ -65,16 +44,16 @@ export default function StepAlignment({ value, onChange, onAdvance }: Props) {
               textAlign: 'left',
               border: '1px solid',
               borderColor:
-                value === opt.value ? opt.colour : 'rgba(200,164,90,0.18)',
+                value === opt.id ? opt.colour : 'rgba(200,164,90,0.18)',
               background:
-                value === opt.value
-                  ? `rgba(${opt.value === 'good' ? '74,124,89' : '139,58,42'},0.12)`
+                value === opt.id
+                  ? `rgba(${opt.id === 'good' ? '74,124,89' : '139,58,42'},0.12)`
                   : 'transparent',
               borderRadius: 1,
               transition: 'all 0.2s ease',
               '&:hover': {
                 borderColor: opt.colour,
-                background: `rgba(${opt.value === 'good' ? '74,124,89' : '139,58,42'},0.08)`,
+                background: `rgba(${opt.id === 'good' ? '74,124,89' : '139,58,42'},0.08)`,
               },
             }}
           >
@@ -95,7 +74,7 @@ export default function StepAlignment({ value, onChange, onAdvance }: Props) {
                   bgcolor: opt.colour,
                   flexShrink: 0,
                   boxShadow:
-                    value === opt.value ? `0 0 8px ${opt.colour}` : 'none',
+                    value === opt.id ? `0 0 8px ${opt.colour}` : 'none',
                   transition: 'box-shadow 0.2s',
                 }}
               />
@@ -105,7 +84,7 @@ export default function StepAlignment({ value, onChange, onAdvance }: Props) {
                   fontSize: '1rem',
                   fontWeight: 600,
                   letterSpacing: '0.06em',
-                  color: value === opt.value ? opt.colour : 'text.primary',
+                  color: value === opt.id ? opt.colour : 'text.primary',
                 }}
               >
                 {opt.label}
