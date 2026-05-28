@@ -105,6 +105,7 @@ export default function StepAlignment({ value, onChange, onAdvance }: Props) {
           </Button>
         </motion.div>
       ))}
+
     </Box>
   )
 }

@@ -1499,7 +1499,7 @@ export default function CreateCompanyPage() {
           maxWidth: { xs: '100%', sm: '100%', md: 800, lg: 1000 },
           width: '100%',
           mx: 'auto',
-          overflowX: 'hidden',
+          overflowX: 'clip',
         }}
       >
         <AnimatePresence mode="wait" custom={direction}>
@@ -1535,23 +1535,22 @@ export default function CreateCompanyPage() {
       >
         <Button
           variant="outlined"
-          onClick={() =>
-            wizard.step === 0
-              ? setShowAbortConfirm(true)
-              : wizard.step === 6 && allRolesForced
-                ? go(4)
-                : go(wizard.step - 1)
-          }
+          onClick={() => {
+            if (wizard.step === 0) {
+              setShowAbortConfirm(true)
+            } else if (wizard.step === 6 && allRolesForced) {
+              go(4)
+            } else {
+              go(wizard.step - 1)
+            }
+          }}
           sx={{ minWidth: 100, minHeight: 44 }}
         >
           {wizard.step === 0 ? 'Cancel' : 'Back'}
         </Button>
 
         {wizard.step < STEPS.length - 1 ? (
-          // Steps 0 and 1 auto-advance on card selection — no Next button needed
-          wizard.step <= 1 ? (
-            <Box sx={{ minWidth: 100 }} />
-          ) : wizard.step === 6 ? (
+          wizard.step === 6 ? (
             // ── Step 6 footer button: path sub-flow aware ──────────────────
             // Derive picking vs review mode from wizard state
             (() => {

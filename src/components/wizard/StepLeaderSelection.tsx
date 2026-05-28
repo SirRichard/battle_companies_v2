@@ -125,7 +125,7 @@ export default function StepLeaderSelection({
       </Box>
 
       {/* Member list */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
         {members.map((member, i) => {
           const role = getRole(member.tempId)
           const isHero = !!role

@@ -14,6 +14,8 @@ import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import InfoOutlined from '@mui/icons-material/InfoOutlined'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import baseUnitsData from '../../data/baseUnits.json'
 import wargearData from '../../data/wargear.json'
 import equipmentData from '../../data/equipment.json'
@@ -269,6 +271,9 @@ export default function StepGoldEquipment({
     Record<string, 'wargear' | 'equipment' | 'creatures'>
   >({})
 
+  const theme = useTheme()
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'))
+
   const sortedMembers = sortMembersForGold(members, leaderId)
 
   // Total gold remaining
@@ -279,7 +284,6 @@ export default function StepGoldEquipment({
   const goldRemaining = gold - totalSpent
 
   const selectedMember = sortedMembers.find((m) => m.tempId === selectedTempId)
-  void selectedMember // used implicitly via selectedTempId
 
   const getPurchasedForMember = (tempId: string) => goldPurchases[tempId] ?? []
 
@@ -413,61 +417,60 @@ export default function StepGoldEquipment({
         </Typography>
       </Box>
 
-      {/* Member list */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {sortedMembers.map((member) => {
-          const purchased = getPurchasedForMember(member.tempId)
-          const isSelected = selectedTempId === member.tempId
-          const activeTab = getActiveTab(member.tempId, member.isHero)
-          const memberLabel = getMemberLabel(member, leaderId)
+      {/* Split-pane at md+ / Accordion at xs-sm */}
+      {isMdUp ? (
+        <Box
+          sx={{
+            display: { xs: 'block', md: 'grid' },
+            gridTemplateColumns: { md: '35% 65%' },
+            gap: 2,
+          }}
+        >
+          {/* Left pane: member list */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {sortedMembers.map((member) => {
+              const purchased = getPurchasedForMember(member.tempId)
+              const isSelected = selectedTempId === member.tempId
+              const memberLabel = getMemberLabel(member, leaderId)
 
-          return (
-            <Box
-              key={member.tempId}
-              sx={{
-                border: '1px solid',
-                borderColor: isSelected ? 'primary.main' : 'divider',
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                background: isSelected
-                  ? 'rgba(201,168,76,0.04)'
-                  : 'rgba(0,0,0,0.15)',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              {/* Member header — always visible */}
-              <Box
-                onClick={() =>
-                  setSelectedTempId(isSelected ? null : member.tempId)
-                }
-                sx={{
-                  px: 1.5,
-                  py: 1.25,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                      color: isSelected ? 'primary.main' : 'text.primary',
-                    }}
-                  >
-                    {member.name}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                    {memberLabel}
-                    {' · '}
-                    {member.baseUnitId
-                      .replace(/_/g, ' ')
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              return (
+                <Box
+                  key={member.tempId}
+                  onClick={() => setSelectedTempId(member.tempId)}
+                  sx={{
+                    px: 1.5,
+                    py: 1.25,
+                    cursor: 'pointer',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    borderRadius: 1.5,
+                    background: isSelected
+                      ? 'rgba(201,168,76,0.04)'
+                      : 'rgba(0,0,0,0.15)',
+                    transition: 'border-color 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: isSelected ? 'primary.main' : 'text.primary',
+                      }}
+                    >
+                      {member.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                      {memberLabel}
+                      {' · '}
+                      {member.baseUnitId
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </Typography>
+                  </Box>
                   {purchased.length > 0 && (
                     <Typography
                       variant="caption"
@@ -476,91 +479,315 @@ export default function StepGoldEquipment({
                       -{purchased.reduce((s, id) => s + goldCost(id), 0)} gp
                     </Typography>
                   )}
-                  <Typography sx={{ opacity: 0.4, fontSize: '0.8rem' }}>
-                    {isSelected ? '▲' : '▼'}
-                  </Typography>
                 </Box>
-              </Box>
+              )
+            })}
+          </Box>
 
-              {/* Expanded: tabs + content */}
-              {isSelected && (
+          {/* Right pane: purchase panel or placeholder */}
+          <Box>
+            {selectedMember ? (
+              <MemberPurchasePanel
+                member={selectedMember}
+                purchased={getPurchasedForMember(selectedMember.tempId)}
+                activeTab={getActiveTab(selectedMember.tempId, selectedMember.isHero)}
+                onTabChange={(tab) => setActiveTab(selectedMember.tempId, tab)}
+                availableWargear={getAvailableWargearForMember(selectedMember)}
+                availableEquipment={getAvailableEquipmentForMember(selectedMember)}
+                availableCreatures={getAvailableCreatures(companyTypeId)}
+                goldRemaining={goldRemaining}
+                onBuy={handleBuy}
+                onRemove={handleRemove}
+                leaderId={leaderId}
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  minHeight: 200,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  opacity: 0.5,
+                }}
+              >
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  Select a member to purchase equipment
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      ) : (
+        /* xs-sm: existing accordion behavior */
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {sortedMembers.map((member) => {
+            const purchased = getPurchasedForMember(member.tempId)
+            const isSelected = selectedTempId === member.tempId
+            const activeTab = getActiveTab(member.tempId, member.isHero)
+            const memberLabel = getMemberLabel(member, leaderId)
+
+            return (
+              <Box
+                key={member.tempId}
+                sx={{
+                  border: '1px solid',
+                  borderColor: isSelected ? 'primary.main' : 'divider',
+                  borderRadius: 1.5,
+                  overflow: 'hidden',
+                  background: isSelected
+                    ? 'rgba(201,168,76,0.04)'
+                    : 'rgba(0,0,0,0.15)',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                {/* Member header — always visible */}
                 <Box
+                  onClick={() =>
+                    setSelectedTempId(isSelected ? null : member.tempId)
+                  }
                   sx={{
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
+                    px: 1.5,
+                    py: 1.25,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  {/* Tabs */}
-                  <Tabs
-                    value={activeTab}
-                    onChange={(_, v) => setActiveTab(member.tempId, v)}
-                    variant="fullWidth"
-                    sx={{
-                      minHeight: 36,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                      '& .MuiTab-root': {
-                        minHeight: 36,
-                        fontSize: '0.7rem',
-                        py: 0.5,
-                      },
-                    }}
-                  >
-                    <Tab label="Wargear" value="wargear" />
-                    <Tab label="Equipment" value="equipment" />
-                    {member.isHero && (
-                      <Tab label="Creatures" value="creatures" />
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: isSelected ? 'primary.main' : 'text.primary',
+                      }}
+                    >
+                      {member.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                      {memberLabel}
+                      {' · '}
+                      {member.baseUnitId
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {purchased.length > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: 'success.light', opacity: 0.8 }}
+                      >
+                        -{purchased.reduce((s, id) => s + goldCost(id), 0)} gp
+                      </Typography>
                     )}
-                  </Tabs>
-
-                  <Box sx={{ px: 1.5, pb: 1.5 }}>
-                    {/* ── Wargear tab ── */}
-                    {activeTab === 'wargear' && (
-                      <WargearTabContent
-                        member={member}
-                        purchased={purchased}
-                        available={getAvailableWargearForMember(member)}
-                        goldRemaining={goldRemaining}
-                        onBuy={handleBuy}
-                        onRemove={handleRemove}
-                      />
-                    )}
-
-                    {/* ── Equipment tab ── */}
-                    {activeTab === 'equipment' && (
-                      <EquipmentTabContent
-                        member={member}
-                        purchased={purchased}
-                        available={getAvailableEquipmentForMember(member)}
-                        goldRemaining={goldRemaining}
-                        onBuy={handleBuy}
-                        onRemove={handleRemove}
-                      />
-                    )}
-
-                    {/* ── Creatures tab (heroes only) ── */}
-                    {activeTab === 'creatures' && member.isHero && (
-                      <CreaturesTabContent
-                        member={member}
-                        purchased={purchased}
-                        creatures={getAvailableCreatures(companyTypeId)}
-                        goldRemaining={goldRemaining}
-                        onBuy={handleBuy}
-                        onRemove={handleRemove}
-                      />
-                    )}
+                    <Typography sx={{ opacity: 0.4, fontSize: '0.8rem' }}>
+                      {isSelected ? '▲' : '▼'}
+                    </Typography>
                   </Box>
                 </Box>
-              )}
-            </Box>
-          )
-        })}
-      </Box>
+
+                {/* Expanded: tabs + content */}
+                {isSelected && (
+                  <Box
+                    sx={{
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    {/* Tabs */}
+                    <Tabs
+                      value={activeTab}
+                      onChange={(_, v) => setActiveTab(member.tempId, v)}
+                      variant="fullWidth"
+                      sx={{
+                        minHeight: 36,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        '& .MuiTab-root': {
+                          minHeight: 36,
+                          fontSize: '0.7rem',
+                          py: 0.5,
+                        },
+                      }}
+                    >
+                      <Tab label="Wargear" value="wargear" />
+                      <Tab label="Equipment" value="equipment" />
+                      {member.isHero && (
+                        <Tab label="Creatures" value="creatures" />
+                      )}
+                    </Tabs>
+
+                    <Box sx={{ px: 1.5, pb: 1.5 }}>
+                      {/* ── Wargear tab ── */}
+                      {activeTab === 'wargear' && (
+                        <WargearTabContent
+                          member={member}
+                          purchased={purchased}
+                          available={getAvailableWargearForMember(member)}
+                          goldRemaining={goldRemaining}
+                          onBuy={handleBuy}
+                          onRemove={handleRemove}
+                        />
+                      )}
+
+                      {/* ── Equipment tab ── */}
+                      {activeTab === 'equipment' && (
+                        <EquipmentTabContent
+                          member={member}
+                          purchased={purchased}
+                          available={getAvailableEquipmentForMember(member)}
+                          goldRemaining={goldRemaining}
+                          onBuy={handleBuy}
+                          onRemove={handleRemove}
+                        />
+                      )}
+
+                      {/* ── Creatures tab (heroes only) ── */}
+                      {activeTab === 'creatures' && member.isHero && (
+                        <CreaturesTabContent
+                          member={member}
+                          purchased={purchased}
+                          creatures={getAvailableCreatures(companyTypeId)}
+                          goldRemaining={goldRemaining}
+                          onBuy={handleBuy}
+                          onRemove={handleRemove}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )
+          })}
+        </Box>
+      )}
     </Box>
   )
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+// ── MemberPurchasePanel (used in split-pane mode) ────────────────────────────
+
+interface MemberPurchasePanelProps {
+  member: RosterMember
+  purchased: string[]
+  activeTab: 'wargear' | 'equipment' | 'creatures'
+  onTabChange: (tab: 'wargear' | 'equipment' | 'creatures') => void
+  availableWargear: WargearEntry[]
+  availableEquipment: EquipmentEntry[]
+  availableCreatures: CreatureEntry[]
+  goldRemaining: number
+  onBuy: (member: RosterMember, id: string) => void
+  onRemove: (member: RosterMember, id: string) => void
+  leaderId: string | null
+}
+
+function MemberPurchasePanel({
+  member,
+  purchased,
+  activeTab,
+  onTabChange,
+  availableWargear,
+  availableEquipment,
+  availableCreatures,
+  goldRemaining,
+  onBuy,
+  onRemove,
+  leaderId,
+}: MemberPurchasePanelProps) {
+  const memberLabel = getMemberLabel(member, leaderId)
+
+  return (
+    <Box
+      sx={{
+        border: '1px solid',
+        borderColor: 'primary.main',
+        borderRadius: 1.5,
+        overflow: 'hidden',
+        background: 'rgba(201,168,76,0.04)',
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ px: 1.5, py: 1.25 }}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, color: 'primary.main' }}
+        >
+          {member.name}
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.5 }}>
+          {memberLabel}
+          {' · '}
+          {member.baseUnitId
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())}
+        </Typography>
+      </Box>
+
+      {/* Tabs + content */}
+      <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => onTabChange(v)}
+          variant="fullWidth"
+          sx={{
+            minHeight: 36,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              minHeight: 36,
+              fontSize: '0.7rem',
+              py: 0.5,
+            },
+          }}
+        >
+          <Tab label="Wargear" value="wargear" />
+          <Tab label="Equipment" value="equipment" />
+          {member.isHero && <Tab label="Creatures" value="creatures" />}
+        </Tabs>
+
+        <Box sx={{ px: 1.5, pb: 1.5 }}>
+          {activeTab === 'wargear' && (
+            <WargearTabContent
+              member={member}
+              purchased={purchased}
+              available={availableWargear}
+              goldRemaining={goldRemaining}
+              onBuy={onBuy}
+              onRemove={onRemove}
+            />
+          )}
+          {activeTab === 'equipment' && (
+            <EquipmentTabContent
+              member={member}
+              purchased={purchased}
+              available={availableEquipment}
+              goldRemaining={goldRemaining}
+              onBuy={onBuy}
+              onRemove={onRemove}
+            />
+          )}
+          {activeTab === 'creatures' && member.isHero && (
+            <CreaturesTabContent
+              member={member}
+              purchased={purchased}
+              creatures={availableCreatures}
+              goldRemaining={goldRemaining}
+              onBuy={onBuy}
+              onRemove={onRemove}
+            />
+          )}
+        </Box>
+      </Box>
+    </Box>
+  )
+}
 
 interface TabContentProps {
   member: RosterMember

@@ -273,39 +273,60 @@ export default function PathCardSelector({
 
   return (
     <Box>
-      {headerSlot}
+      {/* Sticky header + nav — sticks below md for small screens */}
+      <Box
+        sx={{
+          position: { xs: 'sticky', md: 'static' },
+          top: { xs: 64, md: 'auto' },
+          zIndex: 2,
+          backgroundColor: { xs: 'background.default', md: 'transparent' },
+          pb: { xs: 1, md: 0 },
+          mb: { xs: 1, md: 0 },
+          borderBottom: { xs: '1px solid', md: 'none' },
+          borderColor: 'divider',
+        }}
+      >
+        {headerSlot}
 
-      {/* Navigation row */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => goTo(cardIndex - 1)}
-          disabled={cardIndex === 0}
-          sx={{ minWidth: 36, p: 0.5, minHeight: 36 }}
-        >
-          <ChevronLeftIcon />
-        </Button>
-        <Typography
-          variant="caption"
-          sx={{
-            flex: 1,
-            textAlign: 'center',
-            fontStyle: 'normal',
-            opacity: 0.55,
-          }}
-        >
-          {cardIndex + 1} of {PATHS.length}
-        </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => goTo(cardIndex + 1)}
-          disabled={cardIndex === PATHS.length - 1}
-          sx={{ minWidth: 36, p: 0.5, minHeight: 36 }}
-        >
-          <ChevronRightIcon />
-        </Button>
+        {/* Navigation row */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0, md: 1.5 } }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => goTo(cardIndex - 1)}
+            disabled={cardIndex === 0}
+            sx={{ minWidth: 36, p: 0.5, minHeight: 36 }}
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
+            <Typography
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif',
+                fontSize: { xs: '0.82rem', md: '0.9rem' },
+                color: 'primary.main',
+                lineHeight: 1.3,
+              }}
+            >
+              {path.label}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.55, fontStyle: 'normal' }}
+            >
+              {cardIndex + 1} of {PATHS.length}
+            </Typography>
+          </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => goTo(cardIndex + 1)}
+            disabled={cardIndex === PATHS.length - 1}
+            sx={{ minWidth: 36, p: 0.5, minHeight: 36 }}
+          >
+            <ChevronRightIcon />
+          </Button>
+        </Box>
       </Box>
 
       {/* Swipeable card */}
@@ -581,18 +602,6 @@ export default function PathCardSelector({
                     </Box>
                   ))}
                 </Box>
-              </Box>
-
-              {/* Select button */}
-              <Box sx={{ px: 2.5, pb: 2, pt: 1 }}>
-                <Button
-                  fullWidth
-                  variant={isSelected ? 'outlined' : 'contained'}
-                  onClick={() => onSelect(path.id)}
-                  sx={{ minHeight: 44 }}
-                >
-                  {isSelected ? 'Path Chosen ✓' : 'Select This Path'}
-                </Button>
               </Box>
             </Box>
           </motion.div>

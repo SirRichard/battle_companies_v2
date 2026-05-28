@@ -35,7 +35,7 @@ export default function StepFaction({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
           gap: 1.5,
         }}
       >
@@ -90,6 +90,7 @@ export default function StepFaction({
           </motion.div>
         ))}
       </Box>
+
     </Box>
   )
 }

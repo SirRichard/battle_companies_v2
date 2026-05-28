@@ -48,20 +48,26 @@ export default function StepMemberNames({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+        gap: 1.5,
+      }}
+    >
       <Typography
         variant="body2"
-        sx={{ fontStyle: 'italic', opacity: 0.7, mb: 1.5 }}
+        sx={{ fontStyle: 'italic', opacity: 0.7, gridColumn: '1 / -1' }}
       >
         Name each member of your starting warband. Default names will be used
         for any left blank. You can always rename members later.
       </Typography>
 
       {memberInfo.map((info, i) => (
-        <Box key={info.tempId}>
+        <Box key={info.tempId} sx={{ display: 'contents' }}>
           {/* Group label separator */}
           {info.groupLabel && i > 0 && (
-            <Divider sx={{ my: 1.5, opacity: 0.3 }} />
+            <Divider sx={{ opacity: 0.3, gridColumn: '1 / -1' }} />
           )}
           {info.groupLabel && (
             <Typography
@@ -72,8 +78,7 @@ export default function StepMemberNames({
                 color: 'primary.main',
                 opacity: 0.7,
                 textTransform: 'uppercase',
-                mb: 1,
-                mt: i > 0 ? 0 : 0,
+                gridColumn: '1 / -1',
               }}
             >
               {info.groupLabel}
@@ -88,14 +93,13 @@ export default function StepMemberNames({
             value={memberNames[info.tempId] ?? ''}
             onChange={(e) => onChange(info.tempId, e.target.value)}
             inputProps={{ maxLength: 40 }}
-            sx={{ mb: 1 }}
           />
         </Box>
       ))}
 
       <Typography
         variant="caption"
-        sx={{ opacity: 0.45, fontStyle: 'italic', mt: 1 }}
+        sx={{ opacity: 0.45, fontStyle: 'italic', gridColumn: '1 / -1' }}
       >
         Tip: Named members are easier to track during a campaign. Even simple
         names like "Beren" or "Thrak" help tell your warband's story.

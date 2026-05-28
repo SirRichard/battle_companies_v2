@@ -145,7 +145,7 @@ export default function StepSpellSelection({
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 0.75 }}>
         {CHANNELING_SPELLS.map((spell) => {
           const isSelected = selectedSpellId === spell.id
           return (
