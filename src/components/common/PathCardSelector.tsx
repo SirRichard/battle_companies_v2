@@ -43,6 +43,8 @@ interface Props {
   onCardChange?: (pathId: string) => void
   baseStats?: Record<string, number>
   headerSlot?: React.ReactNode
+  cardIndex?: number
+  onCardIndexChange?: (index: number) => void
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -220,13 +222,20 @@ export default function PathCardSelector({
   onCardChange,
   baseStats,
   headerSlot,
+  cardIndex: controlledIndex,
+  onCardIndexChange,
 }: Props) {
-  const [cardIndex, setCardIndex] = useState(() => {
+  // Controlled mode: both cardIndex and onCardIndexChange provided
+  const isControlled = controlledIndex !== undefined && onCardIndexChange !== undefined
+
+  const [internalIndex, setInternalIndex] = useState(() => {
     const idx = PATHS.findIndex((p) => p.id === selectedPathId)
     return idx >= 0 ? idx : 0
   })
   const [direction, setDirection] = useState(0)
   const touchStartX = useRef<number | null>(null)
+
+  const cardIndex = isControlled ? controlledIndex : internalIndex
 
   // Notify parent of the initially-viewed path on mount
   useEffect(() => {
@@ -237,7 +246,11 @@ export default function PathCardSelector({
   const goTo = (idx: number) => {
     if (idx < 0 || idx >= PATHS.length) return
     setDirection(idx > cardIndex ? 1 : -1)
-    setCardIndex(idx)
+    if (isControlled) {
+      onCardIndexChange(idx)
+    } else {
+      setInternalIndex(idx)
+    }
     onCardChange?.(PATHS[idx].id)
   }
 
@@ -273,17 +286,11 @@ export default function PathCardSelector({
 
   return (
     <Box>
-      {/* Sticky header + nav — sticks below md for small screens */}
+      {/* Header slot + nav */}
       <Box
         sx={{
-          position: { xs: 'sticky', md: 'static' },
-          top: { xs: 64, md: 'auto' },
-          zIndex: 2,
-          backgroundColor: { xs: 'background.default', md: 'transparent' },
           pb: { xs: 1, md: 0 },
           mb: { xs: 1, md: 0 },
-          borderBottom: { xs: '1px solid', md: 'none' },
-          borderColor: 'divider',
         }}
       >
         {headerSlot}

@@ -35,8 +35,8 @@ export default function PageHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 1,
-        px: { xs: 2, sm: 3 },
-        py: 2,
+        px: { xs: 1.5, sm: 3 },
+        py: { xs: 1, sm: 2 },
         borderBottom: '1px solid',
         borderColor: 'divider',
         background:
@@ -45,21 +45,22 @@ export default function PageHeader({
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        minHeight: 64,
+        minHeight: { xs: 44, sm: 64 },
       }}
     >
       {(backTo || onBack) && (
         <IconButton
           onClick={handleBack}
+          size="small"
           sx={{
             color: 'primary.main',
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: { xs: 36, sm: 44 },
+            minHeight: { xs: 36, sm: 44 },
             '&:hover': { background: 'rgba(201,168,76,0.1)' },
           }}
           aria-label="Back"
         >
-          <ArrowBackIcon />
+          <ArrowBackIcon fontSize="small" />
         </IconButton>
       )}
 
@@ -67,7 +68,7 @@ export default function PageHeader({
         <Typography
           variant="h2"
           sx={{
-            fontSize: { xs: '1.1rem', sm: '1.4rem' },
+            fontSize: { xs: '0.95rem', sm: '1.4rem' },
             lineHeight: 1.2,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
